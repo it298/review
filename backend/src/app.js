@@ -2,6 +2,7 @@ import express from 'express';
 import { createHash,timingSafeEqual } from 'node:crypto';
 import { state,mutate,getValue,setValue,deleteValue } from './store.js';
 import { matrix,track,sync } from './service.js';
+import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
 export function createApp(){
  const app=express();app.disable('x-powered-by');
@@ -21,6 +22,12 @@ export function createApp(){
  app.use('/api',(_req,res,next)=>{res.set('Cache-Control','no-store');next();});
  app.get('/',(_req,res)=>res.json({service:'review-tracker-api',health:'/api/health'}));
  app.get('/api/health',(_req,res)=>res.json({ok:true}));
+ app.get('/api/google/callback',async(req,res,next)=>{
+  res.set('Referrer-Policy','no-referrer');
+  let result='error';
+  try{result=await finishOAuth(req.query);}catch{}
+  try{const target=frontendUrl();target.searchParams.set('google',result);res.redirect(303,target.href);}catch(e){next(e);}
+ });
  app.get('/api/cron',async(req,res,next)=>{try{
   if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});
   let job=await getValue('cron-job');
@@ -33,10 +40,20 @@ export function createApp(){
   if(!process.env.APP_PASSWORD || process.env.APP_PASSWORD.length<16)return res.status(503).json({error:'Cần cấu hình APP_PASSWORD dài ít nhất 16 ký tự.'});
   if(!authorized(req.headers.authorization,process.env.APP_PASSWORD))return res.status(401).json({error:'Vui lòng đăng nhập.'});next();
  });
+ app.get('/api/google/status',async(_req,res,next)=>{try{res.json(await connectionStatus());}catch(e){next(e);}});
+ app.post('/api/google/connect',async(_req,res,next)=>{try{res.json({url:await startOAuth()});}catch(e){next(e);}});
+ app.post('/api/google/disconnect',async(_req,res,next)=>{try{res.json(await disconnectGoogle());}catch(e){next(e);}});
+ app.get('/api/google/accounts',async(req,res,next)=>{try{res.json(await listAccounts(typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
+ app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
  app.get('/api/places',async(_req,res,next)=>{try{res.json(Object.values((await state()).places));}catch(e){next(e);}});
  app.get('/api/places/dashboard-matrix',async(_req,res,next)=>{try{res.json(matrix(await state()));}catch(e){next(e);}});
- app.post('/api/places/track',async(req,res,next)=>{try{const {googleMapsUrl,name}=req.body || {};if(typeof googleMapsUrl!=='string' || !googleMapsUrl.trim() || (name!==undefined && (typeof name!=='string' || name.length>200)))return res.status(400).json({error:'URL hoặc tên không hợp lệ.'});res.json(await track(googleMapsUrl.trim(),name?.trim()));}catch(e){next(e);}});
+ app.post('/api/places/track',async(req,res,next)=>{try{
+  const {account,location,name,existingPlaceId}=req.body || {};
+  if(name!==undefined && (typeof name!=='string' || name.length>200))return res.status(400).json({error:'Tên không hợp lệ.'});
+  if(existingPlaceId!==undefined && (!Number.isSafeInteger(existingPlaceId)||existingPlaceId<1))return res.status(400).json({error:'Địa điểm cũ không hợp lệ.'});
+  res.json(await track(account,location,name?.trim(),existingPlaceId));
+ }catch(e){next(e);}});
  app.post('/api/places/sync',async(req,res,next)=>{try{res.json(await sync(req.body?.jobId));}catch(e){next(e);}});
  app.patch('/api/places/:id',async(req,res,next)=>{try{const name=req.body?.name;if(typeof name!=='string' || !name.trim() || name.length>200)return res.status(400).json({error:'Tên phải dài 1–200 ký tự.'});res.json(await mutate({op:'rename',id:Number(req.params.id),name:name.trim()}));}catch(e){next(e);}});
  app.delete('/api/places/:id',async(req,res,next)=>{try{res.json(await mutate({op:'delete',id:Number(req.params.id)}));}catch(e){next(e);}});

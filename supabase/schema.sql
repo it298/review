@@ -25,6 +25,17 @@ create table if not exists public.review_tracker_kv (
 create table if not exists public.review_tracker_locks (
   name text primary key, token text not null, expires_at timestamptz not null
 );
+alter table public.review_tracker_places add column if not exists google_account text;
+alter table public.review_tracker_places add column if not exists google_location text;
+alter table public.review_tracker_places add column if not exists data_source text not null default 'scraper';
+create unique index if not exists review_tracker_google_location_unique on public.review_tracker_places(google_location) where google_location is not null;
+create table if not exists public.review_tracker_connections (
+ id text primary key, payload text not null, revision uuid not null default gen_random_uuid(), updated_at timestamptz not null default now()
+);
+alter table public.review_tracker_connections enable row level security;
+revoke all on public.review_tracker_connections from public,anon,authenticated;
+grant select,insert,update,delete on public.review_tracker_connections to service_role;
+
 alter table public.review_tracker_places enable row level security;
 alter table public.review_tracker_snapshots enable row level security;
 alter table public.review_tracker_kv enable row level security;
@@ -57,7 +68,8 @@ begin
   if p->>'op' = 'save' then
     if row_id is not null then
       update public.review_tracker_places as t set
-        name=coalesce(t.custom_name,fresh->>'name'),
+        place_id=coalesce(place_key,t.place_id),google_account=coalesce(fresh->>'googleAccount',t.google_account),google_location=coalesce(fresh->>'googleLocation',t.google_location),data_source=coalesce(fresh->>'dataSource',t.data_source),
+        custom_name=coalesce(custom,t.custom_name),name=coalesce(custom,t.custom_name,fresh->>'name'),
         address=coalesce(fresh->>'address',''), rating=(fresh->>'rating')::numeric,
         user_rating_count=(fresh->>'reviewCount')::bigint, google_maps_uri=fresh->>'url',
         updated_at=captured, last_sync_at=captured, last_error=null
@@ -65,10 +77,11 @@ begin
       if not found then raise exception using errcode='P0002', message='Place not found'; end if;
     else
       insert into public.review_tracker_places as t
-        (place_id,name,custom_name,address,rating,user_rating_count,google_maps_uri,updated_at,last_sync_at)
+        (place_id,name,custom_name,address,rating,user_rating_count,google_maps_uri,updated_at,last_sync_at,google_account,google_location,data_source)
       values (place_key,coalesce(custom,fresh->>'name'),custom,coalesce(fresh->>'address',''),
-        (fresh->>'rating')::numeric,(fresh->>'reviewCount')::bigint,fresh->>'url',captured,captured)
+        (fresh->>'rating')::numeric,(fresh->>'reviewCount')::bigint,fresh->>'url',captured,captured,fresh->>'googleAccount',fresh->>'googleLocation',coalesce(fresh->>'dataSource','scraper'))
       on conflict (place_id) do update set
+        google_account=excluded.google_account,google_location=excluded.google_location,data_source=excluded.data_source,
         custom_name=coalesce(excluded.custom_name,t.custom_name),
         name=coalesce(excluded.custom_name,t.custom_name,excluded.name),
         address=excluded.address,rating=excluded.rating,user_rating_count=excluded.user_rating_count,
@@ -129,6 +142,42 @@ create or replace function public.review_tracker_kv_delete(p_key text) returns v
 language sql security invoker set search_path = '' as $$
   delete from public.review_tracker_kv where key=p_key;
 $$;
+
+create or replace function public.review_tracker_kv_take(p_key text) returns jsonb
+language plpgsql security invoker set search_path='' as $$
+declare result jsonb;
+begin
+ delete from public.review_tracker_kv where key=p_key and expires_at>now() returning value into result;
+ return result;
+end;
+$$;
+create or replace function public.review_tracker_connection_get() returns jsonb
+language sql stable security invoker set search_path='' as $$
+ select jsonb_build_object('payload',payload,'revision',revision) from public.review_tracker_connections where id='google';
+$$;
+create or replace function public.review_tracker_connection_set(p_payload text,p_expected_revision uuid default null) returns jsonb
+language plpgsql security invoker set search_path='' as $$
+declare row_data public.review_tracker_connections%rowtype;
+begin
+ if p_expected_revision is null then
+  insert into public.review_tracker_connections(id,payload) values('google',p_payload)
+  on conflict(id) do update set payload=excluded.payload,revision=gen_random_uuid(),updated_at=now() returning * into row_data;
+ else
+  update public.review_tracker_connections set payload=p_payload,revision=gen_random_uuid(),updated_at=now()
+  where id='google' and revision=p_expected_revision returning * into row_data;
+  if not found then return null; end if;
+ end if;
+ return jsonb_build_object('payload',row_data.payload,'revision',row_data.revision);
+end;
+$$;
+create or replace function public.review_tracker_connection_delete() returns void
+language plpgsql security invoker set search_path='' as $$
+begin
+ delete from public.review_tracker_connections where id='google';
+ delete from public.review_tracker_kv where key like 'oauth:%';
+end;
+$$;
+
 do $$
 declare f record;
 begin
@@ -136,7 +185,8 @@ begin
     join pg_namespace n on p.pronamespace=n.oid
     where n.nspname='public' and p.proname in
       ('review_tracker_state','review_tracker_mutate','review_tracker_lock','review_tracker_unlock',
-       'review_tracker_kv_get','review_tracker_kv_set','review_tracker_kv_delete')
+       'review_tracker_kv_get','review_tracker_kv_set','review_tracker_kv_delete','review_tracker_kv_take',
+       'review_tracker_connection_get','review_tracker_connection_set','review_tracker_connection_delete')
   loop
     execute format('revoke execute on function %s from public, anon, authenticated',f.signature);
     execute format('grant execute on function %s to service_role',f.signature);

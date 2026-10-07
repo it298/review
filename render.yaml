@@ -1,15 +1,23 @@
 services:
   - type: web
-    name: hotel-review-tracker-api
-    runtime: docker
+    name: hotel-review-tracker-api-gbp
+    runtime: node
     repo: https://github.com/it298/review
     branch: main
     plan: free
     rootDir: backend
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    buildCommand: npm ci
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
       - key: SUPABASE_URL
         value: https://atbumgsilrmrlmbwbowp.supabase.co
       - key: SUPABASE_SECRET_KEY
@@ -38,7 +46,7 @@ services:
         value: 24
       - key: VITE_API_URL
         fromService:
-          name: hotel-review-tracker-api
+          name: hotel-review-tracker-api-gbp
           type: web
           envVarKey: RENDER_EXTERNAL_URL
     routes:

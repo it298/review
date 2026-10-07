@@ -27,12 +27,23 @@ test('PostgreSQL schema: atomic snapshots, names, locks and access restrictions'
     await db.query("select public.review_tracker_unlock('browser','a')");assert.equal(await acquire('b'),true);
     await db.query("select public.review_tracker_kv_set('job', $1::jsonb, 86400)",[JSON.stringify({pending:[row.id]})]);
     assert.deepEqual((await db.query("select public.review_tracker_kv_get('job') as job")).rows[0].job.pending,[row.id]);
+    assert.ok((await db.query("select public.review_tracker_kv_take('job') as job")).rows[0].job);
+    assert.equal((await db.query("select public.review_tracker_kv_take('job') as job")).rows[0].job,null);
+    const conn=(await db.query("select public.review_tracker_connection_set('encrypted-one') as conn")).rows[0].conn;
+    assert.equal((await db.query('select public.review_tracker_connection_set($1,$2::uuid) as conn',['encrypted-two',conn.revision])).rows[0].conn.payload,'encrypted-two');
+    assert.equal((await db.query('select public.review_tracker_connection_set($1,$2::uuid) as conn',['stale',conn.revision])).rows[0].conn,null);
+    await db.query('select public.review_tracker_connection_delete()');
+    assert.equal((await db.query('select public.review_tracker_connection_set($1,$2::uuid) as conn',['resurrect',conn.revision])).rows[0].conn,null);
+    await mutation({...payload,id:row.id,identity:'gbp:locations/123',fresh:{...payload.fresh,googleAccount:'accounts/1',googleLocation:'locations/123',dataSource:'google_business_profile'}});
+    data=(await db.query('select public.review_tracker_state() as data')).rows[0].data;
+    assert.equal(data.places[row.id].google_location,'locations/123');assert.equal(Object.keys(data.snapshots).length,1);
     await mutation({op:'delete',id:row.id});
     data=(await db.query('select public.review_tracker_state() as data')).rows[0].data;assert.deepEqual(data.places,{});assert.deepEqual(data.snapshots,{});
     await assert.rejects(()=>mutation({op:'rename',id:999,name:'Missing'}),error=>error.code==='P0002');
     await db.exec('reset role; set role anon;');
     await assert.rejects(()=>db.query('select public.review_tracker_state()'),/permission denied/i);
     await assert.rejects(()=>db.query('select * from public.review_tracker_places'),/permission denied/i);
+    await assert.rejects(()=>db.query('select public.review_tracker_connection_get()'),/permission denied/i);
     await db.exec('reset role; set role authenticated;');
     await assert.rejects(()=>db.query('select public.review_tracker_mutate($1::jsonb)',[JSON.stringify(payload)]),/permission denied/i);
   } finally { await db.close(); }

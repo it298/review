@@ -14,6 +14,7 @@ export async function rpc(name, args = {}) {
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    if (data?.code === '23505') throw Object.assign(new Error('Địa điểm Google này đã được theo dõi. Chọn bản ghi đã có.'), {status:409});
     if (data?.code === 'P0002') throw Object.assign(new Error('Không tìm thấy địa điểm.'), { status: 404 });
     throw new Error('Không truy cập được Supabase. Kiểm tra secret key và chạy file SQL khởi tạo.');
   }

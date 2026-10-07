@@ -10,4 +10,4 @@
 
 .content{min-width:0}.places-list{display:grid;gap:14px;margin-top:24px}.form-card input,input{padding:10px;border:1px solid #d1d5db;border-radius:7px}.form-card label{display:grid;gap:6px}.danger{margin-left:10px;color:#b91c1c}.notice.error{background:#fee2e2;color:#991b1b}.export-button{margin-bottom:14px;padding:8px 14px}.place-group a{color:inherit}.review-matrix .place-head-row th{height:60px}.place-group div{max-height:46px;overflow:hidden}.review-matrix .subhead-row th{top:94px}
 
-.login-page{min-height:100vh;display:grid;place-items:center;padding:24px}.login-page form{width:min(420px,100%)}.logout{position:fixed;bottom:12px;left:12px;z-index:10;padding:8px;border-radius:6px;border:1px solid #999}
+.login-page{min-height:100vh;display:grid;place-items:center;padding:24px}.login-page form{width:min(420px,100%)}.logout{position:fixed;bottom:12px;left:12px;z-index:10;padding:8px;border-radius:6px;border:1px solid #999}.form-card select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:7px;background:white}.form-card + .form-card{margin-top:16px}

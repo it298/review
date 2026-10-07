@@ -1,4 +1,13 @@
-# Kết quả kiểm tra bản Render 2.3
+# Kết quả kiểm tra bản Google Business Profile 3.0
+
+## Google Business Profile API 3.0 (07/10/2026)
+
+- 10/10 test backend đạt: CORS, xác thực, PostgreSQL, OAuth/PKCE với state dùng một lần, mã hóa AES-GCM, refresh token rotation và đọc tổng review/sao bằng Google API giả lập.
+- SQL được chạy trong PostgreSQL WASM: kết nối mã hóa chỉ service_role truy cập, compare-and-swap không phục hồi kết nối đã xóa, state OAuth tiêu thụ một lần, liên kết địa điểm Google giữ ID và snapshot cũ.
+- Frontend production build đạt.
+- Kiểm tra UI bằng Chromium thật với API giả lập: đăng nhập, chọn business account, chọn khách sạn và liên kết lịch sử cũ đạt, không có lỗi JavaScript.
+- Backend không còn dependency Chromium/Playwright/Docker. Render dùng Node Web Service + Static Site.
+- Chưa xác minh Google Cloud API access, OAuth với Google thật, Supabase live hoặc deployment Render. Cần cấu hình và được Google duyệt API trước khi sử dụng dữ liệu thật.
 
 ## Bản tách frontend/backend 2.3 (07/10/2026)
 
