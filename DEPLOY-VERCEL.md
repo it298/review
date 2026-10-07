@@ -1,10 +1,10 @@
-# Triển khai bản cloud 2.0 trên Vercel
+# Triển khai bản cloud 2.1 trên Vercel
 
-Giao diện và API đều chạy trong một Vercel project. Không cần VPS. Lưu dữ liệu bằng Upstash Redis và mở Chromium qua Browserless CDP. Đây là hai dịch vụ riêng, cần kiểm tra hạn mức và chi phí của tài khoản.
+Giao diện và API đều chạy trong một Vercel project. Không cần VPS. Lưu dữ liệu bằng Supabase PostgreSQL và mở Chromium qua Browserless CDP. Đây là hai dịch vụ riêng, cần kiểm tra hạn mức và chi phí của tài khoản.
 
 ## 1. Tạo dịch vụ
 
-Upstash: https://console.upstash.com/ → tạo Redis database → lấy REST URL và REST TOKEN có quyền ghi (không dùng token read-only).
+Supabase project: https://atbumgsilrmrlmbwbowp.supabase.co. Trong SQL Editor, tạo New query, dán toàn bộ supabase/schema.sql rồi Run. Trong Settings → API Keys, lấy secret key (sb_secret_...). Không gửi key vào chat; nhập trực tiếp trong Vercel. Có thể dùng legacy service_role JWT nếu chưa có secret key.
 
 Browserless: https://www.browserless.io/ → lấy API token và CDP endpoint cho Chromium. Endpoint mặc định: wss://production-sfo.browserless.io/chromium. Không dùng endpoint /playwright với connectOverCDP.
 
@@ -24,16 +24,15 @@ Thêm Environment Variables cho Production (và Preview nếu cần thử):
 
 | Biến | Giá trị |
 | --- | --- |
-| UPSTASH_REDIS_REST_URL | REST URL từ Upstash |
-| UPSTASH_REDIS_REST_TOKEN | REST token có quyền ghi |
+| SUPABASE_URL | https://atbumgsilrmrlmbwbowp.supabase.co |
+| SUPABASE_SECRET_KEY | Secret key sb_secret_... từ Supabase (chỉ server) |
 | BROWSERLESS_TOKEN | API token Browserless |
 | BROWSERLESS_URL | CDP endpoint Chromium của tài khoản |
 | APP_PASSWORD | Mật khẩu ngẫu nhiên dài ít nhất 16 ký tự |
 | CRON_SECRET | Chuỗi ngẫu nhiên dài, khác mật khẩu ứng dụng |
 | TIMEZONE | Asia/Ho_Chi_Minh |
-| REDIS_PREFIX | review-tracker-production |
 
-Không đưa token vào Git/chat. Không thêm tiền tố VITE_ cho secret. Dùng Redis riêng hoặc REDIS_PREFIX khác cho Preview để không ảnh hưởng dữ liệu Production.
+Không đưa token vào Git/chat. Không thêm tiền tố VITE_ cho secret. Dùng Supabase project riêng cho Preview; nếu chưa có, chỉ cấu hình secret cho Production. Không dùng publishable/anon key cho API server này.
 
 Deploy, mở URL, đăng nhập bằng APP_PASSWORD, thêm một URL Google Maps thật và kiểm tra snapshot. /api/health chỉ xác nhận API chạy; chưa chứng minh các dịch vụ đã kết nối.
 
@@ -56,10 +55,10 @@ Vào Actions → Sync Google Maps reviews → Run workflow để thử. Workflow
 
 Không tự chuyển file JSON local lên cloud. Dữ liệu cloud bắt đầu rỗng; giữ file JSON cũ làm bản sao lưu. Không đổi TIMEZONE sau khi dùng.
 
-Redis dùng một document JSON và script Lua cập nhật nguyên tử để tránh ghi đè giữa các instance. Phù hợp công cụ nhỏ; dữ liệu lớn cần chuyển sang cơ sở dữ liệu có truy vấn và phân trang. Khóa phân tán giới hạn một phiên Chromium; khi có thao tác khác đang dùng, đồng bộ chờ đợt sau.
+Supabase lưu địa điểm và snapshot trong các bảng riêng, unique theo địa điểm/ngày. RPC ghi địa điểm và snapshot trong cùng transaction; xóa địa điểm tự xóa lịch sử. RLS và quyền SQL chặn anon/authenticated, chỉ server service_role được truy cập. API hiện trả toàn bộ lịch sử nên cần phân trang khi dữ liệu lớn. Khóa phân tán giới hạn một phiên Chromium; khi có thao tác khác đang dùng, đồng bộ chờ đợt sau.
 
 Google Maps vẫn có thể yêu cầu xác minh hoặc thay DOM; Browserless không bảo đảm scrape thành công. Kiểm tra thêm/xóa/đổi tên, xuất CSV và cập nhật bằng URL thật trước khi sử dụng chính thức.
 
 ## Kiểm tra local
 
-Ở thư mục gốc: npm ci, npm test, npm run build. Backend local 1.2 vẫn nằm trong backend/ và có thể chạy riêng như README cũ. Bản Vercel dùng api/index.js và cloud/.
+Ở thư mục gốc: npm ci, npm test, npm run build. Mật khẩu ứng dụng hiện vẫn dùng APP_PASSWORD; chưa chuyển sang Supabase Auth. Backend local 1.2 vẫn nằm trong backend/ và có thể chạy riêng như README cũ. Bản Vercel dùng api/index.js và cloud/.

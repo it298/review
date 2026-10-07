@@ -1,6 +1,6 @@
 {
   "name": "hotel-review-tracker-vercel",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,9 +11,11 @@
     "test": "node --test cloud/test/*.test.js"
   },
   "dependencies": {
-    "@upstash/redis": "^1.35.0",
+    "dotenv": "^16.4.7",
     "express": "^5.1.0",
-    "playwright-core": "^1.55.0",
-    "dotenv": "^16.4.7"
+    "playwright-core": "^1.55.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }

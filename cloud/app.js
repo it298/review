@@ -1,6 +1,6 @@
 import express from 'express';
 import { createHash,timingSafeEqual } from 'node:crypto';
-import { state,mutate,redis,key } from './store.js';
+import { state,mutate,getValue,setValue,deleteValue } from './store.js';
 import { matrix,track,sync } from './service.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
 export function createApp(){
@@ -9,10 +9,10 @@ export function createApp(){
  app.get('/api/health',(_req,res)=>res.json({ok:true}));
  app.get('/api/cron',async(req,res,next)=>{try{
   if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});
-  let job=await redis().get(key('cron-job'));
-  if(job && !await redis().exists(key('job:'+job))){await redis().del(key('cron-job'));job=null;}
+  let job=await getValue('cron-job');
+  if(job && !await getValue('job:'+job)){await deleteValue('cron-job');job=null;}
   let summary=await sync(job || undefined);
-  if(!summary.skipped){if(summary.done)await redis().del(key('cron-job'));else await redis().set(key('cron-job'),summary.jobId,{ex:604800});}
+  if(!summary.skipped){if(summary.done)await deleteValue('cron-job');else await setValue('cron-job',summary.jobId,604800);}
   res.json(summary);
  }catch(e){next(e);}});
  app.use('/api',(req,res,next)=>{

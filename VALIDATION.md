@@ -1,4 +1,12 @@
-# Kết quả kiểm tra bản Cloud 2.0 / Local 1.2
+# Kết quả kiểm tra bản Cloud 2.1 / Local 1.2
+
+## Bản Supabase 2.1 (07/10/2026)
+
+- 5/5 bài test cloud đạt, bao gồm REST adapter và chạy schema thật bằng PostgreSQL WASM (PGlite).
+- SQL khởi tạo chạy lại được; snapshot ghi cùng ngày được upsert, tên tùy chọn được giữ, lỗi snapshot rollback cập nhật địa điểm, xóa cascade lịch sử, khóa phân tán kiểm tra đúng token.
+- Kiểm tra quyền: service_role dùng RPC; anon/authenticated không truy cập các bảng và RPC của ứng dụng.
+- Root production build đạt.
+- Chưa chạy SQL trên project Supabase của người dùng hoặc kiểm chứng key, Browserless và deployment Vercel. Kết quả local không thay thế kiểm tra kết nối thật.
 
 ## Bản cloud Vercel (07/10/2026)
 
