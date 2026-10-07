@@ -1,6 +1,6 @@
 import express from 'express';
 import { createHash,timingSafeEqual } from 'node:crypto';
-import { state,mutate,getValue,setValue,deleteValue } from './store.js';
+import { state,mutate,getValue,setValue,deleteValue,rpc } from './store.js';
 import { matrix,track,sync } from './service.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
@@ -46,6 +46,7 @@ export function createApp(){
  app.get('/api/google/accounts',async(req,res,next)=>{try{res.json(await listAccounts(typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
+ app.get('/api/ota/reviews',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_reviews'));}catch(e){next(e);}});
  app.get('/api/places',async(_req,res,next)=>{try{res.json(Object.values((await state()).places));}catch(e){next(e);}});
  app.get('/api/places/dashboard-matrix',async(_req,res,next)=>{try{res.json(matrix(await state()));}catch(e){next(e);}});
  app.post('/api/places/track',async(req,res,next)=>{try{

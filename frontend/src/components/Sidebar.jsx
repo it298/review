@@ -7,6 +7,7 @@ export default function Sidebar({page,setPage,onLogout}){
    <button aria-label="Tổng quan" className={page==='dashboard'?'active':''} aria-current={page==='dashboard'?'page':undefined} onClick={()=>setPage('dashboard')}><Icon name="dashboard"/><span>Tổng quan</span>{page==='dashboard' && <span className="active-dot"/>}</button>
    <button aria-label="Khách sạn" className={page==='places'?'active':''} aria-current={page==='places'?'page':undefined} onClick={()=>setPage('places')}><Icon name="hotel"/><span>Khách sạn</span>{page==='places' && <span className="active-dot"/>}</button>
   </nav>
+  <nav aria-label="Nguồn OTA"><button aria-label="Đánh giá OTA" className={page==='ota'?'active':''} aria-current={page==='ota'?'page':undefined} onClick={()=>setPage('ota')}><Icon name="review"/><span>Đánh giá OTA</span>{page==='ota'&&<span className="active-dot"/>}</button></nav>
   <div className="sidebar-bottom"><div className="source-note"><Icon name="shield"/><div>Google Business Profile<small>Dữ liệu từ tài khoản quản lý</small></div></div><button className="signout" aria-label="Đăng xuất" onClick={onLogout}><Icon name="logout"/><span>Đăng xuất</span></button><div className="workspace-user"><span className="avatar">AD</span><div>Workspace của bạn<small>Quản trị viên</small></div><span className="online-dot"/></div></div>
  </aside>;
 }
