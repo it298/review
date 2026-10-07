@@ -51,3 +51,9 @@ Ngày kiểm tra: 07/10/2026. Runtime: Node.js 24.21.0.
 - Kiểm tra API trên backend thật với dữ liệu thử riêng: health, ngày ma trận theo giờ Việt Nam, từ chối URL giả, 404 cho địa điểm không tồn tại, đổi tên, xóa lịch sử, đồng bộ danh sách rỗng: pass.
 
 Chưa kiểm chứng scrape một địa điểm Google Maps thật hoặc kiểm tra giao diện bằng trình duyệt. Browser Chromium cần được cài bằng npm run install-browser trước khi thêm địa điểm. Chưa có đăng nhập; backend mặc định chỉ truy cập trên máy chạy ứng dụng.
+## Giao diện dashboard mới (07/10/2026)
+
+- Vite production build: đạt.
+- Kiểm tra trình duyệt với API giả lập: thống kê, tìm kiếm, đồng bộ, tải CSV, chọn khách sạn Google và liên kết lịch sử cũ: đạt.
+- Kiểm tra màn hình 390px, trạng thái trống, lỗi và thử lại: đạt; không có lỗi JavaScript hoặc tràn ngang toàn trang.
+- Đã xem ảnh dashboard và quản lý khách sạn. Ảnh xem trước dùng dữ liệu giả lập, không xác nhận kết nối Google/Supabase thật.

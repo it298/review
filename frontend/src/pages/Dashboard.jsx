@@ -1,137 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect,useMemo,useState } from 'react';
 import { api } from '../lib/api.js';
-
-function formatDate(value) {
-  const [y, m, d] = value.split('-');
-  return `${d}/${m}/${y}`;
+import Icon from '../components/Icon.jsx';
+const number=value=>new Intl.NumberFormat('vi-VN').format(value);
+const rating=value=>value==null?'—':Number(value).toLocaleString('vi-VN',{maximumFractionDigits:2});
+function date(value){return value?value.split('-').reverse().join('/'):'—';}
+function Trend({points}){
+ if(points.length<2)return <div className="chart-empty"><Icon name="trend" size={30}/><p>Cần ít nhất hai ngày ghi nhận để xem xu hướng.</p></div>;
+ const w=680,h=180,pad=25;const values=points.map(p=>p.reviews);const min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min);const start=new Date(points[0].date).getTime(),end=new Date(points.at(-1).date).getTime();
+ const coords=points.map(p=>[pad+(new Date(p.date).getTime()-start)/Math.max(1,end-start)*(w-pad*2),h-pad-(p.reviews-min)/range*(h-pad*2)]);const line=coords.map(c=>c.join(',')).join(' ');
+ return <><svg className="trend-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Tổng review từ ${number(values[0])} đến ${number(values.at(-1))}`}><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#4f71ed" stopOpacity=".16"/><stop offset="1" stopColor="#4f71ed" stopOpacity="0"/></linearGradient></defs>{[0,1,2,3].map(i=><line key={i} x1={pad} x2={w-pad} y1={pad+i*(h-pad*2)/3} y2={pad+i*(h-pad*2)/3} stroke="#e9edf4" strokeDasharray="4 5"/>)}<polygon points={`${pad},${h-pad} ${line} ${w-pad},${h-pad}`} fill="url(#chart-fill)"/><polyline points={line} fill="none" stroke="#4f71ed" strokeWidth="3" strokeLinejoin="round"/>{coords.map((c,i)=><circle key={points[i].date} cx={c[0]} cy={c[1]} r="4" fill="white" stroke="#4f71ed" strokeWidth="2"><title>{date(points[i].date)}: {number(points[i].reviews)} review</title></circle>)}</svg><div className="chart-axis"><span>{date(points[0].date)} · {number(values[0])}</span><span>{date(points.at(-1).date)} · {number(values.at(-1))}</span></div></>;
 }
-
-function formatNumber(value) {
-  if (value == null || value === '') return '';
-  return new Intl.NumberFormat('vi-VN').format(value);
-}
-
-export default function Dashboard() {
-  const [data, setData] = useState({ places: [], dates: [], rows: [] });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [lastSync, setLastSync] = useState(null);
-
-  async function load() {
-    try {
-      setError('');
-      setData(await api('/api/places/dashboard-matrix'));
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-
-  useEffect(() => { load(); }, []);
-
-  function exportCsv() {
-    const quote = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
-    const safeName = value => /^[=+@-]/.test(value) ? "'" + value : value;
-    const lines = [ ['Ngày', ...data.places.flatMap(p=>[safeName(p.name)+' - Review', safeName(p.name)+' - Điểm sao'])],
-      ...data.rows.map(row=>[row.date,...data.places.flatMap(p=>[row.values[p.id]?.reviews ?? '',row.values[p.id]?.rating ?? ''])]) ];
-    const blob = new Blob(['\uFEFF'+lines.map(row=>row.map(quote).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download='lich-su-review.csv';a.click();URL.revokeObjectURL(url);
-  }
-  async function sync() {
-    setLoading(true);
-    setError('');
-    try {
-      let summary;
-      let jobId;
-      do {
-        summary=await api('/api/places/sync',{method:'POST',body:JSON.stringify({jobId})});
-        setLastSync(summary);
-        if(summary.skipped)break;
-        jobId=summary.jobId;
-        if(summary.remaining)await new Promise(resolve=>setTimeout(resolve,1500));
-      } while(summary.remaining>0);
-
-      await load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <main className="content dashboard-page">
-      <header className="dashboard-toolbar">
-        <div>
-          <h1>THEO DÕI REVIEW KHÁCH SẠN</h1>
-          <p>Google Maps · Mỗi dòng là một ngày ghi nhận · Mỗi khách sạn gồm Số Review và Điểm Sao</p>
-        </div>
-        <button className="primary" onClick={sync} disabled={loading}>
-          {loading ? 'Đang cập nhật...' : 'Cập nhật Google Maps'}
-        </button>
-      </header>
-
-      <button className="export-button" disabled={!data.rows.length} onClick={exportCsv}>Xuất CSV</button>
-      {lastSync?.skipped && <div className="notice">Đang có phiên đồng bộ chạy. Vui lòng tải lại sau.</div>}
-      {lastSync?.results?.filter(x=>!x.ok).map(x=><div className="notice error" key={x.placeId}>{x.name}: {x.error}</div>)}
-      {error && <div className="notice error">{error}</div>}
-      {lastSync && !lastSync.skipped && (
-        <div className="notice sync-summary">
-          Đã cập nhật {lastSync.results.filter(x => x.ok).length}/{lastSync.total} địa điểm
-          {lastSync.remaining ? ' · Còn '+lastSync.remaining+' địa điểm' : ''}
-          {lastSync.workers ? ` · ${lastSync.workers} worker` : ''}.
-          {lastSync.results.some(x => !x.ok) ? ' Một số địa điểm lỗi, xem lại URL hoặc thử lại.' : ''}
-        </div>
-      )}
-
-      {data.places.length === 0 ? (
-        <section className="card empty">Chưa có địa điểm. Sang mục “Địa điểm” để thêm khách sạn từ URL Google Maps.</section>
-      ) : (
-        <section className="dashboard-table-wrap">
-          <table className="review-matrix">
-            <thead>
-              <tr className="matrix-title-row">
-                <th rowSpan="3" className="date-head">Date</th>
-                <th colSpan={data.places.length * 2} className="google-head">Google Maps</th>
-              </tr>
-              <tr className="place-head-row">
-                {data.places.map(place => (
-                  <th key={place.id} colSpan="2" className="place-group" title={place.googleMapsUri || ''}>
-                    <div><a href={place.googleMapsUri} target="_blank" rel="noreferrer">{place.name}</a></div>
-                  </th>
-                ))}
-              </tr>
-              <tr className="subhead-row">
-                {data.places.flatMap(place => [
-                  <th key={`${place.id}-reviews`}>Số<br />Review</th>,
-                  <th key={`${place.id}-rating`}>Điểm Sao</th>
-                ])}
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map(row => (
-                <tr key={row.date}>
-                  <td className="date-cell">{formatDate(row.date)}</td>
-                  {data.places.flatMap(place => {
-                    const value = row.values[place.id];
-                    return [
-                      <td key={`${place.id}-${row.date}-reviews`} className="review-cell">
-                        {value ? formatNumber(value.reviews) : ''}
-                      </td>,
-                      <td key={`${place.id}-${row.date}-rating`} className="rating-cell">
-                        {value?.rating ?? ''}
-                      </td>
-                    ];
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      <div className="matrix-note">
-        Mỗi khách sạn có tối đa 1 snapshot/ngày. Chạy cập nhật nhiều lần trong ngày sẽ ghi đè snapshot của ngày đó, tránh dữ liệu trùng.
-      </div>
-    </main>
-  );
+export default function Dashboard({onManage}){
+ const [data,setData]=useState({places:[],rows:[],dates:[]});const [loading,setLoading]=useState(false);const [fetching,setFetching]=useState(true);const [error,setError]=useState('');const [lastSync,setLastSync]=useState(null);const [query,setQuery]=useState('');const [period,setPeriod]=useState('all');const [selected,setSelected]=useState('');
+ async function load(){try{setError('');setData(await api('/api/places/dashboard-matrix'));}catch(e){setError(e.message);}finally{setFetching(false);}}
+ useEffect(()=>{load();},[]);
+ const places=useMemo(()=>data.places.filter(p=>p.name.toLocaleLowerCase('vi-VN').includes(query.toLocaleLowerCase('vi-VN'))),[data.places,query]);
+ const todayParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const today=['year','month','day'].map(type=>todayParts.find(p=>p.type===type).value).join('-');
+ const cutoff=period==='all'?'':new Date(new Date(today+'T00:00:00Z').getTime()-(Number(period)-1)*86400000).toISOString().slice(0,10);
+ const rows=data.rows.filter(r=>!cutoff || r.date>=cutoff);
+ const latest=p=>[...data.rows].reverse().find(row=>row.values[p.id])?.values[p.id];
+ const latestValues=data.places.map(latest).filter(Boolean);const total=latestValues.reduce((sum,p)=>sum+(p.reviews || 0),0);const rated=latestValues.filter(p=>p.rating!=null);const average=rated.length?rated.reduce((sum,p)=>sum+p.rating,0)/rated.length:null;
+ const focus=places.find(p=>String(p.id)===selected) || places[0];const points=focus?rows.filter(r=>r.values[focus.id]).map(r=>({date:r.date,reviews:r.values[focus.id].reviews})):[];
+ const changes=places.map(p=>{const snapshots=rows.filter(r=>r.values[p.id]);const diff=snapshots.length>=2?snapshots.at(-1).values[p.id].reviews-snapshots[0].values[p.id].reviews:null;return {...p,latest:latest(p),diff};}).sort((a,b)=>(b.diff ?? -Infinity)-(a.diff ?? -Infinity));
+ async function sync(){setLoading(true);setError('');try{let summary,jobId;do{summary=await api('/api/places/sync',{method:'POST',body:JSON.stringify({jobId})});setLastSync(summary);if(summary.skipped)break;jobId=summary.jobId;if(summary.remaining)await new Promise(resolve=>setTimeout(resolve,1500));}while(summary.remaining>0);await load();}catch(e){setError(e.message);}finally{setLoading(false);}}
+ function exportCsv(){const quote=v=>'"'+String(v ?? '').replace(/"/g,'""')+'"';const safe=v=>/^\s*[=+@-]/.test(v)?"'"+v:v;const lines=[['Ngày',...places.flatMap(p=>[safe(p.name)+' - Review',safe(p.name)+' - Điểm sao'])],...rows.map(r=>[r.date,...places.flatMap(p=>[r.values[p.id]?.reviews ?? '',r.values[p.id]?.rating ?? ''])])];const url=URL.createObjectURL(new Blob(['\uFEFF'+lines.map(r=>r.map(quote).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='lich-su-review.csv';a.click();URL.revokeObjectURL(url);}
+ return <main className="content dashboard-page">
+  <header className="page-header"><div><span className="eyebrow">HIỆU SUẤT KHÁCH SẠN</span><h1>Tổng quan review<span className="heading-dot">.</span></h1><p>Theo dõi uy tín của khách sạn, mỗi ngày một góc nhìn rõ hơn.</p></div><div className="header-actions"><button className="secondary" disabled={!rows.length || !places.length} onClick={exportCsv}><Icon name="download"/>Xuất CSV</button><button className="primary" disabled={loading || fetching || !data.places.length} onClick={sync}><Icon name="refresh" className={loading?'spin':''}/>{loading?'Đang cập nhật...':'Cập nhật dữ liệu'}</button></div></header>
+  {error && <div className="notice error" role="alert"><Icon name="alert"/><div><strong>Chưa tải được dữ liệu</strong><p>{error}</p><button className="text-button" onClick={load}>Thử lại</button></div></div>}
+  {lastSync?.skipped && <div className="notice">Đang có phiên cập nhật khác. Vui lòng thử lại sau.</div>}
+  {lastSync && !lastSync.skipped && <div className="notice success" role="status"><Icon name="check"/><div>Đã cập nhật {lastSync.results.filter(x=>x.ok).length}/{lastSync.total} khách sạn.{lastSync.remaining?' Còn '+lastSync.remaining+' khách sạn.':''}{lastSync.results.filter(x=>!x.ok).map(x=><p key={x.placeId}>{x.name}: {x.error}</p>)}</div></div>}
+  <section className="metric-grid" aria-label="Chỉ số tổng quan">
+   {[{icon:'hotel',label:'Khách sạn theo dõi',value:number(data.places.length),note:'Trong workspace của bạn',color:'blue'},{icon:'review',label:'Tổng số review',value:latestValues.length?number(total):'—',note:'Tổng snapshot mới nhất của mỗi khách sạn',color:'purple'},{icon:'star',label:'Điểm trung bình',value:rating(average),note:'Trung bình điểm của các khách sạn có dữ liệu',color:'amber'},{icon:'calendar',label:'Lần ghi nhận gần nhất',value:data.dates.length?date(data.dates.at(-1)):'—',note:data.dates.length?number(data.dates.length)+' ngày có dữ liệu':'Chưa có lịch sử ghi nhận',color:'green'}].map(m=><article className="metric-card" key={m.label}><div className="metric-top"><span>{m.label}</span><span className={'icon-box '+m.color}><Icon name={m.icon}/></span></div><strong className={m.icon==='calendar'?'date-metric':''}>{fetching?'…':m.value}</strong><small>{m.note}</small></article>)}
+  </section>
+  <div className="filter-bar"><label className="search-field"><Icon name="search"/><input aria-label="Tìm khách sạn" placeholder="Tìm khách sạn..." value={query} onChange={e=>setQuery(e.target.value)}/></label><label className="period-filter"><Icon name="calendar"/><select aria-label="Khoảng thời gian" value={period} onChange={e=>setPeriod(e.target.value)}><option value="all">Toàn bộ thời gian</option><option value="7">7 ngày gần đây</option><option value="30">30 ngày gần đây</option><option value="90">90 ngày gần đây</option></select></label><span className="filter-count">{places.length} khách sạn</span></div>
+  {data.places.length===0?<section className="panel onboarding-empty"><span className="empty-illustration"><Icon name="hotel" size={36}/></span><h2>{fetching?'Đang tải workspace...':error?'Dữ liệu đang chờ kết nối':'Bắt đầu từ khách sạn đầu tiên'}</h2><p>Kết nối tài khoản Google Business Profile để theo dõi review và lưu lịch sử khách sạn của bạn.</p><button className="primary" onClick={onManage}><Icon name="plus"/>Quản lý khách sạn</button><div className="empty-steps"><span><b>01</b> Kết nối Google</span><Icon name="arrow" size={14}/><span><b>02</b> Chọn khách sạn</span><Icon name="arrow" size={14}/><span><b>03</b> Theo dõi review</span></div></section>:<>
+  <section className="insights-grid"><article className="panel trend-panel"><div className="panel-header"><div><h2>Xu hướng review</h2><p>Tổng review theo các ngày ghi nhận thực tế</p></div><select aria-label="Khách sạn xem xu hướng" value={focus?.id || ''} onChange={e=>setSelected(e.target.value)}>{places.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div><Trend points={points}/></article><article className="panel ranking-panel"><div className="panel-header"><div><h2>Thay đổi trong kỳ</h2><p>So sánh snapshot đầu và cuối kỳ</p></div><Icon name="trend"/></div><div className="ranking-list">{changes.slice(0,4).map((p,i)=><div className="ranking-row" key={p.id}><span className="rank-number">{String(i+1).padStart(2,'0')}</span><div><strong>{p.name}</strong><small><Icon name="star" size={12}/>{rating(p.latest?.rating)} · {p.latest?number(p.latest.reviews):'—'} review</small></div><span className={'delta '+(p.diff<0?'negative':'')}>{p.diff==null?'—':(p.diff>0?'+':'')+number(p.diff)}</span></div>)}</div>{!places.length && <p className="muted">Không có khách sạn khớp tìm kiếm.</p>}</article></section>
+  <section className="panel history-panel"><div className="panel-header"><div><h2>Lịch sử review</h2><p>Mỗi hàng là một ngày · mỗi khách sạn gồm review và điểm sao</p></div><span className="badge neutral"><Icon name="calendar" size={14}/>{rows.length} ngày ghi nhận</span></div>{places.length && rows.length?<div className="dashboard-table-wrap"><table className="review-matrix"><thead><tr><th rowSpan="2" className="date-head">Ngày ghi nhận</th>{places.map(p=><th colSpan="2" className="place-group" key={p.id}><a href={p.googleMapsUri} target="_blank" rel="noreferrer">{p.name}<Icon name="external" size={13}/></a></th>)}</tr><tr>{places.flatMap(p=>[<th key={p.id+'reviews'}>Tổng review</th>,<th key={p.id+'rating'}>Điểm sao</th>])}</tr></thead><tbody>{[...rows].reverse().map((r,i)=><tr key={r.date}><td className="date-cell">{date(r.date)}{i===0 && <span className="latest-tag">Mới nhất trong kỳ</span>}</td>{places.flatMap(p=>[<td key={p.id+'r'} className="review-cell">{r.values[p.id]?number(r.values[p.id].reviews):'—'}</td>,<td key={p.id+'s'} className="rating-cell">{r.values[p.id]?.rating!=null?<span><Icon name="star" size={13}/>{rating(r.values[p.id].rating)}</span>:'—'}</td>])}</tr>)}</tbody></table></div>:<div className="table-empty">Không có dữ liệu phù hợp với bộ lọc.</div>}<div className="panel-footnote"><Icon name="shield" size={14}/>Mỗi khách sạn có một snapshot/ngày. Cập nhật trong ngày sẽ thay thế snapshot của ngày đó.</div></section>
+  </>}
+  <footer className="page-footer"><span>StayScope · Google Business Profile</span><span>Lịch sử được lưu theo ngày ghi nhận</span></footer>
+ </main>;
 }
