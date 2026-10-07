@@ -1,4 +1,13 @@
-# Kết quả kiểm tra bản 1.2
+# Kết quả kiểm tra bản Cloud 2.0 / Local 1.2
+
+## Bản cloud Vercel (07/10/2026)
+
+- 3/3 bài test đạt: xác thực từ chối khi thiếu secret, bảo vệ API trước truy cập database, ma trận không lấy snapshot mồ côi và giữ điểm thiếu là null.
+- Root build (cài frontend bằng lockfile và Vite production build): đạt.
+- 7/7 test dữ liệu local vẫn đạt sau khi tách bộ trích xuất dùng chung.
+- Chưa kiểm chứng script Lua trên Redis thật, Browserless, URL Google Maps thật hoặc deployment Vercel. Cần tài khoản và Environment Variables trước khi kiểm tra các kết nối đó.
+
+## Bản local 1.2
 
 Ngày kiểm tra: 07/10/2026. Runtime: Node.js 24.21.0.
 

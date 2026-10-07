@@ -1,0 +1,19 @@
+{
+  "name": "hotel-review-tracker-vercel",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend ci && npm --prefix frontend run build",
+    "test": "node --test cloud/test/*.test.js"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.35.0",
+    "express": "^5.1.0",
+    "playwright-core": "^1.55.0",
+    "dotenv": "^16.4.7"
+  }
+}

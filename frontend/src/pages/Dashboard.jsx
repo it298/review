@@ -40,8 +40,16 @@ export default function Dashboard() {
     setLoading(true);
     setError('');
     try {
-      const summary = await api('/api/places/sync', { method: 'POST' });
-      setLastSync(summary);
+      let summary;
+      let jobId;
+      do {
+        summary=await api('/api/places/sync',{method:'POST',body:JSON.stringify({jobId})});
+        setLastSync(summary);
+        if(summary.skipped)break;
+        jobId=summary.jobId;
+        if(summary.remaining)await new Promise(resolve=>setTimeout(resolve,1500));
+      } while(summary.remaining>0);
+
       await load();
     } catch (e) {
       setError(e.message);
@@ -69,6 +77,7 @@ export default function Dashboard() {
       {lastSync && !lastSync.skipped && (
         <div className="notice sync-summary">
           Đã cập nhật {lastSync.results.filter(x => x.ok).length}/{lastSync.total} địa điểm
+          {lastSync.remaining ? ' · Còn '+lastSync.remaining+' địa điểm' : ''}
           {lastSync.workers ? ` · ${lastSync.workers} worker` : ''}.
           {lastSync.results.some(x => !x.ok) ? ' Một số địa điểm lỗi, xem lại URL hoặc thử lại.' : ''}
         </div>

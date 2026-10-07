@@ -1,4 +1,10 @@
-# Hotel Review Tracker 1.2
+# Hotel Review Tracker — Cloud 2.0 / Local 1.2
+
+## Deploy toàn bộ lên Vercel
+
+Xem [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md). Bản cloud dùng API Vercel Functions, Upstash Redis, Browserless và mật khẩu truy cập. Import repository từ thư mục gốc, không chọn frontend. Không deploy backend JSON local dưới đây lên Vercel.
+
+Phần hướng dẫn dưới đây dành cho chạy local.
 
 Ứng dụng nội bộ theo dõi tổng review và điểm sao Google Maps bằng React, Express và Playwright. Dữ liệu lưu trong backend/data/places.json.
 

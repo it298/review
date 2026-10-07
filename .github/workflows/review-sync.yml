@@ -1,0 +1,38 @@
+name: Sync Google Maps reviews
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 19 * * 0'
+permissions:
+  contents: read
+concurrency:
+  group: review-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: vars.DEPLOYMENT_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Run bounded Vercel batches
+        env:
+          DEPLOYMENT_URL: ${{ vars.DEPLOYMENT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET" || { echo 'Set the CRON_SECRET repository secret.'; exit 1; }
+          for batch in $(seq 1 100); do
+            result=$(curl --fail --silent --show-error --max-time 290 \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "${DEPLOYMENT_URL%/}/api/cron")
+            echo "$result" | jq '{total,remaining,done,skipped}'
+            if echo "$result" | jq -e '.done == true' > /dev/null; then
+              failed=$(echo "$result" | jq '[.results[] | select(.ok == false)] | length')
+              test "$failed" -eq 0 || { echo "$failed places failed to sync; inspect the app."; exit 1; }
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Batch limit reached. Run this workflow again to resume.'
+          exit 1
