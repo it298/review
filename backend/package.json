@@ -1,0 +1,19 @@
+{
+  "name": "places-review-tracker-backend",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "install-browser": "playwright install chromium",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1",
+    "playwright": "^1.55.0"
+  }
+}
