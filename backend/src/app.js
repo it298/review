@@ -47,6 +47,7 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
  app.get('/api/ota/reviews',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_reviews'));}catch(e){next(e);}});
+ app.get('/api/ota/summary',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_summary_read'));}catch(e){next(e);}});
  app.get('/api/places',async(_req,res,next)=>{try{res.json(Object.values((await state()).places));}catch(e){next(e);}});
  app.get('/api/places/dashboard-matrix',async(_req,res,next)=>{try{res.json(matrix(await state()));}catch(e){next(e);}});
  app.post('/api/places/track',async(req,res,next)=>{try{
