@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+.git
+.env
+**/.env
+**/.env.*
+.vercel
+backend/data
+cloud/test
+supabase
+*.zip
+*.log

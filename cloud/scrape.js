@@ -3,13 +3,9 @@ import { validateMapsUrl } from '../backend/src/services/scraperUtils.js';
 import { extractReviewCount, extractRating } from '../backend/src/services/mapsExtract.js';
 export async function scrape(url) {
   validateMapsUrl(url);
-  if (!process.env.BROWSERLESS_TOKEN) throw new Error('Chưa cấu hình Browserless.');
-  const endpoint=new URL(process.env.BROWSERLESS_URL || 'wss://production-sfo.browserless.io/chromium');
-  if(endpoint.protocol!=='wss:') throw new Error('Browserless phải dùng WSS.');
-  endpoint.searchParams.set('token',process.env.BROWSERLESS_TOKEN);
   let browser;
   try {
-    browser=await chromium.connectOverCDP(endpoint.href,{timeout:15000});
+    browser=await chromium.launch({headless:true,timeout:15000,args:['--disable-dev-shm-usage']});
     const context=await browser.newContext({locale:'vi-VN',viewport:{width:1440,height:1000}});
     const page=await context.newPage();page.setDefaultTimeout(3000);
     await context.route('**/*',async route=>{
@@ -28,7 +24,6 @@ export async function scrape(url) {
     const address=await page.locator('[data-item-id*="address"]').first().getAttribute('aria-label').catch(()=>null);
     return {name,reviewCount:count.count,rating,address:address || '',url:page.url()};
   } catch {
-    // Browser errors can contain the secret CDP URL. Do not return or log it.
-    throw new Error('Không lấy được dữ liệu Google Maps. Kiểm tra URL, Browserless hoặc thử lại sau.');
+    throw new Error('Không lấy được dữ liệu Google Maps. Kiểm tra URL, bộ nhớ dịch vụ và Chromium hoặc thử lại sau.');
   } finally {await browser?.close().catch(()=>{});}
 }

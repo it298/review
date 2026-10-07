@@ -1,6 +1,6 @@
 {
-  "name": "hotel-review-tracker-vercel",
-  "version": "2.1.0",
+  "name": "hotel-review-tracker-render",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,9 @@
   },
   "scripts": {
     "build": "npm --prefix frontend ci && npm --prefix frontend run build",
-    "test": "node --test cloud/test/*.test.js"
+    "test": "node --test cloud/test/*.test.js",
+    "start": "node server.js",
+    "install-browser": "node node_modules/playwright-core/cli.js install chromium"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

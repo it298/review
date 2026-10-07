@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: hotel-review-tracker
+    runtime: docker
+    repo: https://github.com/it298/review
+    branch: main
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: SUPABASE_URL
+        value: https://atbumgsilrmrlmbwbowp.supabase.co
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: APP_PASSWORD
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: TIMEZONE
+        value: Asia/Ho_Chi_Minh

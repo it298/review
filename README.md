@@ -1,8 +1,8 @@
-# Hotel Review Tracker — Cloud 2.1 / Local 1.2
+# Hotel Review Tracker — Render 2.2 / Local 1.2
 
-## Deploy toàn bộ lên Vercel
+## Deploy lên Render
 
-Xem [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md). Bản cloud dùng API Vercel Functions, Supabase PostgreSQL, Browserless và mật khẩu truy cập. Import repository từ thư mục gốc, không chọn frontend. Không deploy backend JSON local dưới đây lên Vercel.
+Xem [DEPLOY-RENDER.md](DEPLOY-RENDER.md). Bản cloud dùng API Express, Supabase PostgreSQL, Chromium trong Docker và mật khẩu truy cập. Kết nối repository từ thư mục gốc, không chọn frontend. Bản Render dùng server.js và cloud/, không dùng backend JSON local dưới đây.
 
 Phần hướng dẫn dưới đây dành cho chạy local.
 

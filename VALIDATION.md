@@ -1,4 +1,11 @@
-# Kết quả kiểm tra bản Cloud 2.1 / Local 1.2
+# Kết quả kiểm tra bản Render 2.2 / Local 1.2
+
+## Bản Render 2.2 (07/10/2026)
+
+- 7/7 test cloud đạt khi bật RUN_BROWSER_TESTS=1: có Chromium thật chạy trên Windows với HTML fixture, kiểm tra PostgreSQL bằng PGlite, xác thực và phục vụ frontend/API chung domain.
+- Production build và kiểm tra cú pháp server đạt.
+- Server Render chạy local: frontend đã build, JS asset, health và xác thực session đạt.
+- Chưa build Docker Linux do máy không có Docker, chưa triển khai Render hoặc kiểm chứng Google Maps thật/Supabase live. Render cần build image và kiểm tra dữ liệu thật trước khi sử dụng chính thức.
 
 ## Bản Supabase 2.1 (07/10/2026)
 
