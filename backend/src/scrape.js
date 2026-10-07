@@ -1,6 +1,6 @@
 import { chromium } from 'playwright-core';
-import { validateMapsUrl } from '../backend/src/services/scraperUtils.js';
-import { extractReviewCount, extractRating } from '../backend/src/services/mapsExtract.js';
+import { validateMapsUrl } from './services/scraperUtils.js';
+import { extractReviewCount, extractRating } from './services/mapsExtract.js';
 export async function scrape(url) {
   validateMapsUrl(url);
   let browser;

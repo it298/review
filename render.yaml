@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: hotel-review-tracker
+    name: hotel-review-tracker-api
     runtime: docker
     repo: https://github.com/it298/review
     branch: main
     plan: free
+    rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
@@ -19,3 +20,28 @@ services:
         generateValue: true
       - key: TIMEZONE
         value: Asia/Ho_Chi_Minh
+      - key: CORS_ORIGIN
+        fromService:
+          name: hotel-review-tracker-ui
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+  - type: web
+    name: hotel-review-tracker-ui
+    runtime: static
+    repo: https://github.com/it298/review
+    branch: main
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: VITE_API_URL
+        fromService:
+          name: hotel-review-tracker-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { state,mutate,lock,getValue,setValue } from './store.js';
 import { scrape } from './scrape.js';
-import { mapsIdentity,validateMapsUrl } from '../backend/src/services/scraperUtils.js';
+import { mapsIdentity,validateMapsUrl } from './services/scraperUtils.js';
 export function matrix(s){
  const places=Object.values(s.places).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>({id:p.id,name:p.name,rating:p.rating,googleMapsUri:p.google_maps_uri}));
  const dates=new Map();

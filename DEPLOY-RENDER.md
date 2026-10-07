@@ -1,51 +1,80 @@
-# Deploy Render + Supabase (2.2)
+# Render 2.3 — Static Site + Web Service
 
-Một Docker Web Service phục vụ giao diện React, API Express và Chromium. Không cần Browserless hoặc Vercel. Supabase giữ nguyên dữ liệu và schema đã chạy; không chạy lại hay xóa project khi đổi hosting.
+Frontend và backend nằm trong thư mục riêng, chạy trên hai dịch vụ và hai domain. Supabase vẫn giữ dữ liệu; schema đã chạy không cần chạy lại. Không cần Browserless.
 
-## Tạo dịch vụ
+## Cách 1: Blueprint
 
-Push mã nguồn mới lên https://github.com/it298/review.
+Push mã nguồn mới lên https://github.com/it298/review. Render Dashboard → New → Blueprint → chọn repository, file render.yaml.
 
-Mở https://dashboard.render.com → New → Blueprint → kết nối GitHub → chọn it298/review. Render đọc render.yaml ở thư mục gốc. Template chọn Free; kiểm tra plan trước khi xác nhận. Nhập SUPABASE_SECRET_KEY trực tiếp khi được yêu cầu, không gửi vào chat/GitHub. APP_PASSWORD và CRON_SECRET được Render tạo tự động; xem trong Environment sau khi tạo service.
+Blueprint tạo:
 
-Nếu tạo bằng New → Web Service: chọn repository, branch main, language/runtime Docker, Dockerfile ./Dockerfile, Docker context thư mục gốc, health check /api/health. Không nhập build/start command của Vercel.
+- hotel-review-tracker-ui: Static Site, rootDir frontend, npm ci && npm run build, publish dist.
+- hotel-review-tracker-api: Docker Web Service, rootDir backend, Dockerfile ./Dockerfile, context ., health /api/health.
 
-Environment Variables:
+Nhập SUPABASE_SECRET_KEY trực tiếp khi được yêu cầu. APP_PASSWORD và CRON_SECRET được tạo tự động, xem ở Environment của backend.
+
+VITE_API_URL của frontend tham chiếu RENDER_EXTERNAL_URL của backend. CORS_ORIGIN của backend tham chiếu RENDER_EXTERNAL_URL của frontend. Dùng URL công khai https://...onrender.com, không dùng hostname private network. Sau khi Blueprint sync xong, kiểm tra hai biến này trong Environment; nếu chưa được điền, sync lại hoặc nhập URL thực tế và redeploy. Với custom domain, cập nhật các giá trị theo domain sử dụng.
+
+Template chọn Free cho backend; kiểm tra plan trước khi xác nhận. Nếu đã tạo dịch vụ gộp hotel-review-tracker từ bản 2.2, Blueprint này tạo hai dịch vụ mới với tên khác, không tự xóa dịch vụ cũ.
+
+## Cách 2: Tạo thủ công
+
+### Backend — Web Service
+
+New → Web Service → chọn it298/review, branch main:
+
+| Trường | Giá trị |
+| --- | --- |
+| Runtime / Language | Docker |
+| Root Directory | backend |
+| Dockerfile Path | ./Dockerfile |
+| Docker Build Context | . |
+| Health Check Path | /api/health |
+
+Environment của backend:
 
 | Tên | Giá trị |
 | --- | --- |
 | SUPABASE_URL | https://atbumgsilrmrlmbwbowp.supabase.co |
-| SUPABASE_SECRET_KEY | Secret key sb_secret_... từ Supabase Settings → API Keys |
-| APP_PASSWORD | Mật khẩu truy cập ít nhất 16 ký tự |
+| SUPABASE_SECRET_KEY | Secret key sb_secret_... trong Supabase Settings → API Keys |
+| APP_PASSWORD | Mật khẩu ứng dụng ít nhất 16 ký tự |
 | CRON_SECRET | Chuỗi ngẫu nhiên dài, khác APP_PASSWORD |
 | TIMEZONE | Asia/Ho_Chi_Minh |
+| CORS_ORIGIN | URL Static Site công khai, không có dấu / cuối |
 
-Có thể dùng SUPABASE_SERVICE_ROLE_KEY thay SUPABASE_SECRET_KEY nếu dùng JWT legacy. Không dùng publishable/anon key. Không đặt BROWSERLESS_TOKEN, BROWSERLESS_URL hoặc VITE_API_URL.
+Có thể dùng SUPABASE_SERVICE_ROLE_KEY thay secret mới. Không dùng publishable/anon key. Nếu tạo backend trước khi biết URL frontend, tạm dùng http://localhost:5173 cho CORS_ORIGIN rồi cập nhật URL Static Site sau.
 
-## Kiểm tra sau deploy
+### Frontend — Static Site
 
-Đợi status Live → mở URL .onrender.com → đăng nhập bằng APP_PASSWORD → thêm một địa điểm Google Maps → kiểm tra review/sao → cập nhật và tải CSV. Health check chỉ xác nhận server đang chạy; không xác nhận Supabase hoặc Google Maps kết nối thành công.
+New → Static Site → chọn cùng repository:
 
-Free service có thể ngủ khi không hoạt động; mở lần đầu cần đợi khởi động. Chromium cần bộ nhớ; nếu logs có lỗi hết RAM, giảm tải hoặc cân nhắc plan có RAM cao hơn. Không tự nâng plan trả phí trong template.
+| Trường | Giá trị |
+| --- | --- |
+| Root Directory | frontend |
+| Build Command | npm ci && npm run build |
+| Publish Directory | dist |
+| NODE_VERSION | 24 |
+| VITE_API_URL | URL Web Service backend, dạng https://...onrender.com |
 
-## Đồng bộ theo lịch
+Redirects/Rewrites: source /* → destination /index.html → action Rewrite.
 
-Giữ workflow .github/workflows/review-sync.yml. API xử lý các đợt tối đa 3 địa điểm, một Chromium tại một thời điểm. Không thêm timer trong web service để tránh bỏ lỡ khi service ngủ.
+Frontend chỉ có URL API, không có khóa Supabase, APP_PASSWORD hoặc CRON_SECRET. VITE_API_URL được nhúng lúc build; đổi biến này cần build/redeploy Static Site. Đổi CORS_ORIGIN cần redeploy backend.
 
-GitHub repository → Settings → Secrets and variables → Actions:
+## Kiểm tra
 
-- Variable DEPLOYMENT_URL: URL Render mới (https://...onrender.com), thay URL Vercel nếu đã cấu hình.
-- Secret CRON_SECRET: cùng giá trị trong Render.
+Đợi hai dịch vụ Live. Mở URL frontend → đăng nhập APP_PASSWORD → thêm URL Google Maps → kiểm tra số review/sao, cập nhật và xuất CSV. URL backend chỉ trả JSON API. /api/health không kiểm tra Supabase hoặc Google Maps.
 
-Lịch thứ Hai khoảng 02:00 giờ Việt Nam; GitHub có thể chạy trễ. Actions → Sync Google Maps reviews → Run workflow để thử. Nút cập nhật trong app tự chạy các đợt tiếp theo khi trang còn mở. Không retry scrape lỗi tự động.
+Nếu browser báo lỗi CORS hoặc Failed to fetch, kiểm tra VITE_API_URL, CORS_ORIGIN và trạng thái Web Service. Free backend có thể ngủ và cần thời gian khởi động; Chromium cần RAM, xem logs khi thiếu bộ nhớ. Template không tự nâng plan trả phí.
 
-## Chạy Docker local
+## Lịch đồng bộ
 
-Copy .env.example thành .env và nhập secret tại máy.
+GitHub Settings → Secrets and variables → Actions:
 
-```sh
-docker build -t review-tracker .
-docker run --rm --env-file .env -p 10000:10000 review-tracker
-```
+- Variable DEPLOYMENT_URL: URL Web Service backend, không phải Static Site.
+- Secret CRON_SECRET: cùng giá trị ở backend.
 
-Mở http://localhost:10000. Không cần ổ đĩa persistent trên Render: toàn bộ dữ liệu nghiệp vụ và trạng thái job lưu ở Supabase. Không đổi TIMEZONE khi đã có dữ liệu trừ khi chủ động đổi cách nhóm ngày.
+Workflow Sync Google Maps reviews xử lý các đợt API đến khi hoàn tất; lịch thứ Hai khoảng 02:00 giờ Việt Nam, có thể trễ theo GitHub. Nút cập nhật cũng tự gọi các đợt tiếp theo khi trang còn mở.
+
+## Docker backend local
+
+Trong backend/: docker build -t review-api . rồi docker run --rm --env-file .env -p 10000:10000 review-api. Giao diện được chạy/build riêng trong frontend/.

@@ -1,4 +1,14 @@
-# Kết quả kiểm tra bản Render 2.2 / Local 1.2
+# Kết quả kiểm tra bản Render 2.3
+
+## Bản tách frontend/backend 2.3 (07/10/2026)
+
+- 13/13 bài test backend đạt khi RUN_BROWSER_TESTS=1, bao gồm Chromium thật, PostgreSQL WASM, xác thực, URL Maps, ngày Việt Nam và RPC adapter.
+- CORS: preflight của frontend hợp lệ trả 204, đăng nhập cross-origin trả 200, origin lạ trả 403. Web Service không phục vụ dashboard React.
+- Frontend production build đạt với VITE_API_URL được cấu hình.
+- Mã nguồn chạy độc lập từ frontend/ và backend/; Docker chỉ chứa backend. Render Blueprint khai báo một Static Site và một Docker Web Service.
+- Chưa kiểm chứng Blueprint trên Render hoặc build Docker Linux; vẫn cần deploy và kiểm tra URL/domain thật, Supabase live và Google Maps thật.
+
+Các kết quả dưới đây là lịch sử kiểm tra các bản trước; bản 2.3 thay thế cách chạy local JSON và dịch vụ gộp.
 
 ## Bản Render 2.2 (07/10/2026)
 

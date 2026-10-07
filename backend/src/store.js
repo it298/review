@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { calendarDate } from '../backend/src/utils/date.js';
+import { calendarDate } from './utils/date.js';
 
 export async function rpc(name, args = {}) {
   const url = process.env.SUPABASE_URL;

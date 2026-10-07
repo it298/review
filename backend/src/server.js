@@ -1,27 +1,19 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import placesRouter from './routes/places.js';
-import { startReviewSync } from './jobs/reviewSync.js';
+import 'dotenv/config';
+import { createApp } from './app.js';
 
-dotenv.config();
-
-const app = express();
-const port = Number(process.env.PORT || 4000);
-
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
-app.use(express.json());
-
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.use('/api/places', placesRouter);
-
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
-});
-
-startReviewSync();
-
-app.listen(port, process.env.HOST || '127.0.0.1', () => {
-  console.log(`Backend running at http://localhost:${port}`);
-});
+const required=['SUPABASE_URL','APP_PASSWORD','CRON_SECRET','CORS_ORIGIN'];
+const missing=required.filter(key=>!process.env[key]);
+if(!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SECRET_KEY');
+if(missing.length) throw new Error('Missing environment variables: '+missing.join(', '));
+if(process.env.APP_PASSWORD.length<16) throw new Error('APP_PASSWORD must have at least 16 characters.');
+const port=Number(process.env.PORT || 10000);
+if(!Number.isInteger(port) || port<0 || port>65535) throw new Error('Invalid PORT.');
+const app=createApp();
+const server=app.listen(port,'0.0.0.0',()=>console.log('Review Tracker listening on port '+server.address().port));
+function shutdown(){
+  console.log('Finishing requests before shutdown.');
+  server.close(()=>process.exit(0));
+  setTimeout(()=>process.exit(0),10000).unref();
+}
+process.once('SIGTERM',shutdown);
+process.once('SIGINT',shutdown);

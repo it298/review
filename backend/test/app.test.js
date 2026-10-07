@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { authorized,createApp } from '../app.js';
-import { matrix } from '../service.js';
+import { authorized,createApp } from '../src/app.js';
+import { matrix } from '../src/service.js';
 test('authentication fails closed, including missing cron secret',()=>{
  assert.equal(authorized('',undefined),false);
  assert.equal(authorized('Bearer correct','wrong'),false);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
-import { extractReviewCount,extractRating } from '../../backend/src/services/mapsExtract.js';
+import { extractReviewCount,extractRating } from '../src/services/mapsExtract.js';
 
 test('local Chromium extracts exact review count and keeps missing rating null', {skip:process.env.RUN_BROWSER_TESTS!=='1'}, async()=>{
   const browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rpc,mutate,lock } from '../store.js';
+import { rpc,mutate,lock } from '../src/store.js';
 test('REST adapter keeps secrets server side and preserves RPC contract',async()=>{
   const original=globalThis.fetch;
   const previous={url:process.env.SUPABASE_URL,secret:process.env.SUPABASE_SECRET_KEY,legacy:process.env.SUPABASE_SERVICE_ROLE_KEY};
