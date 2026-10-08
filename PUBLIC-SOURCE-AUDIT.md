@@ -16,6 +16,10 @@ Worker mới bổ sung 52 đích ngoài 19 Google Maps và 12 đích OTA hiện 
 | ShopeeFood | 6 địa điểm có tổng/mốc hiển thị | Giữ nguyên `10+`, `50+`; Trandoc có tổng chính xác 1. Không suy ra điểm từ sao trống hay `reviewRating` của một đánh giá |
 | Traveloka | Đã thử 7 link | Trả trang chặn 403, chưa có dữ liệu xác minh |
 
+Lượt worker chạy trực tiếp trong Git Bash sau đó đã tăng nhóm mới lên 36 nguồn có số liệu, trong đó TripAdvisor có 12 địa điểm có dữ liệu (11 đọc mới và Yzistel giữ lần đọc trước). Khả năng mở trang khác nhau giữa các lượt; trạng thái chặn và thời điểm dữ liệu vẫn được giữ riêng. Google đã quét lại 19 đích; An Dương có lượt chỉ đọc được điểm, nên tổng 12 đã xác minh trước đó được giữ với thời điểm cũ.
+
+Phần OTA cũ cũng dùng Chromium có cửa sổ trên Windows theo mặc định (`OTA_BROWSER_HEADLESS=false`), vì kiểm tra thực tế ghi nhận một số trang trắng khi chạy ẩn. Sau thay đổi này đã chạy lại thành công Agoda của cả 4 khách sạn quản lý. Bộ đọc chấp nhận cả card bắt đầu bằng điểm và card có nhãn “Điểm số qua Agoda”, bỏ qua điểm của biểu đồ 10 đánh giá gần đây. OCR không khớp vẫn chuyển sang đọc card đã xác minh; không gắn nhãn đọc ảnh cho kết quả đọc trang.
+
 ## Cấu hình và triển khai
 
 Sau các migration hiện có, áp dụng `supabase/public-source-summary.sql`, rồi `supabase/public-source-links.sql`. Trong lượt triển khai này hai migration đã được áp dụng vào Supabase cùng 25 nguồn mới có dữ liệu xác minh. Ba link được sửa từ URL chuyển hướng đã kiểm tra: TripAdvisor Yzistel, Grab café Hội An và ShopeeFood Trandoc. Seed danh mục cũng chứa các URL đã sửa.

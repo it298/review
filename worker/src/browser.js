@@ -8,7 +8,7 @@ export function browserAdapters(){
  let browser;const opened=new Map();const failures=new Map();
  async function pageFor(target){
   const key=target.source+':'+target.property_id;if(failures.has(key))throw failures.get(key);if(opened.has(key))return opened.get(key);
-  if(!browser){try{browser=await chromium.launch({headless:true});}catch{throw Object.assign(new Error('Browser missing'),{code:'browser_missing'});}}
+  if(!browser){try{browser=await chromium.launch({headless:process.env.OTA_BROWSER_HEADLESS==='true',channel:'chromium'});}catch{throw Object.assign(new Error('Browser missing'),{code:'browser_missing'});}}
   const page=await browser.newPage({locale:target.source==='agoda'?'vi-VN':'en-US',viewport:{width:1440,height:1000},deviceScaleFactor:2});page.setDefaultTimeout(15000);
   await page.goto(targetURL(target),{waitUntil:'domcontentloaded',timeout:45000});
   if(new URL(page.url()).hostname!==new URL(target.source_url).hostname)throw new Error('Unexpected redirect');
