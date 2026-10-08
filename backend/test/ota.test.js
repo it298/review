@@ -7,6 +7,10 @@ test('Worker routes require the dedicated secret and reject invalid results befo
  try{assert.equal((await fetch(url+'/api/ota/worker/targets')).status,401);assert.equal((await fetch(url+'/api/ota/worker/results',{method:'POST',headers:{Authorization:'Bearer '+process.env.OTA_WORKER_SECRET,'Content-Type':'application/json'},body:'{}'})).status,400);}finally{await new Promise(r=>server.close(r));if(previous===undefined)delete process.env.OTA_WORKER_SECRET;else process.env.OTA_WORKER_SECRET=previous;}
 });
 test('OTA validation rejects malformed reviews, OCR without agreement and future dates',()=>{const base={source:'agoda',propertyId:'64821141',method:'dom',status:'success',capturedAt:new Date().toISOString(),summary:{rating:9.4,ratingMax:10,count:471},reviews:[]};assert.equal(validateOtaResult(base).summary.count,471);assert.throws(()=>validateOtaResult({...base,method:'ocr'}));assert.throws(()=>validateOtaResult({...base,capturedAt:'2099-01-01'}));assert.throws(()=>validateOtaResult({...base,reviews:[{reviewId:'1',rating:9,reviewedAt:'2026-02-31',content:'x'}]}));});
+test('normalized OCR payload keeps its agreement marker across worker and backend validation',()=>{
+ const payload={source:'agoda',propertyId:'64821141',method:'ocr',status:'success',capturedAt:new Date().toISOString(),summary:{rating:9.4,ratingMax:10,count:473},reviews:[],corroborated:true};
+ const valid=validateOtaResult(payload);assert.equal(valid.corroborated,true);assert.deepEqual(validateOtaResult(valid),valid);
+});
 test('OTA ingestion keeps good data on failure, upserts daily observations, enforces access and ignores delayed deliveries',async()=>{
 const db=new PGlite();try{
  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');

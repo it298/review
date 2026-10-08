@@ -19,5 +19,5 @@ export function validateOtaResult(p){
   if(r.responseAt!=null&&(!/^\d{4}-\d{2}-\d{2}$/.test(r.responseAt)||isNaN(new Date(r.responseAt))||new Date(r.responseAt).toISOString().slice(0,10)!==r.responseAt))fail();
   return {reviewId:r.reviewId,rating:r.rating,ratingMax:10,reviewedAt:r.reviewedAt,author:String(r.author||'').slice(0,200),title:String(r.title||'').slice(0,500),content:r.content,response:r.response||null,responseAt:r.responseAt||null,translation:r.translation?String(r.translation).slice(0,200):null};
  });
- return {source:p.source,propertyId:p.propertyId,method:p.method,status:'success',capturedAt:capturedAt.toISOString(),summary:summary?{rating:summary.rating,ratingMax:10,count:summary.count}:null,reviews};
+ return {source:p.source,propertyId:p.propertyId,method:p.method,status:'success',capturedAt:capturedAt.toISOString(),summary:summary?{rating:summary.rating,ratingMax:10,count:summary.count}:null,reviews,...(p.method==='ocr'?{corroborated:true}:{})};
 }

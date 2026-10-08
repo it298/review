@@ -2,13 +2,14 @@ import {chromium} from 'playwright';
 import {createWorker} from 'tesseract.js';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {blocked,parseSummary,targetURL} from './parse.js';
+import {blocked,parseSummary,parseAgodaCard,targetURL} from './parse.js';
+import {darkDigitsOnWhite,ratingGlyphs} from './ocr-image.js';
 export function browserAdapters(){
  let browser;const opened=new Map();const failures=new Map();
  async function pageFor(target){
   const key=target.source+':'+target.property_id;if(failures.has(key))throw failures.get(key);if(opened.has(key))return opened.get(key);
   if(!browser){try{browser=await chromium.launch({headless:true});}catch{throw Object.assign(new Error('Browser missing'),{code:'browser_missing'});}}
-  const page=await browser.newPage({locale:target.source==='agoda'?'vi-VN':'en-US'});page.setDefaultTimeout(15000);
+  const page=await browser.newPage({locale:target.source==='agoda'?'vi-VN':'en-US',viewport:{width:1440,height:1000},deviceScaleFactor:2});page.setDefaultTimeout(15000);
   await page.goto(targetURL(target),{waitUntil:'domcontentloaded',timeout:45000});
   if(new URL(page.url()).hostname!==new URL(target.source_url).hostname)throw new Error('Unexpected redirect');
   await page.locator('body').waitFor();
@@ -17,6 +18,16 @@ export function browserAdapters(){
   if(blocked(await page.locator('body').innerText())||page.frames().some(f=>/captcha-delivery|recaptcha|hcaptcha/i.test(f.url()))){const dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence');await mkdir(dir,{recursive:true});await page.screenshot({path:resolve(dir,target.source+'-'+target.property_id+'-blocked.png')}).catch(()=>{});const error=Object.assign(new Error('blocked'),{code:'blocked'});failures.set(key,error);throw error;}
   opened.set(key,page);return page;
  }
+ async function agodaRegion(page,target){
+  if(!await page.locator(`a[href*="selectedproperty=${target.property_id}"]`).count())throw Object.assign(new Error('Agoda property identity not confirmed'),{code:'invalid_data'});
+  const calendar=page.getByRole('dialog',{name:'Bộ chọn ngày nhận phòng',exact:true});if(await calendar.isVisible().catch(()=>false))await page.locator('#check-in-box').click();
+  const heading=page.getByRole('heading',{name:/Bài đánh giá.*từ khách thật/});await heading.scrollIntoViewIfNeeded();
+  const region=page.locator('.Review-reviewBranding').filter({hasText:/Dựa trên.*bài đánh giá/}).first();
+  await region.waitFor({state:'visible',timeout:20000});
+  // Keep the card next to Agoda's verification label; mixed-source overview counts are excluded.
+  await page.getByText('Đánh giá từ khách hàng đã xác thực trên',{exact:true}).waitFor({state:'visible'});
+  return region;
+ }
  async function domImpl(target){
   const page=await pageFor(target);let reviews=[];
   if(target.source==='agoda'){
@@ -24,7 +35,7 @@ export function browserAdapters(){
    await page.getByRole('heading',{name:/Bài đánh giá.*từ khách thật/}).scrollIntoViewIfNeeded();
    await page.getByRole('heading',{name:/Bài đánh giá.*từ khách thật/}).waitFor();
    if(!await page.locator(`a[href*="selectedproperty=${target.property_id}"]`).count())throw Object.assign(new Error('Agoda property identity not confirmed'),{code:'invalid_data'});
-   const summary=parseSummary('agoda',await page.locator('body').innerText());
+   const summary=parseAgodaCard(await (await agodaRegion(page,target)).innerText());
    try{
    const source=page.getByRole('combobox',{name:'Nguồn',exact:true});await source.locator('option').first().waitFor({state:'attached'});const option=await source.locator('option').allTextContents();const label=option.find(t=>/Agoda/i.test(t)&&! /Booking/i.test(t));if(!label)throw new Error('Agoda source missing');await source.selectOption({label});
    await page.getByRole('combobox',{name:'Sắp xếp theo',exact:true}).selectOption({label:'Gần đây nhất'});
@@ -53,18 +64,34 @@ export function browserAdapters(){
  async function dom(target){try{return await domImpl(target);}catch(error){const page=opened.get(target.source+':'+target.property_id);if(page){const dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence');await mkdir(dir,{recursive:true});await writeFile(resolve(dir,target.source+'-diagnostic.json'),JSON.stringify({reason:String(error.message).slice(0,1500),title:await page.title(),text:(await page.locator('body').innerText()).slice(0,6000)}));await page.screenshot({path:resolve(dir,target.source+'-diagnostic.png')}).catch(()=>{});}throw error;}}
  async function ocr(target){
   const page=await pageFor(target);if(blocked(await page.locator('body').innerText()))throw Object.assign(new Error('blocked'),{code:'blocked'});
-  const region=target.source==='trip'?page.locator('#outerReviewList'):target.source==='agoda'?page.locator('#customer-reviews-panel'):null;
+  const region=target.source==='trip'?page.locator('#outerReviewList'):target.source==='agoda'?await agodaRegion(page,target):null;
   // No verified Traveloka image region yet: do not OCR a booking-price panel.
   if(!region||!await region.count())throw Object.assign(new Error('No verified OCR region'),{code:'unconfigured'});
   const bytes=await region.screenshot();const dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence');await mkdir(dir,{recursive:true});
   const base=target.source+'-'+target.property_id+'-'+Date.now();await writeFile(resolve(dir,base+'.png'),bytes);
   const engine=await createWorker(target.source==='agoda'?'vie+eng':'eng');let data;
-  try{({data}=await engine.recognize(bytes));}finally{await engine.terminate();}
+  try{
+   if(target.source==='agoda'){
+    const score=await region.getByText(/^\d{1,2}(?:[.,]\d{1,2})?$/).first().screenshot();
+    const count=await region.getByText(/Dựa trên.*bài đánh giá/).first().screenshot();
+    await writeFile(resolve(dir,base+'-rating.png'),score);await writeFile(resolve(dir,base+'-count.png'),count);
+    await engine.setParameters({tessedit_pageseg_mode:'10',tessedit_char_whitelist:'0123456789'});
+    const prepared=darkDigitsOnWhite(score);await writeFile(resolve(dir,base+'-rating-ocr.png'),prepared);
+    const pieces=[],confidences=[];
+    for(const glyph of ratingGlyphs(score)){if(glyph.decimal){pieces.push('.');continue;}const digit=(await engine.recognize(glyph.bytes)).data;if(!/^\d$/.test(digit.text.trim()))throw Object.assign(new Error('Ambiguous rating digit'),{code:'invalid_data'});pieces.push(digit.text.trim());confidences.push(digit.confidence);}
+    const scoreData={text:pieces.join(''),confidence:Math.min(...confidences)};
+    await engine.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
+    const countData=(await engine.recognize(count)).data;
+    data={text:scoreData.text.trim()+'\n'+countData.text.trim(),confidence:Math.min(scoreData.confidence,countData.confidence)};
+   }else{await engine.setParameters({tessedit_pageseg_mode:'6'});({data}=await engine.recognize(bytes));}
+  }finally{await engine.terminate();}
   // Save candidates, never publish OCR values without independent corroboration.
   await writeFile(resolve(dir,base+'.json'),JSON.stringify({confidence:data.confidence,text:data.text}));
-  let candidate;try{candidate=parseSummary(target.source,data.text);}catch{throw Object.assign(new Error('OCR requires review'),{code:'invalid_data'});}
-  const text=await region.innerText();let confirmed;try{confirmed=parseSummary(target.source,text);}catch{throw Object.assign(new Error('OCR is uncorroborated'),{code:'invalid_data'});}
-  if(data.confidence<95||candidate.rating!==confirmed.rating||candidate.count!==confirmed.count)throw Object.assign(new Error('OCR disagrees'),{code:'invalid_data'});
+  const parse=target.source==='agoda'?parseAgodaCard:text=>parseSummary(target.source,text);
+  let candidate;try{candidate=parse(data.text);}catch{throw Object.assign(new Error('OCR requires review'),{code:'invalid_data'});}
+  const text=await region.innerText();let confirmed;try{confirmed=parse(text);}catch{throw Object.assign(new Error('OCR is uncorroborated'),{code:'invalid_data'});}
+  if(data.confidence<90||candidate.rating!==confirmed.rating||candidate.count!==confirmed.count)throw Object.assign(new Error('OCR disagrees'),{code:'invalid_data'});
+  await writeFile(resolve(dir,base+'.json'),JSON.stringify({confidence:data.confidence,text:data.text,summary:candidate,confirmed,propertyId:target.property_id,source:target.source,corroborated:true,capturedAt:new Date().toISOString()},null,2));
   return {summary:candidate,reviews:[],corroborated:true};
  }
  return {dom,ocr,close:async()=>{await browser?.close();opened.clear();}};

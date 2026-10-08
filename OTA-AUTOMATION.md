@@ -5,8 +5,8 @@ Worker mới ở `worker/`, tách khỏi Web Service Node để frontend/backend
 ## Những gì đã xây
 
 1. Đọc API/feed được cấu hình riêng từng OTA, chỉ từ HTTPS host cho phép. Chưa có quyền/API review thật của Agoda, Traveloka hoặc Trip.com; không đoán endpoint OTA.
-2. Đọc DOM công khai: Agoda lấy thống kê riêng Agoda và một trang review mới; Trip.com lấy thống kê tổng hợp và thử lấy 10 review mới trong modal. Nếu modal không mở được, Trip.com chỉ cập nhật summary và không tuyên bố đã thu đủ nội dung. Traveloka chỉ chấp nhận mẫu có số riêng Traveloka khớp phần “From … reviews”. Mẫu này chưa được kiểm chứng trên trang sống vì trang bị chặn.
-3. Ảnh/OCR: chụp vùng review đã biết, lưu bằng chứng trong `worker/evidence/`. OCR chưa được kiểm chứng trên ảnh thực tế; chỉ tự ghi khi điểm và số review khớp một nguồn DOM độc lập và confidence >=95. Kết quả không đủ tin cậy được giữ làm ứng viên, không công bố.
+2. Ảnh/OCR: ưu tiên chụp vùng tổng điểm riêng nguồn, giữ ảnh gốc và kết quả OCR trong thư mục evidence được cấu hình. Agoda cắt riêng điểm và dòng tổng review; tách các chữ số và dấu thập phân từ ảnh để tránh đọc 9,4 thành 94. OCR chỉ được ghi khi confidence tối thiểu 90, đúng property ID và cả điểm lẫn tổng review khớp số hiển thị trực tiếp trong cùng thẻ đã xác minh. Yzistel đã kiểm tra thành công trên ảnh thật: 9,4/10, 473 review, confidence 96.
+3. Đọc DOM công khai làm dự phòng: Agoda đọc thẻ tổng điểm xác thực và thử lấy nội dung review; Trip.com lấy thống kê tổng hợp và thử lấy 10 review mới trong modal. Nếu modal không mở được, Trip.com chỉ cập nhật summary. Traveloka vẫn cần xác minh vùng ảnh và số riêng nguồn; OCR không tạo được dữ liệu khi trang chặn truy cập.
 4. Email: có adapter đọc feed email đã chuẩn hóa. Chưa kết nối Gmail/Outlook, chưa có bộ phân tích mẫu email OTA thật. Muốn bật cần hộp thư được cấp quyền và bridge chuyển email sang contract bên dưới. Email thiếu tổng số/điểm tổng hợp chỉ nhập nội dung review, không cập nhật thống kê.
 
 Worker không giải CAPTCHA, không đổi proxy/giả danh trình duyệt để vượt chặn. Nếu nguồn bị chặn, OCR không khắc phục được trang chưa mở. Kết quả lỗi giữ nguyên dữ liệu tốt trước đó và ghi lần thử/trạng thái lỗi.
@@ -52,7 +52,7 @@ Số trong ví dụ chỉ minh họa contract, không phải số liệu Travelo
 
 Kết quả có summary được lưu thêm một snapshot/ngày theo giờ Việt Nam. Email chỉ có review không ghi đè snapshot tổng hợp. Quan sát đến trễ không thay thế quan sát mới hơn.
 
-## Thử nghiệm Windows ngày 08/10/2026
+## Nhật ký thử nghiệm ban đầu — đã được cập nhật bởi luồng OCR bên trên
 
 Đã cài Chromium và chạy worker trực tiếp với `node --env-file=.env src/run.js --dry-run`. Trip.com đọc được 9,5/10 và 372 đánh giá; một lượt lấy 10 review, lượt tiếp theo chỉ lấy được summary (modal chưa ổn định). Agoda chưa đọc được summary riêng nguồn bằng worker mới; bộ lọc chưa truy cập được. OCR ảnh Agoda đã chạy nhưng độ tin cậy thấp nên không nhập. Traveloka chưa đọc được dữ liệu xác minh. API/feed email chưa cấu hình nên adapter báo unconfigured. Đây là lượt thử không ghi Supabase.
 

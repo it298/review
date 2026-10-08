@@ -1,4 +1,14 @@
 export function blocked(text){return /access is temporarily restricted|you have been blocked|verify you are human|captcha|unusual activity/i.test(text);}
+// Only use this parser on the verified Agoda review branding card, never the page header.
+export function parseAgodaCard(text){
+ if(blocked(text))throw Object.assign(new Error('blocked'),{code:'blocked'});
+ const rating=text.trim().match(/^(\d{1,2}(?:[.,]\d{1,2})?)\s/);
+ const count=text.match(/Dựa trên\s+([\d.,]+)\s+bài đánh giá/i);
+ if(!rating||!count)throw Object.assign(new Error('Incomplete Agoda review card'),{code:'invalid_data'});
+ const summary={rating:Number(rating[1].replace(',','.')),ratingMax:10,count:Number(count[1].replace(/[.,]/g,''))};
+ if(!Number.isFinite(summary.rating)||summary.rating<0||summary.rating>10||!Number.isSafeInteger(summary.count)||summary.count<0)throw Object.assign(new Error('Invalid Agoda review card'),{code:'invalid_data'});
+ return summary;
+}
 export function parseSummary(source,text){
  if(blocked(text))throw Object.assign(new Error('blocked'),{code:'blocked'});
  let m;

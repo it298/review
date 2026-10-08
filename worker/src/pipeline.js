@@ -1,7 +1,7 @@
 import {validateOtaResult} from '../../backend/src/ota-validation.js';
-export async function collect(target,adapters){
+export async function collect(target,adapters,methods=['api','ocr','dom','email']){
  const attempts=[];
- for(const method of ['api','dom','ocr','email']){
+ for(const method of methods){
   try{
    const result=await adapters[method](target);
    if(!result)throw Object.assign(new Error('Not configured'),{code:'unconfigured'});
