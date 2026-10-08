@@ -99,7 +99,7 @@ insert into public.review_tracker_directory_sources(entity_key,source,source_url
 ('the-code-hotel','expedia','https://www.expedia.com.vn/Da-Nang-Khach-San-The-Code-Hotel-Spa.h34799580.Thong-tin-khach-san',null,null,'5. BC KHÁCH SẠN ĐỐI THỦ!AE3'),
 ('the-code-hotel','trip','https://www.trip.com/hotels/detail/?hotelId=31600484','31600484',null,'5. BC KHÁCH SẠN ĐỐI THỦ!AI3'),
 ('the-code-hotel','traveloka','https://www.traveloka.com/en-en/hotel/vietnam/the-code-hotel-1000001860058','1000001860058',null,'5. BC KHÁCH SẠN ĐỐI THỦ!AM3'),
-('mira-boutique-hotel','google','https://www.google.com/travel/search',null,null,'5. BC KHÁCH SẠN ĐỐI THỦ!F3'),
+('mira-boutique-hotel','google','https://www.google.com/travel/search',null,'Liên kết không mở hồ sơ Google Maps; cần cung cấp liên kết địa điểm đúng.','5. BC KHÁCH SẠN ĐỐI THỦ!F3'),
 ('mira-boutique-hotel','tripadvisor','https://www.tripadvisor.com.vn/Hotel_Review-g608528-d33058975-Reviews-Mira_Boutique_Hotel_Quy_Nhon-Quy_Nhon_Binh_Dinh_Province.html',null,null,'5. BC KHÁCH SẠN ĐỐI THỦ!N3'),
 ('mira-boutique-hotel','booking','https://www.booking.com/hotel/vn/la-maison-boutique.vi.html',null,null,'5. BC KHÁCH SẠN ĐỐI THỦ!AA3'),
 ('mira-boutique-hotel','traveloka','https://www.traveloka.com/en-en/hotel/vietnam/mira-boutique-hotel-9000000325283','9000000325283',null,'5. BC KHÁCH SẠN ĐỐI THỦ!AO3'),

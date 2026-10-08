@@ -3,6 +3,7 @@ import { createHash,timingSafeEqual } from 'node:crypto';
 import { state,mutate,getValue,setValue,deleteValue,rpc } from './store.js';
 import { matrix,track,sync } from './service.js';
 import {validateOtaResult} from './ota-validation.js';
+import {validateGoogleSummary} from './google-summary-validation.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
 export function createApp(){
@@ -40,6 +41,8 @@ export function createApp(){
  const workerAuth=(req,res,next)=>{const secret=process.env.OTA_WORKER_SECRET;if(!secret||secret.length<24||!authorized(req.headers.authorization,secret))return res.status(401).json({error:'Unauthorized'});next();};
  app.get('/api/ota/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_targets_read'));}catch(e){next(e);}});
  app.post('/api/ota/worker/results',workerAuth,async(req,res,next)=>{try{const payload=validateOtaResult(req.body);res.json(await rpc('review_tracker_ota_ingest',{p:payload}));}catch(e){next(e);}});
+ app.get('/api/google/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_google_targets_read'));}catch(e){next(e);}});
+ app.post('/api/google/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_google_summary_ingest',{p:validateGoogleSummary(req.body)}));}catch(e){next(e);}});
  app.use('/api',(req,res,next)=>{
   if(!process.env.APP_PASSWORD || process.env.APP_PASSWORD.length<16)return res.status(503).json({error:'Cần cấu hình APP_PASSWORD dài ít nhất 16 ký tự.'});
   if(!authorized(req.headers.authorization,process.env.APP_PASSWORD))return res.status(401).json({error:'Vui lòng đăng nhập.'});next();

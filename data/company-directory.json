@@ -685,7 +685,7 @@
         "source": "google",
         "url": "https://www.google.com/travel/search",
         "property_id": null,
-        "warning": null,
+        "warning": "Liên kết không mở hồ sơ Google Maps; cần cung cấp liên kết địa điểm đúng.",
         "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!F3"
       },
       {

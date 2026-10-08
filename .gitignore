@@ -11,4 +11,5 @@ Thumbs.db
 
 .vercel/
 worker/evidence/
+worker/google-profile/
 worker/*.traineddata*
