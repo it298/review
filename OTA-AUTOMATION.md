@@ -52,6 +52,12 @@ Số trong ví dụ chỉ minh họa contract, không phải số liệu Travelo
 
 Kết quả có summary được lưu thêm một snapshot/ngày theo giờ Việt Nam. Email chỉ có review không ghi đè snapshot tổng hợp. Quan sát đến trễ không thay thế quan sát mới hơn.
 
+## Thử nghiệm Windows ngày 08/10/2026
+
+Đã cài Chromium và chạy worker trực tiếp với `node --env-file=.env src/run.js --dry-run`. Trip.com đọc được 9,5/10 và 372 đánh giá; một lượt lấy 10 review, lượt tiếp theo chỉ lấy được summary (modal chưa ổn định). Agoda chưa đọc được summary riêng nguồn bằng worker mới; bộ lọc chưa truy cập được. OCR ảnh Agoda đã chạy nhưng độ tin cậy thấp nên không nhập. Traveloka chưa đọc được dữ liệu xác minh. API/feed email chưa cấu hình nên adapter báo unconfigured. Đây là lượt thử không ghi Supabase.
+
+Database đã tạo targets cho ba nguồn YZISTEL cùng hotel_key. Kiểm tra kết nối worker/backend hiện trả 401: chưa triển khai mã backend mới và chưa nhập OTA_WORKER_SECRET trên Render. Chưa bật tiến trình theo lịch. Windows có script `Start-Worker.ps1` kiểm tra xác thực trước khi khởi động tiến trình ẩn chạy mỗi giờ.
+
 ## Kiểm chứng
 
-Đã kiểm tra bằng Node tests và PostgreSQL WASM: fallback API lỗi sang DOM; OCR chưa đối chiếu bị từ chối; số review nhiều nguồn bị từ chối; lỗi giữ số cũ; nhập lặp giữ một review và một snapshot/ngày; quyền anon bị từ chối; dữ liệu đến trễ bị bỏ qua. Chưa chạy worker thật trên Windows/Render và chưa kiểm chứng OCR với ảnh thật. Các lần đọc Agoda/Trip.com bằng trình duyệt trước đây là pilot riêng, không chứng minh worker tự động chạy ổn định.
+15 test backend và 4 test worker đạt. Node tests và PostgreSQL WASM kiểm tra fallback API lỗi sang DOM; OCR chưa đối chiếu bị từ chối; số review nhiều nguồn bị từ chối; lỗi giữ số cũ; nhập lặp giữ một review và một snapshot/ngày; quyền anon bị từ chối; dữ liệu đến trễ bị bỏ qua. Chưa triển khai worker trên Render, chưa tự ghi kết quả worker vào Supabase. Các lần đọc Agoda/Trip.com bằng trình duyệt trước đây là pilot riêng, không chứng minh worker tự động chạy ổn định.

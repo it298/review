@@ -9,6 +9,6 @@ export async function collect(target,adapters){
    validateOtaResult(payload);attempts.push({method,status:'success'});return {...payload,attempts};
   }catch(e){attempts.push({method,status:'failed',error:['blocked','unconfigured','network','invalid_data','browser_missing'].includes(e.code)?e.code:'invalid_data'});}
  }
- const error=attempts.some(a=>a.error==='blocked')?'blocked':attempts.some(a=>a.error!=='unconfigured')?'invalid_data':'unconfigured';
+ const error=['blocked','browser_missing','network','invalid_data','unconfigured'].find(code=>attempts.some(a=>a.error===code))||'invalid_data';
  return {source:target.source,propertyId:target.property_id,method:'dom',status:'failed',error,attempts};
 }
