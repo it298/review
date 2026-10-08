@@ -1,6 +1,6 @@
 # Biểu đồ và lịch sử làm mới
 
-Mở **Biểu đồ & lịch sử** ở sidebar. Chọn địa điểm, nền tảng và 7/30/90/365 ngày gần nhất. Hai biểu đồ chuyển qua lại giữa điểm gốc (5 hoặc 10) và tổng đánh giá; Grab giữ tên “lượt chấm điểm”. Thay đổi so sánh ngày đầu/cuối có số liệu trong khoảng chọn, cần ít nhất hai ngày.
+Mở **Biểu đồ & lịch sử** ở sidebar. Chọn địa điểm, nền tảng và 7/30/90/365 ngày gần nhất. Hai biểu đồ hiển thị cùng lúc: cột xanh/đỏ theo dõi tăng/giảm tổng mỗi ngày và đường theo dõi điểm gốc (5 hoặc 10). Biểu đồ số lượng có lựa chọn “Tổng tích lũy”; Grab giữ tên “lượt chấm điểm”. Thay đổi trên thẻ tổng quan so sánh ngày đầu/cuối có số liệu trong khoảng chọn, cần ít nhất hai ngày. Chỉ tính cột chênh lệch khi hai ngày liền nhau có tổng chính xác cùng loại; không gán chênh lệch qua ngày thiếu vào một ngày. Trục dọc của đường điểm và tổng tích lũy thu hẹp, có ghi chú để nhìn rõ biến động nhỏ. Rê chuột xem số liệu và thời điểm của từng mốc. Một ngày dữ liệu hiển thị thẻ mốc đầu tiên, chưa vẽ xu hướng.
 
 Chạy `supabase/source-history.sql` sau các migration danh mục, Google public, OTA automation và public summary. Migration đã được áp dụng vào project hiện tại ngày 08/10/2026. Sau đó triển khai frontend và backend mới. Worker đang chạy dùng nguyên API cũ, không cần đổi cấu hình hoặc khởi động lại.
 

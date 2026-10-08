@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
-import {dailyHistory,historyChange,localDay} from '../../frontend/src/lib/history.js';
+import {dailyHistory,historyChange,localDay,dailyChanges,ratingDomain} from '../../frontend/src/lib/history.js';
+test('daily change bars distinguish increase, decrease, zero and missing-day gaps',()=>{
+ const points=[{day:'2026-10-01',review_count:100,count_kind:'reviews'},{day:'2026-10-02',review_count:103,count_kind:'reviews'},{day:'2026-10-03',review_count:101,count_kind:'reviews'},{day:'2026-10-04',review_count:101,count_kind:'reviews'},{day:'2026-10-05',review_count:null},{day:'2026-10-06',review_count:110,count_kind:'reviews'},{day:'2026-10-07',review_count:115,count_kind:'ratings'}];
+ assert.deepEqual(dailyChanges(points).map(p=>p.count_change),[null,3,-2,0,null,null,null]);
+ assert.equal(dailyChanges([points[0],points[2]])[1].count_change,null);
+ assert.deepEqual(ratingDomain([{rating:4.9},{rating:5}],5),[4.8,5]);
+ assert.deepEqual(ratingDomain([{rating:0}],10),[0,0.1]);
+});
 test('daily series respects Vietnam midnight, missing days, partial observations and approximate totals',()=>{
  const rows=[{status:'success',rating:4.8,review_count:100,rating_at:'2026-10-05T18:00:00Z',count_at:'2026-10-05T18:00:00Z'},{status:'partial',rating:4.7,rating_at:'2026-10-08T00:00:00Z'},{status:'partial',count_display:'50+',review_count:50,count_at:'2026-10-08T01:00:00Z'},{status:'failed',rating:0,rating_at:'2026-10-08T02:00:00Z'}];
  const points=dailyHistory(rows);assert.equal(localDay(rows[0].rating_at),'2026-10-06');assert.equal(points.length,3);assert.equal(points[1].rating,null);assert.equal(points[2].review_count,null);assert.equal(historyChange(points,'rating').change,-0.1);assert.equal(historyChange(points,'review_count').change,null);
