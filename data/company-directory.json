@@ -1,0 +1,765 @@
+[
+  {
+    "key": "yzistel-hoi-an-39-le-quy-don",
+    "name": "Yzistel Hoi An",
+    "category": "hotel",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/Yzistel+Hoi+An/@15.8799668,108.3208267,17z/data=!3m1!4b1!4m9!3m8!1s0x31420f3a799e04fb:0x2b43ed5cac50e91f!5m2!4m1!1i2!8m2!3d15.8799617!4d108.3234016!16s%2Fg%2F11lmkh191l",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!B3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g298082-d33035770-Reviews-Yzistel_Hoi_An-Hoi_An_Quang_Nam_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!J3"
+      },
+      {
+        "source": "agoda",
+        "url": "https://www.agoda.com/vi-vn/yzistel-hoi-an/hotel/hoi-an-vn.html",
+        "property_id": "64821141",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!V3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/yzistel.vi.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AD3"
+      },
+      {
+        "source": "expedia",
+        "url": "https://www.expedia.com.vn/Da-Nang-Khach-San-YZISTEL.h113589597.Thong-tin-khach-san",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AL3"
+      },
+      {
+        "source": "trip",
+        "url": "https://www.trip.com/hotels/detail/?hotelId=126921251",
+        "property_id": "126921251",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AT3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/yzistel-hoi-an-9000005722460",
+        "property_id": "9000005722460",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!BB3"
+      }
+    ]
+  },
+  {
+    "key": "quy-nhon-sea-hotel",
+    "name": "Quy Nhon Sea Hotel",
+    "category": "hotel",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/Quy+Nhon+Sea+Hotel/@13.7519637,109.2236832,14z/data=!4m6!3m5!1s0x316f6d0887937999:0x84649d819ade4561!8m2!3d13.7468998!4d109.2137256!16s%2Fg%2F11mt95lygx",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!D3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g608528-d34097641-Reviews-Quy_Nhon_Sea_Hotel-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!M3"
+      },
+      {
+        "source": "agoda",
+        "url": "https://www.agoda.com/vi-vn/quy-nhon-sea-hotel/hotel/quy-nhon-binh-dinh-vn.html",
+        "property_id": "83491477",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!X3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/quy-nhon-sea.vi.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AF3"
+      },
+      {
+        "source": "expedia",
+        "url": "https://www.expedia.com/Quy-Nhon-Hotels-Quy-Nhon-Sea-Hotel.h124263055.Hotel-Information",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AN3"
+      },
+      {
+        "source": "trip",
+        "url": "https://www.trip.com/hotels/detail/?hotelId=133163757",
+        "property_id": "133163757",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AV3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/quy-nhon-sea-hotel-9000007896045",
+        "property_id": "9000007896045",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!BD3"
+      }
+    ]
+  },
+  {
+    "key": "sontra-sea-hotel",
+    "name": "Sontra Sea Hotel",
+    "category": "hotel",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/eVNCbkWX8QXfCVq9A",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!F3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Hotel_Review-g298085-d24979323-Reviews-Sontra_Sea_Hotel-Da_Nang.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!P3"
+      },
+      {
+        "source": "agoda",
+        "url": "https://www.agoda.com/vi-vn/sontra-sea-hotel/hotel/da-nang-vn.html",
+        "property_id": "31244978",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!Z3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/sontra-sea-da-nang.vi.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AH3"
+      },
+      {
+        "source": "expedia",
+        "url": "https://www.expedia.com.vn/Da-Nang-Khach-San-SONTRA-SEA-HOTEL.h76784107.Thong-tin-khach-san",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AP3"
+      },
+      {
+        "source": "trip",
+        "url": "https://www.trip.com/hotels/detail/?hotelId=92290827",
+        "property_id": "92290827",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AX3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/sontra-sea-hotel-9000000986772",
+        "property_id": "9000000986772",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!BF3"
+      }
+    ]
+  },
+  {
+    "key": "vistara-gia-lai-sea-hotel",
+    "name": "Vistara Gia Lai Sea Hotel",
+    "category": "hotel",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/YrnVsBPYen8PpD4N7",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!H3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g608528-d34666891-Reviews-Vistara_Gia_Lai_Sea_Hotel-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!S3"
+      },
+      {
+        "source": "agoda",
+        "url": "https://www.agoda.com/vi-vn/vistara-gia-lai-sea/hotel/quy-nhon-binh-dinh-vn.html",
+        "property_id": "94654312",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AB3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/vistara-gia-lai-sea.vi.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AJ3"
+      },
+      {
+        "source": "expedia",
+        "url": "https://www.expedia.com.vn/Quy-Nhon-Khach-San-Vistara-Gia-Lai-Sea-Hotel.h136072201.Thong-tin-khach-san",
+        "property_id": null,
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AR3"
+      },
+      {
+        "source": "trip",
+        "url": "https://www.trip.com/hotels/detail/?hotelId=135905264",
+        "property_id": "135905264",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!AZ3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/vistara-gia-lai-sea-hotel-9000008505991",
+        "property_id": "9000008505991",
+        "warning": null,
+        "provenance": "1. BC KHÁCH SẠN!BH3"
+      }
+    ]
+  },
+  {
+    "key": "vintage-taste-deli-cafe-sai-gon",
+    "name": "Vintage Taste Deli Cafe Sai Gon",
+    "category": "cafe",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/ELYMKKMUVUt72Uun9",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!B3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Restaurant_Review-g293925-d27457230-Reviews-Vintage_Taste_Deli_Cafe-Ho_Chi_Minh_City.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!H3"
+      },
+      {
+        "source": "grab",
+        "url": "https://r.grab.com/g/6-20260221_174656_2b63e26fb9ef4feba8fc4f214f17751b_MEXMPS-5-C6MUFA3TN6XURA",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!Q3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://shopeefood.vn/ho-chi-minh/vintage-taste-deli-cafe-28-duong-d9",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!W3"
+      }
+    ]
+  },
+  {
+    "key": "vintage-taste-deli-cafe-hoi-an",
+    "name": "Vintage Taste Deli Cafe Hoi An",
+    "category": "cafe",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/wKFYQqFKbrDvX7ak6",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!D3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Restaurant_Review-g25289644-d32993663-Reviews-Vintage_Taste_Deli_Cafe_Hoi_An-Cam_Pho_Hoi_An_Quang_Nam_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!K3"
+      },
+      {
+        "source": "grab",
+        "url": "https://r.grab.com/g/6-20260221_175024_2b63e26fb9ef4feba8fc4f214f17751b_MEXMPS-5-C7A1JXMWFGADDE",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!S3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://shopeefood.vn/quang-nam/vintage-taste-deli-cafe-hoi-an",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!Y3"
+      }
+    ]
+  },
+  {
+    "key": "vintage-taste-deli-cafe-rooftop",
+    "name": "Vintage Taste Deli Cafe Rooftop",
+    "category": "cafe",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/Vintage+Taste+Deli+Cafe+Rooftop/@13.746905,109.2088547,1056m/data=!3m2!1e3!4b1!4m6!3m5!1s0x316f6df936268155:0xda7345c6b47d71ec!8m2!3d13.7468998!4d109.2137256!16s%2Fg%2F11nhj5g48t",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!F3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Restaurant_Review-g608528-d34344422-Reviews-Vintage_Taste_Deli_Cafe_Rooftop-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!N3"
+      },
+      {
+        "source": "grab",
+        "url": "https://food.grab.com/vn/vi/restaurant/online-delivery/5-C76ERUX2CECGGJ?sourceID=20260601_095442_4276b6be63474feead57172c032193fd_MEXMPS",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!U3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://shopeefood.vn/now-food/shop/1288503?shareChannel=zalo_message&stm_medium=referral&stm_source=https%3A%2F%2Fchat.zalo.me%2F-rw&uls_trackid=55kq7s3404jj",
+        "property_id": null,
+        "warning": null,
+        "provenance": "2. BC CAFE!AA3"
+      }
+    ]
+  },
+  {
+    "key": "sontra-mini-mart-24h",
+    "name": "Sontra mini Mart 24h",
+    "category": "store",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/KgFM5eapiPsVMeZB8",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!B3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Attraction_Review-g15339118-d28050884-Reviews-Sontra_Mini_Mart_24h-Tho_Quang_Son_Tra_Peninsula_Da_Nang.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!H3"
+      },
+      {
+        "source": "grab",
+        "url": "https://grab.onelink.me/2695613898?pid=inappsharing&c=5-C7EJG2AZRRBVN2&is_retargeting=true&af_dp=grab%3A%2F%2Fopen%3FscreenType%3DGRABMART%26sourceID%3DA4pcqCZkS4%26merchantIDs%3D5-C7EJG2AZRRBVN2&af_force_deeplink=true&af_web_dp=https%3A%2F%2Fwww.grab.com%2Fdownload",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!Q3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://shopeefood.vn/da-nang/sontra-minimart-24h-hoang-sa.bictps",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!W3"
+      }
+    ]
+  },
+  {
+    "key": "mini-mart-24h-quy-nhon",
+    "name": "mini Mart 24h Quy Nhon",
+    "category": "store",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/YMh2hn4cx5GUPXQw7",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!D3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Restaurant_Review-g608528-d34261594-Reviews-Mini_Mart_24h-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!K3"
+      },
+      {
+        "source": "grab",
+        "url": "https://app.grab.com/open?screenType=GRABMART&merchantIDs=5-C731JTECAXMUJN&sourceID=%7BsourceID%7D&og_title=Minimart+24h&deeplink_safe_id=f213b255acb093f392d381c9e9c3ec9877468b275fab0b2441418613a7a45516&short_link_code=VFraaiIz",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!S3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://shopeefood.vn/binh-dinh/mini-mart-24h-han-mac-tu",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!Y3"
+      }
+    ]
+  },
+  {
+    "key": "trandoc-mini-mart-24h",
+    "name": "Trandoc mini Mart 24h",
+    "category": "store",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/YwpLViZy6iumLAcz5",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!F3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Restaurant_Review-g608528-d34694475-Reviews-Trandoc_mini_Mart_24h-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!N3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://shopeefood.vn/u/9Jw7H9S",
+        "property_id": null,
+        "warning": null,
+        "provenance": "3. BC MART 24H!AA3"
+      }
+    ]
+  },
+  {
+    "key": "bai-bien-son-tra",
+    "name": "Bãi Biển Sơn Trà",
+    "category": "activity",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/qNypmPGG5wthyvk4A",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!B3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Attraction_Review-g298085-d28666215-Reviews-Son_Tra_Beach-Da_Nang.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!L3"
+      }
+    ]
+  },
+  {
+    "key": "mieu-khong-tu",
+    "name": "Miếu Khổng Tử",
+    "category": "activity",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/Confucius+Temple/@15.8797648,108.32307,94m/data=!3m1!1e3!4m18!1m11!3m10!1s0x31420f3a799e04fb:0x2b43ed5cac50e91f!2sYzistel+Hoi+An!5m2!4m1!1i2!8m2!3d15.8799617!4d108.3234016!10e1!16s%2Fg%2F11lmkh191l!3m5!1s0x31420e7c862e582d:0xcedb43b4b67afd4c!8m2!3d15.8798623!4d108.3229872!16s%2Fg%2F1263k341_",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!D3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Attraction_Review-g298082-d33033528-Reviews-Confucius_Temple_Hoi_An-Hoi_An_Quang_Nam_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!O3"
+      }
+    ]
+  },
+  {
+    "key": "bai-bien-an-duong",
+    "name": "Bãi Biển An Dương",
+    "category": "activity",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/B%C3%A3i+Bi%E1%BB%83n+.+An+D%C6%B0%C6%A1ng+Quy+Nh%C6%A1n/@13.7468762,109.2111194,1056m/data=!3m1!1e3!4m17!1m10!3m9!1s0x316f6ce0ced94697:0x5d8064ad490f8eee!2sQuy+Nhon+Sea+Hotel!5m2!4m1!1i2!8m2!3d13.746871!4d109.2136943!16s%2Fg%2F11x9635cqd!3m5!1s0x316f6d0063222407:0x81c2db1875f80382!8m2!3d13.748462!4d109.2149856!16s%2Fg%2F11y7fpyr_c",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!F3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com/Attraction_Review-g608528-d34505053-Reviews-Bai_Bi_n_An_Duong_Quy_Nhon-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!R3"
+      }
+    ]
+  },
+  {
+    "key": "cho-thue-phao-boi",
+    "name": "Cho thuê phao bơi",
+    "category": "activity",
+    "relationship": "managed",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/Cho+Thu%C3%AA+Phao+B%C6%A1i+Kh%E1%BB%95ng+L%E1%BB%93/@16.0992077,108.2525856,1083m/data=!3m2!1e3!4b1!4m6!3m5!1s0x31421700764ed815:0x9138bbe9bb3132ae!8m2!3d16.0992026!4d108.2551605!16s%2Fg%2F11zfn6w95m!5m1!1e1",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!H3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g298085-d34332996-Reviews-Sontra_Sea_Hotel-Da_Nang.html",
+        "property_id": null,
+        "warning": "Liên kết Excel trỏ đến khách sạn Sontra Sea; cần xác nhận đúng địa điểm.",
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!U3"
+      }
+    ]
+  },
+  {
+    "key": "mieu-quan-cong",
+    "name": "Miếu Quan Công",
+    "category": "activity",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/jL6xvCtx9PeoDeeT7",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!J3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://en.tripadvisor.com.hk/Attraction_Review-g298082-d454962-Reviews-Quan_Kong_Temple-Hoi_An_Quang_Nam_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!AA3"
+      }
+    ]
+  },
+  {
+    "key": "bai-bien-phuoc-my",
+    "name": "Bãi Biển Phước Mỹ",
+    "category": "activity",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Attraction_Review-g298085-d10798602-Reviews-Phuoc_My_Beach-Da_Nang.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!X3"
+      }
+    ]
+  },
+  {
+    "key": "silkotel-hoi-an",
+    "name": "Silkotel Hoi An",
+    "category": "hotel",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/dGDGEYDrdEZgaJRD7",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!B3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g298082-d10259528-Reviews-Silkotel_Hoi_An-Hoi_An_Quang_Nam_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!H3"
+      },
+      {
+        "source": "agoda",
+        "url": "https://www.agoda.com/vi-vn/hoi-an-silk-boutique-hotel-and-spa_3/hotel/hoi-an-vn.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!Q3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/hoi-an-silk-boutique-and-spa.en-gb.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!W3"
+      },
+      {
+        "source": "expedia",
+        "url": "https://www.expedia.com.vn/Da-Nang-Khach-San-Silkotel-Hoi-An.h15123120.Thong-tin-khach-san",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AC3"
+      },
+      {
+        "source": "trip",
+        "url": "https://www.trip.com/hotels/detail/?hotelId=5215820",
+        "property_id": "5215820",
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AG3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/silkotel-hoi-an-1000000591646",
+        "property_id": "1000000591646",
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AK3"
+      }
+    ]
+  },
+  {
+    "key": "the-code-hotel",
+    "name": "The Code Hotel",
+    "category": "hotel",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/4vTFXnHKTj2VF6Tk9",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!D3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g15339118-d16820992-Reviews-The_Code_Hotel_Spa-Tho_Quang_Son_Tra_Peninsula_Da_Nang.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!K3"
+      },
+      {
+        "source": "agoda",
+        "url": "https://www.agoda.com/vi-vn/the-code-hotel-spa/hotel/da-nang-vn.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!S3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/the-code-amp-spa.vi.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!Y3"
+      },
+      {
+        "source": "expedia",
+        "url": "https://www.expedia.com.vn/Da-Nang-Khach-San-The-Code-Hotel-Spa.h34799580.Thong-tin-khach-san",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AE3"
+      },
+      {
+        "source": "trip",
+        "url": "https://www.trip.com/hotels/detail/?hotelId=31600484",
+        "property_id": "31600484",
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AI3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/the-code-hotel-1000001860058",
+        "property_id": "1000001860058",
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AM3"
+      }
+    ]
+  },
+  {
+    "key": "mira-boutique-hotel",
+    "name": "Mira Boutique Hotel",
+    "category": "hotel",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/travel/search",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!F3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Hotel_Review-g608528-d33058975-Reviews-Mira_Boutique_Hotel_Quy_Nhon-Quy_Nhon_Binh_Dinh_Province.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!N3"
+      },
+      {
+        "source": "booking",
+        "url": "https://www.booking.com/hotel/vn/la-maison-boutique.vi.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AA3"
+      },
+      {
+        "source": "traveloka",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/mira-boutique-hotel-9000000325283",
+        "property_id": "9000000325283",
+        "warning": null,
+        "provenance": "5. BC KHÁCH SẠN ĐỐI THỦ!AO3"
+      }
+    ]
+  },
+  {
+    "key": "highlands-coffee-s2-02",
+    "name": "Highlands Coffee S2.02",
+    "category": "cafe",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://www.google.com/maps/place/Highlands+Coffee+-+S2.02+Vinhomes+Grand+Park/@10.8384356,106.8315347,17z/data=!3m1!4b1!4m6!3m5!1s0x317521007764bba7:0x5bd2aca338701b8!8m2!3d10.8384356!4d106.8315347!16s%2Fg%2F11vppj2h_s!17m2!4m1!1e3!18m1!1e1",
+        "property_id": null,
+        "warning": null,
+        "provenance": "6. BC CAFE ĐỐI THỦ!B3"
+      }
+    ]
+  },
+  {
+    "key": "highlands-coffee-pct",
+    "name": "Highlands Coffee PCT",
+    "category": "cafe",
+    "relationship": "comparison",
+    "sources": [
+      {
+        "source": "google",
+        "url": "https://maps.app.goo.gl/xsu4EGDrMXU8WHEW9",
+        "property_id": null,
+        "warning": null,
+        "provenance": "6. BC CAFE ĐỐI THỦ!D3"
+      },
+      {
+        "source": "tripadvisor",
+        "url": "https://www.tripadvisor.com.vn/Restaurant_Review-g298085-d2361273-Reviews-Highlands_Coffee-Da_Nang.html",
+        "property_id": null,
+        "warning": null,
+        "provenance": "6. BC CAFE ĐỐI THỦ!I3"
+      },
+      {
+        "source": "grab",
+        "url": "https://r.grab.com/g/6-20260414_091233_8174a04c70fc47deb5c86be8cee8fad2_MEXMPS-5-C6AXAU4YEA4XPA",
+        "property_id": null,
+        "warning": null,
+        "provenance": "6. BC CAFE ĐỐI THỦ!N3"
+      },
+      {
+        "source": "shopee",
+        "url": "https://spf.shopee.vn/1gEerZEPpa",
+        "property_id": null,
+        "warning": null,
+        "provenance": "6. BC CAFE ĐỐI THỦ!R3"
+      }
+    ]
+  }
+]

@@ -50,6 +50,7 @@ export function createApp(){
  app.get('/api/google/accounts',async(req,res,next)=>{try{res.json(await listAccounts(typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
+ app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
  app.get('/api/ota/reviews',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_reviews'));}catch(e){next(e);}});
  app.get('/api/ota/summary',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_summary_read'));}catch(e){next(e);}});
  app.get('/api/ota/status',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_targets_read'));}catch(e){next(e);}});
