@@ -5,14 +5,19 @@ import {validateOtaResult} from '../../backend/src/ota-validation.js';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {runGoogleSummaries} from './google-summary.js';
+import {runPublicSummaries} from './public-summary.js';
 const dryRun=process.argv.includes('--dry-run');
 const endpoint=process.env.TRACKER_API_URL,token=process.env.OTA_WORKER_SECRET;
 if(!dryRun&&(!endpoint||!token||token.length<24))throw new Error('Set TRACKER_API_URL and OTA_WORKER_SECRET (24+ characters)');
 const base=endpoint?new URL(endpoint):null;if(base&&(base.protocol!=='https:'||base.username||base.password))throw new Error('Invalid backend URL');
 async function request(path,body){const r=await fetch(new URL(path,base),{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(30000)});if(!r.ok)throw new Error('Backend rejected worker request ('+r.status+')');return r.json();}
-if(process.argv.includes('--check-config')){await request('/api/ota/worker/targets');console.log('Worker authenticated successfully.');process.exit(0);}
+if(process.argv.includes('--check-config')){await request('/api/ota/worker/targets');await request('/api/google/worker/targets');await request('/api/public/worker/targets');console.log('Worker authenticated successfully for OTA, Google and public source summaries.');process.exit(0);}
 async function run(){
  const sourceFilter=process.argv.find(s=>s.startsWith('--source='))?.slice(9);
+ if(!sourceFilter||sourceFilter!=='google'){
+  try{await runPublicSummaries({request,dryRun,sourceFilter:sourceFilter==='public'?undefined:sourceFilter,entityKey:process.argv.find(s=>s.startsWith('--entity='))?.slice(9)});}catch(e){console.error('Public summary cycle failed: '+e.message);if(sourceFilter&&!['agoda','trip','traveloka'].includes(sourceFilter))throw e;}
+  if(sourceFilter&&!['google','agoda','trip','traveloka'].includes(sourceFilter))return;
+ }
  if(!sourceFilter||sourceFilter==='google'){
   try{await runGoogleSummaries({request,dryRun,entityKey:process.argv.find(s=>s.startsWith('--entity='))?.slice(9)});}catch(e){if(sourceFilter==='google')throw e;console.error('Google summary cycle failed; continuing OTA collection.');}
   if(sourceFilter==='google')return;

@@ -24,7 +24,7 @@ insert into public.review_tracker_directory(entity_key,name,category,relationshi
 on conflict(entity_key) do update set name=excluded.name,category=excluded.category,relationship=excluded.relationship;
 insert into public.review_tracker_directory_sources(entity_key,source,source_url,property_id,warning,provenance) values
 ('yzistel-hoi-an-39-le-quy-don','google','https://www.google.com/maps/place/Yzistel+Hoi+An/@15.8799668,108.3208267,17z/data=!3m1!4b1!4m9!3m8!1s0x31420f3a799e04fb:0x2b43ed5cac50e91f!5m2!4m1!1i2!8m2!3d15.8799617!4d108.3234016!16s%2Fg%2F11lmkh191l',null,null,'1. BC KHÁCH SẠN!B3'),
-('yzistel-hoi-an-39-le-quy-don','tripadvisor','https://www.tripadvisor.com.vn/Hotel_Review-g298082-d33035770-Reviews-Yzistel_Hoi_An-Hoi_An_Quang_Nam_Province.html',null,null,'1. BC KHÁCH SẠN!J3'),
+('yzistel-hoi-an-39-le-quy-don','tripadvisor','https://www.tripadvisor.com.vn/Hotel_Review-g25289644-d33037118-Reviews-Yzistel_Hoi_An-Cam_Pho_Hoi_An_Quang_Nam_Province.html',null,null,'1. BC KHÁCH SẠN!J3'),
 ('yzistel-hoi-an-39-le-quy-don','agoda','https://www.agoda.com/vi-vn/yzistel-hoi-an/hotel/hoi-an-vn.html','64821141',null,'1. BC KHÁCH SẠN!V3'),
 ('yzistel-hoi-an-39-le-quy-don','booking','https://www.booking.com/hotel/vn/yzistel.vi.html',null,null,'1. BC KHÁCH SẠN!AD3'),
 ('yzistel-hoi-an-39-le-quy-don','expedia','https://www.expedia.com.vn/Da-Nang-Khach-San-YZISTEL.h113589597.Thong-tin-khach-san',null,null,'1. BC KHÁCH SẠN!AL3'),
@@ -57,7 +57,7 @@ insert into public.review_tracker_directory_sources(entity_key,source,source_url
 ('vintage-taste-deli-cafe-sai-gon','shopee','https://shopeefood.vn/ho-chi-minh/vintage-taste-deli-cafe-28-duong-d9',null,null,'2. BC CAFE!W3'),
 ('vintage-taste-deli-cafe-hoi-an','google','https://maps.app.goo.gl/wKFYQqFKbrDvX7ak6',null,null,'2. BC CAFE!D3'),
 ('vintage-taste-deli-cafe-hoi-an','tripadvisor','https://www.tripadvisor.com.vn/Restaurant_Review-g25289644-d32993663-Reviews-Vintage_Taste_Deli_Cafe_Hoi_An-Cam_Pho_Hoi_An_Quang_Nam_Province.html',null,null,'2. BC CAFE!K3'),
-('vintage-taste-deli-cafe-hoi-an','grab','https://r.grab.com/g/6-20260221_175024_2b63e26fb9ef4feba8fc4f214f17751b_MEXMPS-5-C7A1JXMWFGADDE',null,null,'2. BC CAFE!S3'),
+('vintage-taste-deli-cafe-hoi-an','grab','https://food.grab.com/vn/en/restaurant/vintage-taste-deli-cafe-hoi-an-delivery/5-C7A1JXMWFGADDE',null,null,'2. BC CAFE!S3'),
 ('vintage-taste-deli-cafe-hoi-an','shopee','https://shopeefood.vn/quang-nam/vintage-taste-deli-cafe-hoi-an',null,null,'2. BC CAFE!Y3'),
 ('vintage-taste-deli-cafe-rooftop','google','https://www.google.com/maps/place/Vintage+Taste+Deli+Cafe+Rooftop/@13.746905,109.2088547,1056m/data=!3m2!1e3!4b1!4m6!3m5!1s0x316f6df936268155:0xda7345c6b47d71ec!8m2!3d13.7468998!4d109.2137256!16s%2Fg%2F11nhj5g48t',null,null,'2. BC CAFE!F3'),
 ('vintage-taste-deli-cafe-rooftop','tripadvisor','https://www.tripadvisor.com/Restaurant_Review-g608528-d34344422-Reviews-Vintage_Taste_Deli_Cafe_Rooftop-Quy_Nhon_Binh_Dinh_Province.html',null,null,'2. BC CAFE!N3'),
@@ -73,7 +73,7 @@ insert into public.review_tracker_directory_sources(entity_key,source,source_url
 ('mini-mart-24h-quy-nhon','shopee','https://shopeefood.vn/binh-dinh/mini-mart-24h-han-mac-tu',null,null,'3. BC MART 24H!Y3'),
 ('trandoc-mini-mart-24h','google','https://maps.app.goo.gl/YwpLViZy6iumLAcz5',null,null,'3. BC MART 24H!F3'),
 ('trandoc-mini-mart-24h','tripadvisor','https://www.tripadvisor.com.vn/Restaurant_Review-g608528-d34694475-Reviews-Trandoc_mini_Mart_24h-Quy_Nhon_Binh_Dinh_Province.html',null,null,'3. BC MART 24H!N3'),
-('trandoc-mini-mart-24h','shopee','https://shopeefood.vn/u/9Jw7H9S',null,null,'3. BC MART 24H!AA3'),
+('trandoc-mini-mart-24h','shopee','https://shopeefood.vn/now-food/shop/1306443',null,null,'3. BC MART 24H!AA3'),
 ('bai-bien-son-tra','google','https://maps.app.goo.gl/qNypmPGG5wthyvk4A',null,null,'4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!B3'),
 ('bai-bien-son-tra','tripadvisor','https://www.tripadvisor.com.vn/Attraction_Review-g298085-d28666215-Reviews-Son_Tra_Beach-Da_Nang.html',null,null,'4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!L3'),
 ('mieu-khong-tu','google','https://www.google.com/maps/place/Confucius+Temple/@15.8797648,108.32307,94m/data=!3m1!1e3!4m18!1m11!3m10!1s0x31420f3a799e04fb:0x2b43ed5cac50e91f!2sYzistel+Hoi+An!5m2!4m1!1i2!8m2!3d15.8799617!4d108.3234016!10e1!16s%2Fg%2F11lmkh191l!3m5!1s0x31420e7c862e582d:0xcedb43b4b67afd4c!8m2!3d15.8798623!4d108.3229872!16s%2Fg%2F1263k341_',null,null,'4. BC ĐỊA ĐIỂM HĐ GIẢI TRÍ!D3'),
