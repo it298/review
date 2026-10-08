@@ -3,6 +3,7 @@ import {createWorker} from 'tesseract.js';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {validateGoogleSummary} from '../../backend/src/google-summary-validation.js';
+import {publishEvidence} from './evidence.js';
 export function googleTargetUrl(value){const u=new URL(value);if(u.protocol!=='https:'||!['www.google.com','maps.google.com','maps.app.goo.gl'].includes(u.hostname)||u.username||u.password||u.port)throw new Error('Invalid Google Maps URL');if(u.hostname==='www.google.com'&&!u.pathname.startsWith('/maps'))throw new Error('Not a Maps URL');return u.href;}
 export function googlePlaceToken(value){return [...decodeURIComponent(value).matchAll(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/gi)].at(-1)?.[1]||null;}
 export function googleHeaderNumbers(header){
@@ -19,7 +20,7 @@ export async function runGoogleSummaries({request,dryRun=false,entityKey}){
  const context=profile?await chromium.launchPersistentContext(resolve(profile),{headless,channel:'chromium',locale:'vi-VN',viewport:{width:1440,height:1000},deviceScaleFactor:2}):null;
  const browser=context?null:await chromium.launch({headless,channel:'chromium'});let engine;
  try{for(const target of targets){
-  const page=context?await context.newPage():await browser.newPage({locale:'en-US',viewport:{width:1440,height:1000},deviceScaleFactor:2});let payload;
+  const page=context?await context.newPage():await browser.newPage({locale:'en-US',viewport:{width:1440,height:1000},deviceScaleFactor:2});let payload,evidenceBytes;
   try{
    const sourceUrl=googleTargetUrl(target.source_url);await page.goto(sourceUrl,{waitUntil:'domcontentloaded',timeout:45000});
    googleTargetUrl(page.url());
@@ -37,10 +38,11 @@ export async function runGoogleSummaries({request,dryRun=false,entityKey}){
    const imageRating=ratingText?Number(ratingText[1].replace(',','.')):null,imageCount=countText?Number(countText[1].replace(/[.,]/g,'')):null;
    const agreed=ocr.confidence>=90&&(summary.rating===null||imageRating===summary.rating)&&(summary.reviewCount===null||imageCount===summary.reviewCount);
    payload=validateGoogleSummary({entityKey:target.entity_key,status:'success',method:agreed?'ocr':'dom',rating:summary.rating,reviewCount:summary.reviewCount,capturedAt:new Date().toISOString(),placeToken:token,corroborated:agreed});
+   evidenceBytes=bytes;
    await writeFile(resolve(dir,base+'.json'),JSON.stringify({name:header.name,...payload,ocr:{confidence:ocr.confidence,text:ocr.text},limitedView:summary.reviewCount===null},null,2));
   }catch(e){payload={entityKey:target.entity_key,method:'dom',status:'failed',error:/captcha|blocked|restricted/i.test(e.message)?'blocked':'invalid_data'};}
   finally{await page.close();}
-  if(!dryRun)await request('/api/google/worker/results',payload);
+  if(!dryRun){await request('/api/google/worker/results',payload);await publishEvidence(request,payload,evidenceBytes);}
   console.log(JSON.stringify({source:'google',...payload,dryRun}));
  }}finally{await engine?.terminate();await context?.close();await browser?.close();}
 }

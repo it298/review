@@ -4,6 +4,7 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {publicSourceUrl,publicSourceIdentity,validatePublicSummary} from '../../backend/src/public-summary-validation.js';
 import {parseAgodaCard,parseSummary} from './parse.js';
+import {publishEvidence} from './evidence.js';
 const number=s=>Number(String(s).replace(',','.')),count=s=>Number(String(s).replace(/[.,\s]/g,''));
 export function parsePublicCard(source,text){
  let m;
@@ -44,7 +45,7 @@ export async function runPublicSummaries({request,dryRun=false,sourceFilter,enti
  if(!targets.length)return;
  const dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence','public-summary');await mkdir(dir,{recursive:true});
  const browser=await chromium.launch({headless:false,channel:'chromium'});let engine;
- try{for(const target of targets){const page=await browser.newPage({locale:'vi-VN',viewport:{width:1440,height:1000},deviceScaleFactor:2});page.setDefaultTimeout(15000);const base=target.source+'-'+target.entity_key+'-'+Date.now();let payload,detail;
+ try{for(const target of targets){const page=await browser.newPage({locale:'vi-VN',viewport:{width:1440,height:1000},deviceScaleFactor:2});page.setDefaultTimeout(15000);const base=target.source+'-'+target.entity_key+'-'+Date.now();let payload,detail,evidenceBytes;
   try{
    publicSourceUrl(target.source,target.source_url);const response=await page.goto(target.source_url,{waitUntil:'domcontentloaded',timeout:40000});
    await page.locator('body').waitFor();
@@ -70,11 +71,12 @@ export async function runPublicSummaries({request,dryRun=false,sourceFilter,enti
    ocr=(await engine.recognize(bytes)).data;
    try{const image=parsePublicCard(target.source,ocr.text);agreed=ocr.confidence>=90&&image.rating===summary.rating&&image.reviewCount===summary.reviewCount&&(image.countDisplay||null)===(summary.countDisplay||null);}catch{}
    payload=validatePublicSummary({entityKey:target.entity_key,source:target.source,status:'success',method:agreed?'ocr':'dom',sourceUrl:target.source_url,resolvedUrl:page.url(),...summary,capturedAt:new Date().toISOString(),corroborated:agreed});
+   evidenceBytes=bytes;
    detail={name:await page.getByRole('heading',{level:1}).first().innerText({timeout:1000}).catch(()=>page.title()),visible,aggregate,ocr:{text:ocr.text,confidence:ocr.confidence},payload};
   }catch(e){payload={entityKey:target.entity_key,source:target.source,status:'failed',method:'dom',error:e.code||(/Timeout|net::/.test(e.message)?'network':'invalid_data')};detail={error:e.message,payload,resolvedUrl:page.url(),cardText:await page.locator(target.source==='agoda'?'.Review-reviewBranding':target.source==='trip'?'#outerReviewList':'h1').first().innerText({timeout:1000}).catch(()=>null)};await page.screenshot({path:resolve(dir,base+'-failed.png')}).catch(()=>{});}
   finally{await page.close();}
   await writeFile(resolve(dir,base+'.json'),JSON.stringify(detail,null,2));
-  if(!dryRun)await request('/api/public/worker/results',payload);
+  if(!dryRun){await request('/api/public/worker/results',payload);await publishEvidence(request,payload,evidenceBytes);}
   console.log(JSON.stringify({source:target.source,entityKey:target.entity_key,status:payload.status,rating:payload.rating,reviewCount:payload.reviewCount,countDisplay:payload.countDisplay,method:payload.method,error:payload.error,dryRun}));
  }}finally{await engine?.terminate();await browser.close();}
 }

@@ -2,6 +2,7 @@ import { useEffect,useMemo,useState } from 'react';
 import { api } from '../lib/api.js';
 import Icon from '../components/Icon.jsx';
 import SourceOverview from '../components/SourceOverview.jsx';
+import AttentionSummary from '../components/AttentionSummary.jsx';
 const number=value=>new Intl.NumberFormat('vi-VN').format(value);
 const rating=value=>value==null?'—':Number(value).toLocaleString('vi-VN',{maximumFractionDigits:2});
 function date(value){return value?value.split('-').reverse().join('/'):'—';}
@@ -11,7 +12,7 @@ function Trend({points}){
  const coords=points.map(p=>[pad+(new Date(p.date).getTime()-start)/Math.max(1,end-start)*(w-pad*2),h-pad-(p.reviews-min)/range*(h-pad*2)]);const line=coords.map(c=>c.join(',')).join(' ');
  return <><svg className="trend-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Tổng review từ ${number(values[0])} đến ${number(values.at(-1))}`}><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#4f71ed" stopOpacity=".16"/><stop offset="1" stopColor="#4f71ed" stopOpacity="0"/></linearGradient></defs>{[0,1,2,3].map(i=><line key={i} x1={pad} x2={w-pad} y1={pad+i*(h-pad*2)/3} y2={pad+i*(h-pad*2)/3} stroke="#e9edf4" strokeDasharray="4 5"/>)}<polygon points={`${pad},${h-pad} ${line} ${w-pad},${h-pad}`} fill="url(#chart-fill)"/><polyline points={line} fill="none" stroke="#4f71ed" strokeWidth="3" strokeLinejoin="round"/>{coords.map((c,i)=><circle key={points[i].date} cx={c[0]} cy={c[1]} r="4" fill="white" stroke="#4f71ed" strokeWidth="2"><title>{date(points[i].date)}: {number(points[i].reviews)} review</title></circle>)}</svg><div className="chart-axis"><span>{date(points[0].date)} · {number(values[0])}</span><span>{date(points.at(-1).date)} · {number(values.at(-1))}</span></div></>;
 }
-export default function Dashboard({onManage}){
+export default function Dashboard({onManage,onAttention}){
  const [data,setData]=useState({places:[],rows:[],dates:[]});const [loading,setLoading]=useState(false);const [fetching,setFetching]=useState(true);const [error,setError]=useState('');const [lastSync,setLastSync]=useState(null);const [query,setQuery]=useState('');const [period,setPeriod]=useState('all');const [selected,setSelected]=useState('');
  async function load(){try{setError('');setData(await api('/api/places/dashboard-matrix'));}catch(e){setError(e.message);}finally{setFetching(false);}}
  useEffect(()=>{load();},[]);
@@ -31,6 +32,7 @@ export default function Dashboard({onManage}){
   {error && <div className="notice error" role="alert"><Icon name="alert"/><div><strong>Chưa tải được dữ liệu</strong><p>{error}</p><button className="text-button" onClick={load}>Thử lại</button></div></div>}
   {lastSync?.skipped && <div className="notice">Đang có phiên cập nhật khác. Vui lòng thử lại sau.</div>}
   {lastSync && !lastSync.skipped && <div className="notice success" role="status"><Icon name="check"/><div>Đã cập nhật {lastSync.results.filter(x=>x.ok).length}/{lastSync.total} khách sạn.{lastSync.remaining?' Còn '+lastSync.remaining+' khách sạn.':''}{lastSync.results.filter(x=>!x.ok).map(x=><p key={x.placeId}>{x.name}: {x.error}</p>)}</div></div>}
+  <AttentionSummary onOpen={onAttention}/>
   <SourceOverview data={data} query={query}/>
   <div className="filter-bar"><label className="search-field"><Icon name="search"/><input aria-label="Tìm khách sạn" placeholder="Tìm khách sạn..." value={query} onChange={e=>setQuery(e.target.value)}/></label><label className="period-filter"><Icon name="calendar"/><select aria-label="Khoảng thời gian" value={period} onChange={e=>setPeriod(e.target.value)}><option value="all">Toàn bộ thời gian</option><option value="7">7 ngày gần đây</option><option value="30">30 ngày gần đây</option><option value="90">90 ngày gần đây</option></select></label><span className="filter-count">{places.length} khách sạn Google</span></div>
   {data.places.length===0?<section className="panel onboarding-empty"><span className="empty-illustration"><Icon name="hotel" size={36}/></span><h2>{fetching?'Đang tải workspace...':error?'Dữ liệu đang chờ kết nối':'Kết nối thêm Google Maps'}</h2><p>Kết nối tài khoản Google Business Profile để theo dõi review và lưu lịch sử khách sạn của bạn.</p><button className="primary" onClick={onManage}><Icon name="plus"/>Quản lý khách sạn</button><div className="empty-steps"><span><b>01</b> Kết nối Google</span><Icon name="arrow" size={14}/><span><b>02</b> Chọn khách sạn</span><Icon name="arrow" size={14}/><span><b>03</b> Theo dõi review</span></div></section>:<>

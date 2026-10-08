@@ -5,7 +5,10 @@ import {resolve} from 'node:path';
 import {blocked,parseSummary,parseAgodaCard,targetURL} from './parse.js';
 import {darkDigitsOnWhite,ratingGlyphs} from './ocr-image.js';
 export function browserAdapters(){
- let browser;const opened=new Map();const failures=new Map();
+ let browser;const opened=new Map();const failures=new Map();const evidence=new Map();
+ async function capture(target,region,summary,method='dom',bytes){
+  try{bytes=bytes||await region.screenshot();const capturedAt=new Date().toISOString(),dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence'),base=target.source+'-'+target.property_id+'-'+Date.now();await mkdir(dir,{recursive:true});await writeFile(resolve(dir,base+'.png'),bytes);await writeFile(resolve(dir,base+'.json'),JSON.stringify({source:target.source,propertyId:target.property_id,capturedAt,status:'success',summary,method,verified:true}));evidence.set(target.source+':'+target.property_id,{bytes,capturedAt,method});return capturedAt;}catch{console.error('Evidence capture unavailable; verified summary remains usable.');return new Date().toISOString();}
+ }
  async function pageFor(target){
   const key=target.source+':'+target.property_id;if(failures.has(key))throw failures.get(key);if(opened.has(key))return opened.get(key);
   if(!browser){try{browser=await chromium.launch({headless:process.env.OTA_BROWSER_HEADLESS==='true',channel:'chromium'});}catch{throw Object.assign(new Error('Browser missing'),{code:'browser_missing'});}}
@@ -36,17 +39,19 @@ export function browserAdapters(){
    await page.getByRole('heading',{name:/Bài đánh giá.*từ khách thật/}).waitFor();
    if(!await page.locator(`a[href*="selectedproperty=${target.property_id}"]`).count())throw Object.assign(new Error('Agoda property identity not confirmed'),{code:'invalid_data'});
    const summary=parseAgodaCard(await (await agodaRegion(page,target)).innerText());
+   const capturedAt=await capture(target,await agodaRegion(page,target),summary);
    try{
    const source=page.getByRole('combobox',{name:'Nguồn',exact:true});await source.locator('option').first().waitFor({state:'attached'});const option=await source.locator('option').allTextContents();const label=option.find(t=>/Agoda/i.test(t)&&! /Booking/i.test(t));if(!label)throw new Error('Agoda source missing');await source.selectOption({label});
    await page.getByRole('combobox',{name:'Sắp xếp theo',exact:true}).selectOption({label:'Gần đây nhất'});
    await page.locator('[data-review-comment-type="comment"]').first().waitFor();
    reviews=await page.locator('[data-review-comment-type="comment"]').evaluateAll(els=>els.slice(0,10).map(el=>{const date=el.querySelector('.Review-comment-bubble .Review-statusBar-left')?.textContent.match(/(\d+) tháng (\d+) (\d{4})/);return {reviewId:el.getAttribute('data-review-id'),rating:Number(el.querySelector('.Review-comment-left p span')?.textContent.replace(',','.')),author:el.querySelector('[data-info-type="reviewer-name"] strong')?.textContent,title:el.querySelector('[data-testid="review-title"]')?.textContent,content:el.querySelector('[data-testid="review-comment"]')?.textContent||'',reviewedAt:date?`${date[3]}-${date[2].padStart(2,'0')}-${date[1].padStart(2,'0')}`:'',response:el.querySelector('.Review-response-text')?.textContent};}));
    }catch{reviews=[];}
-   return {summary,reviews};
+   return {summary,reviews,capturedAt};
   }
   if(target.source==='trip'){
    await page.locator('#outerReviewList').waitFor();
    const summary=parseSummary('trip',await page.locator('#outerReviewList').innerText());
+   const capturedAt=await capture(target,page.locator('#outerReviewList'),summary);
    try{
     // Click the visible section heading to dismiss the date picker before opening reviews.
     await page.getByRole('heading',{name:'Guest Reviews',exact:true}).click();
@@ -56,7 +61,7 @@ export function browserAdapters(){
     await page.locator('.yRvZgc0SICPUbmdb2L2a').first().waitFor();
     reviews=await page.locator('.yRvZgc0SICPUbmdb2L2a').evaluateAll(els=>els.slice(0,10).map(el=>{const meta=JSON.parse(el.getAttribute('data-exposure')||'{}').data||{};const text=el.querySelector('.LPPTO8g2RH0Fk19jYMOQ')?.textContent;const d=new Date(text?.replace(/^Posted /,''));return {reviewId:String(meta.writingid||''),author:meta.nickname,rating:Number(el.querySelector('strong.xt_R_A70sdDRsOgExJWw')?.textContent),reviewedAt:isNaN(d)?'':d.toISOString().slice(0,10),content:el.querySelector('.UXjSnokalMIS5CzMtLSM')?.textContent||'',response:el.querySelector('.U_MFvurgi0vTUfXouQJj span:last-child')?.textContent,translation:el.querySelector('._gVdvg3_po_vN5u4WCvV')?.textContent};}));
    }catch{reviews=[];} // Modal failures don't invalidate an independently read summary.
-   return {summary,reviews};
+   return {summary,reviews,capturedAt};
   }
   const text=target.source==='trip'?await page.locator('#outerReviewList').innerText():await page.locator('body').innerText();
   return {summary:parseSummary(target.source,text),reviews};
@@ -92,7 +97,8 @@ export function browserAdapters(){
   const text=await region.innerText();let confirmed;try{confirmed=parse(text);}catch{throw Object.assign(new Error('OCR is uncorroborated'),{code:'invalid_data'});}
   if(data.confidence<90||candidate.rating!==confirmed.rating||candidate.count!==confirmed.count)throw Object.assign(new Error('OCR disagrees'),{code:'invalid_data'});
   await writeFile(resolve(dir,base+'.json'),JSON.stringify({confidence:data.confidence,text:data.text,summary:candidate,confirmed,propertyId:target.property_id,source:target.source,corroborated:true,capturedAt:new Date().toISOString()},null,2));
-  return {summary:candidate,reviews:[],corroborated:true};
+  const capturedAt=await capture(target,region,candidate,'ocr',bytes);
+  return {summary:candidate,reviews:[],corroborated:true,capturedAt};
  }
- return {dom,ocr,close:async()=>{await browser?.close();opened.clear();}};
+ return {dom,ocr,evidence:target=>evidence.get(target.source+':'+target.property_id),close:async()=>{await browser?.close();opened.clear();evidence.clear();}};
 }

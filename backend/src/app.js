@@ -5,6 +5,8 @@ import { matrix,track,sync } from './service.js';
 import {validateOtaResult} from './ota-validation.js';
 import {validateGoogleSummary} from './google-summary-validation.js';
 import {validatePublicSummary} from './public-summary-validation.js';
+import {buildAlerts,reports} from './insights.js';
+import {uploadEvidence,downloadEvidence} from './evidence.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
 export function createApp(){
@@ -40,6 +42,8 @@ export function createApp(){
   res.json(summary);
  }catch(e){next(e);}});
  const workerAuth=(req,res,next)=>{const secret=process.env.OTA_WORKER_SECRET;if(!secret||secret.length<24||!authorized(req.headers.authorization,secret))return res.status(401).json({error:'Unauthorized'});next();};
+ app.post('/api/evidence/worker/upload',workerAuth,express.raw({type:'image/png',limit:'2mb'}),async(req,res,next)=>{try{res.json(await uploadEvidence(req.query,req.body));}catch(e){next(e);}});
+ app.post('/api/insights/worker/report',workerAuth,async(_req,res,next)=>{try{await reports();res.json({ok:true});}catch(e){next(e);}});
  app.get('/api/ota/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_targets_read'));}catch(e){next(e);}});
  app.post('/api/ota/worker/results',workerAuth,async(req,res,next)=>{try{const payload=validateOtaResult(req.body);res.json(await rpc('review_tracker_ota_ingest',{p:payload}));}catch(e){next(e);}});
  app.get('/api/google/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_google_targets_read'));}catch(e){next(e);}});
@@ -57,6 +61,11 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
+ app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await rpc('review_tracker_insights_read',{p_days:days});res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});
+ app.post('/api/alerts/read',async(req,res,next)=>{try{if(typeof req.body?.key!=='string'||req.body.key.length>600||!req.body.key.length)return res.status(400).json({error:'Mã cảnh báo không hợp lệ.'});await rpc('review_tracker_alert_read',{p_key:req.body.key});res.json({ok:true});}catch(e){next(e);}});
+ app.get('/api/reports',async(_req,res,next)=>{try{res.json(await reports());}catch(e){next(e);}});
+ app.get('/api/evidence',async(req,res,next)=>{try{if(typeof req.query.entity!=='string'||req.query.entity.length>200||!['google','tripadvisor','agoda','booking','expedia','trip','traveloka','grab','shopee'].includes(req.query.source))return res.status(400).json({error:'Bộ lọc ảnh không hợp lệ.'});res.json(await rpc('review_tracker_evidence_read',{p_entity:req.query.entity,p_source:req.query.source}));}catch(e){next(e);}});
+ app.get('/api/evidence/:id/image',async(req,res,next)=>{try{if(!/^\d{1,15}$/.test(req.params.id))return res.status(400).json({error:'Mốc ảnh không hợp lệ.'});res.type('image/png').send(await downloadEvidence(Number(req.params.id)));}catch(e){next(e);}});
  app.get('/api/source-history',async(req,res,next)=>{try{
   const {entity,source}=req.query,days=Number(req.query.days||30);
   if(typeof entity!=='string'||!entity||entity.length>200||!['google','tripadvisor','agoda','booking','expedia','trip','traveloka','grab','shopee'].includes(source)||![7,30,90,365].includes(days))return res.status(400).json({error:'Bộ lọc lịch sử không hợp lệ.'});
