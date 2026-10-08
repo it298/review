@@ -3,7 +3,7 @@ import {api} from '../lib/api.js';
 import {categories,platforms,directoryRows,safeSourceUrl} from '../lib/directory.js';
 import Icon from './Icon.jsx';
 const statusLabel=code=>({blocked:'Nguồn chặn truy cập',unconfigured:'Chờ cấu hình kết nối',invalid_data:'Chưa xác minh được dữ liệu',network:'Lỗi kết nối',browser_missing:'Worker thiếu trình duyệt'}[code]||'Cập nhật thất bại');
-export default function SourceOverview({data,query=''}){
+export default function SourceOverview({data,query='',fixedCategory,fixedRelationship,showMetrics=true}){
  const [summaries,setSummaries]=useState([]),[targets,setTargets]=useState([]),[directory,setDirectory]=useState([]),[error,setError]=useState(''),[busy,setBusy]=useState(true),[search,setSearch]=useState(''),[category,setCategory]=useState('all'),[relationship,setRelationship]=useState('managed');
  async function load(){
   setBusy(true);setError('');
@@ -13,8 +13,9 @@ export default function SourceOverview({data,query=''}){
  }
  useEffect(()=>{load();},[]);
  const rows=directoryRows(directory,data,summaries,targets);
- const visible=rows.filter(p=>(category==='all'||p.category===category)&&(relationship==='all'||p.relationship===relationship)&&p.name.toLocaleLowerCase().includes((search||query).toLocaleLowerCase()));
- const columns=category==='hotel'?['google','tripadvisor','agoda','booking','expedia','trip','traveloka']:category==='cafe'||category==='store'?['google','tripadvisor','grab','shopee']:category==='activity'?['google','tripadvisor']:Object.keys(platforms);
+ const activeCategory=fixedCategory||category,activeRelationship=fixedRelationship||relationship;
+ const visible=rows.filter(p=>(activeCategory==='all'||p.category===activeCategory)&&(activeRelationship==='all'||p.relationship===activeRelationship)&&p.name.toLocaleLowerCase().includes((search||query).toLocaleLowerCase()));
+ const columns=activeCategory==='hotel'?['google','tripadvisor','agoda','booking','expedia','trip','traveloka']:activeCategory==='cafe'||activeCategory==='store'?['google','tripadvisor','grab','shopee']:activeCategory==='activity'?['google','tripadvisor']:Object.keys(platforms);
  function cell(row,source){
   const link=row.sources.find(s=>s.source===source),reading=row.readings[source];
   const url=safeSourceUrl(link?.source_url||reading?.source_url);
@@ -26,10 +27,10 @@ export default function SourceOverview({data,query=''}){
   </div>;
  }
  return <>
-  <div className="source-kpis">{[{label:'Địa điểm quản lý',value:rows.filter(r=>r.relationship==='managed').length,icon:'hotel',note:'Khách sạn, café, cửa hàng, hoạt động'},{label:'Địa điểm so sánh',value:rows.filter(r=>r.relationship==='comparison').length,icon:'link',note:'Theo dõi riêng nhóm đối thủ'},{label:'Nguồn có số liệu',value:rows.reduce((n,r)=>n+Object.values(r.readings).filter(s=>s.review_count!=null).length,0),icon:'shield',note:'Số liệu có thời điểm ghi nhận'}].map(m=><div className="source-kpi" key={m.label}><span className="icon-box blue"><Icon name={m.icon}/></span><div><small>{m.label}</small><strong>{m.value}</strong><span>{m.note}</span></div></div>)}</div>
+  {showMetrics&&<div className="source-kpis">{[{label:'Địa điểm quản lý',value:rows.filter(r=>r.relationship==='managed').length,icon:'hotel',note:'Khách sạn, café, cửa hàng, hoạt động'},{label:'Địa điểm so sánh',value:rows.filter(r=>r.relationship==='comparison').length,icon:'link',note:'Theo dõi riêng nhóm đối thủ'},{label:'Nguồn có số liệu',value:rows.reduce((n,r)=>n+Object.values(r.readings).filter(s=>s.review_count!=null).length,0),icon:'shield',note:'Số liệu có thời điểm ghi nhận'}].map(m=><div className="source-kpi" key={m.label}><span className="icon-box blue"><Icon name={m.icon}/></span><div><small>{m.label}</small><strong>{m.value}</strong><span>{m.note}</span></div></div>)}</div>}
   <section className="card source-overview"><div className="source-heading"><div><h2>Bảng theo dõi địa điểm</h2><p>Mỗi địa điểm một dòng. Điểm và tổng đánh giá riêng của từng nền tảng.</p></div><button onClick={load} disabled={busy}>{busy?'Đang tải...':'Tải lại dữ liệu'}</button></div>
    {error&&<p className="notice error" role="alert">Không tải được đầy đủ dữ liệu: {error}</p>}
-   <div className="source-toolbar"><label className="search-field"><Icon name="search"/><input aria-label="Tìm trong bảng nguồn" placeholder="Tìm địa điểm..." value={search} onChange={e=>setSearch(e.target.value)}/></label><select aria-label="Loại địa điểm" value={category} onChange={e=>setCategory(e.target.value)}><option value="all">Tất cả loại địa điểm</option>{Object.entries(categories).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><select aria-label="Nhóm theo dõi" value={relationship} onChange={e=>setRelationship(e.target.value)}><option value="managed">Công ty quản lý</option><option value="comparison">Đối thủ / so sánh</option><option value="all">Tất cả nhóm</option></select><span>{visible.length} địa điểm</span></div>
+   <div className="source-toolbar"><label className="search-field"><Icon name="search"/><input aria-label="Tìm trong bảng nguồn" placeholder="Tìm địa điểm..." value={search} onChange={e=>setSearch(e.target.value)}/></label>{!fixedCategory&&<select aria-label="Loại địa điểm" value={category} onChange={e=>setCategory(e.target.value)}><option value="all">Tất cả loại địa điểm</option>{Object.entries(categories).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>}{!fixedRelationship&&<select aria-label="Nhóm theo dõi" value={relationship} onChange={e=>setRelationship(e.target.value)}><option value="managed">Công ty quản lý</option><option value="comparison">Đối thủ / so sánh</option><option value="all">Tất cả nhóm</option></select>}<span>{visible.length} địa điểm</span></div>
    <div className="source-scroll"><table><thead><tr><th>Địa điểm</th>{columns.map(s=><th key={s}>{platforms[s].name}<small>Điểm gốc nền tảng</small></th>)}</tr></thead><tbody>{visible.map(p=><tr key={p.key}><th><span className="hotel-initial">{p.name.slice(0,2).toUpperCase()}</span>{p.name}<small>{categories[p.category]}{p.relationship==='comparison'?' · So sánh':''}</small></th>{columns.map(source=><td key={source}>{cell(p,source)}</td>)}</tr>)}</tbody></table></div>
    {!busy&&!visible.length&&<p>Chưa có địa điểm phù hợp bộ lọc.</p>}<p className="source-footnote">Liên kết đã đăng ký chưa đồng nghĩa với đã tự động thu thập. Ô chưa có số liệu hiển thị trạng thái kết nối; tổng review không cộng chung giữa các nguồn.</p>
   </section>
