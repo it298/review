@@ -42,14 +42,14 @@
       },
       {
         "source": "trip",
-        "url": "https://www.trip.com/hotels/detail/?hotelId=126921251",
+        "url": "https://www.trip.com/hotels/hoi-an-hotel-detail-126921251/yzistel-hoi-an/",
         "property_id": "126921251",
         "warning": null,
         "provenance": "1. BC KHÁCH SẠN!AT3"
       },
       {
         "source": "traveloka",
-        "url": "https://www.traveloka.com/en-en/hotel/vietnam/yzistel-hoi-an-9000005722460",
+        "url": "https://www.traveloka.com/en-en/hotel/vietnam/yzistel-9000005722460",
         "property_id": "9000005722460",
         "warning": null,
         "provenance": "1. BC KHÁCH SẠN!BB3"

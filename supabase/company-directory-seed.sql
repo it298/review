@@ -28,8 +28,8 @@ insert into public.review_tracker_directory_sources(entity_key,source,source_url
 ('yzistel-hoi-an-39-le-quy-don','agoda','https://www.agoda.com/vi-vn/yzistel-hoi-an/hotel/hoi-an-vn.html','64821141',null,'1. BC KHÁCH SẠN!V3'),
 ('yzistel-hoi-an-39-le-quy-don','booking','https://www.booking.com/hotel/vn/yzistel.vi.html',null,null,'1. BC KHÁCH SẠN!AD3'),
 ('yzistel-hoi-an-39-le-quy-don','expedia','https://www.expedia.com.vn/Da-Nang-Khach-San-YZISTEL.h113589597.Thong-tin-khach-san',null,null,'1. BC KHÁCH SẠN!AL3'),
-('yzistel-hoi-an-39-le-quy-don','trip','https://www.trip.com/hotels/detail/?hotelId=126921251','126921251',null,'1. BC KHÁCH SẠN!AT3'),
-('yzistel-hoi-an-39-le-quy-don','traveloka','https://www.traveloka.com/en-en/hotel/vietnam/yzistel-hoi-an-9000005722460','9000005722460',null,'1. BC KHÁCH SẠN!BB3'),
+('yzistel-hoi-an-39-le-quy-don','trip','https://www.trip.com/hotels/hoi-an-hotel-detail-126921251/yzistel-hoi-an/','126921251',null,'1. BC KHÁCH SẠN!AT3'),
+('yzistel-hoi-an-39-le-quy-don','traveloka','https://www.traveloka.com/en-en/hotel/vietnam/yzistel-9000005722460','9000005722460',null,'1. BC KHÁCH SẠN!BB3'),
 ('quy-nhon-sea-hotel','google','https://www.google.com/maps/place/Quy+Nhon+Sea+Hotel/@13.7519637,109.2236832,14z/data=!4m6!3m5!1s0x316f6d0887937999:0x84649d819ade4561!8m2!3d13.7468998!4d109.2137256!16s%2Fg%2F11mt95lygx',null,null,'1. BC KHÁCH SẠN!D3'),
 ('quy-nhon-sea-hotel','tripadvisor','https://www.tripadvisor.com.vn/Hotel_Review-g608528-d34097641-Reviews-Quy_Nhon_Sea_Hotel-Quy_Nhon_Binh_Dinh_Province.html',null,null,'1. BC KHÁCH SẠN!M3'),
 ('quy-nhon-sea-hotel','agoda','https://www.agoda.com/vi-vn/quy-nhon-sea-hotel/hotel/quy-nhon-binh-dinh-vn.html','83491477',null,'1. BC KHÁCH SẠN!X3'),
@@ -111,8 +111,8 @@ insert into public.review_tracker_directory_sources(entity_key,source,source_url
 on conflict(entity_key,source) do update set source_url=excluded.source_url,property_id=excluded.property_id,warning=excluded.warning,provenance=excluded.provenance;
 insert into public.review_tracker_ota_targets(source,property_id,property_name,hotel_key,source_url) values
 ('agoda','64821141','Yzistel Hoi An','yzistel-hoi-an-39-le-quy-don','https://www.agoda.com/vi-vn/yzistel-hoi-an/hotel/hoi-an-vn.html'),
-('trip','126921251','Yzistel Hoi An','yzistel-hoi-an-39-le-quy-don','https://www.trip.com/hotels/detail/?hotelId=126921251'),
-('traveloka','9000005722460','Yzistel Hoi An','yzistel-hoi-an-39-le-quy-don','https://www.traveloka.com/en-en/hotel/vietnam/yzistel-hoi-an-9000005722460'),
+('trip','126921251','Yzistel Hoi An','yzistel-hoi-an-39-le-quy-don','https://www.trip.com/hotels/hoi-an-hotel-detail-126921251/yzistel-hoi-an/'),
+('traveloka','9000005722460','Yzistel Hoi An','yzistel-hoi-an-39-le-quy-don','https://www.traveloka.com/en-en/hotel/vietnam/yzistel-9000005722460'),
 ('agoda','83491477','Quy Nhon Sea Hotel','quy-nhon-sea-hotel','https://www.agoda.com/vi-vn/quy-nhon-sea-hotel/hotel/quy-nhon-binh-dinh-vn.html'),
 ('trip','133163757','Quy Nhon Sea Hotel','quy-nhon-sea-hotel','https://www.trip.com/hotels/detail/?hotelId=133163757'),
 ('traveloka','9000007896045','Quy Nhon Sea Hotel','quy-nhon-sea-hotel','https://www.traveloka.com/en-en/hotel/vietnam/quy-nhon-sea-hotel-9000007896045'),
