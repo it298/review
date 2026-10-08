@@ -5,6 +5,7 @@ export default function Sidebar({page,setPage,onLogout}){
   <div className="brand"><span className="brand-mark"><Icon name="hotel" size={24}/></span><div>Stay<span className="brand-accent">Scope</span><small>REVIEW INTELLIGENCE</small></div></div>
   <div className="nav-label">WORKSPACE</div>
   <nav aria-label="Điều hướng chính">
+   <button aria-label="Biểu đồ & lịch sử" className={page==='history'?'active':''} aria-current={page==='history'?'page':undefined} onClick={()=>setPage('history')}><Icon name="trend"/><span>Biểu đồ & lịch sử</span>{page==='history'&&<span className="active-dot"/>}</button>
    <button aria-label="Tổng quan" className={page==='dashboard'?'active':''} aria-current={page==='dashboard'?'page':undefined} onClick={()=>setPage('dashboard')}><Icon name="dashboard"/><span>Tổng quan</span>{page==='dashboard' && <span className="active-dot"/>}</button>
    {Object.entries(locationPages).map(([key,group])=><button key={key} aria-label={group.title} className={page===key?'active':''} aria-current={page===key?'page':undefined} onClick={()=>setPage(key)}><Icon name={{hotels:'hotel',cafes:'coffee',stores:'store',activities:'activity',comparison:'trend'}[key]}/><span>{group.title}</span>{page===key&&<span className="active-dot"/>}</button>)}
    <button aria-label="Kết nối Google" className={page==='places'?'active':''} aria-current={page==='places'?'page':undefined} onClick={()=>setPage('places')}><Icon name="link"/><span>Kết nối Google</span>{page==='places' && <span className="active-dot"/>}</button>

@@ -57,6 +57,11 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
+ app.get('/api/source-history',async(req,res,next)=>{try{
+  const {entity,source}=req.query,days=Number(req.query.days||30);
+  if(typeof entity!=='string'||!entity||entity.length>200||!['google','tripadvisor','agoda','booking','expedia','trip','traveloka','grab','shopee'].includes(source)||![7,30,90,365].includes(days))return res.status(400).json({error:'Bộ lọc lịch sử không hợp lệ.'});
+  res.json(await rpc('review_tracker_source_history_read',{p_entity:entity,p_source:source,p_days:days}));
+ }catch(e){next(e);}});
  app.get('/api/ota/reviews',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_reviews'));}catch(e){next(e);}});
  app.get('/api/ota/summary',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_summary_read'));}catch(e){next(e);}});
  app.get('/api/ota/status',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_targets_read'));}catch(e){next(e);}});
