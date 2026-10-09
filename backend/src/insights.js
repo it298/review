@@ -2,6 +2,17 @@ import {rpc} from './store.js';
 export const vietnamDay=at=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(at));
 export const shiftDay=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 export function weekRange(day){const weekday=new Date(day+'T00:00:00Z').getUTCDay();const start=shiftDay(day,-((weekday+6)%7));return {start,end:shiftDay(start,6)};}
+export function validateReportRange(start,end,now=new Date()){
+ const valid=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+ const today=vietnamDay(now);
+ if(!valid(start)||!valid(end)||start>end||end>today||start<shiftDay(today,-364))throw Object.assign(new Error('Chọn ngày bắt đầu và kết thúc hợp lệ trong 365 ngày gần nhất, đến hôm nay.'),{status:400});
+ return {start,end,days:Math.round((Date.parse(today+'T00:00:00Z')-Date.parse(start+'T00:00:00Z'))/86400000)+1};
+}
+export async function reportForRange(start,end,now=new Date()){
+ const range=validateReportRange(start,end,now);
+ const inputs=await rpc('review_tracker_insights_read',{p_days:range.days});
+ return {report:buildWeeklyReport(inputs,range.start,range.end,now),mode:'custom'};
+}
 export function buildAlerts(data,now=new Date(),lookbackDays=7){
  const entities=new Map(data.directory.map(e=>[e.entity_key,e])),reads=new Set(data.readKeys),alerts=[];
  const decorate=a=>{const e=entities.get(a.entity_key);if(!e)return;alerts.push({...a,name:e.name,category:e.category,relationship:e.relationship,read:reads.has(a.key)});};
@@ -25,7 +36,7 @@ export function buildWeeklyReport(data,start,end,now=new Date()){
  const alerts=buildAlerts({...data,changes:data.changes.filter(c=>vietnamDay(c.at)>=start&&vietnamDay(c.at)<=end)},now,400).filter(a=>a.relationship==='managed'&&vietnamDay(a.at)>=start&&vietnamDay(a.at)<=end);
  return {version:1,start,end,generated_at:now.toISOString(),rows,alerts,locations:new Set(rows.map(r=>r.entity_key)).size,confirmed_sources:rows.filter(r=>r.status==='confirmed').length,missing_sources:rows.filter(r=>r.status==='missing').length,
   top_growth:rows.filter(r=>r.count_change!=null&&r.count_change>0).sort((a,b)=>b.count_change-a.count_change).slice(0,5),rating_drops:rows.filter(r=>r.rating_change!=null&&r.rating_change<0).sort((a,b)=>a.rating_change-b.rating_change).slice(0,5),
-  note:'Chênh lệch tính giữa ngày đầu/cuối có số liệu trong tuần, riêng từng nguồn. Không cộng tổng giữa các nền tảng. Mốc không chính xác và trường thiếu không được coi là 0.'};
+  note:'Chênh lệch tính giữa ngày đầu/cuối có số liệu trong khoảng ngày đã chọn, riêng từng nguồn. Không cộng tổng giữa các nền tảng. Mốc không chính xác và trường thiếu không được coi là 0.'};
 }
 let saving;
 export async function reports(data){

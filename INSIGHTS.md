@@ -24,3 +24,11 @@ Khi worker tắt, số liệu ngừng cập nhật; giao diện vẫn dùng dữ
 Tham khảo thư viện/API: [ExcelJS](https://github.com/exceljs/exceljs), [jsPDF](https://github.com/parallax/jsPDF), [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control). Noto Sans được đóng gói với giấy phép trong `frontend/public/fonts/OFL.txt`.
 
 Giao diện theo dõi chỉ thông báo biến động điểm hoặc tổng đánh giá. Trạng thái chưa xác minh, nguồn chặn truy cập, lỗi thu thập và chậm cập nhật được giữ trong dữ liệu vận hành, không hiển thị trên bảng, thông báo, cảnh báo hoặc báo cáo xuất. Ô chưa có số liệu dùng dấu “—”; số liệu đã ghi nhận giữ nguyên giá trị và thời gian. Lịch sử vẫn giữ từng lần làm mới với ghi chú trung tính.
+
+## Báo cáo theo khoảng ngày
+
+Mục **Báo cáo** mặc định có chế độ **Tự chọn ngày** với hai ô **Từ ngày** và **Đến ngày**. Chọn ngày rồi bấm **Xem báo cáo**; bảng, cảnh báo biến động và xuất Excel/PDF dùng đúng khoảng chọn, gồm cả hai ngày biên theo giờ Việt Nam. Có thể chọn một ngày hoặc khoảng trong 365 ngày gần nhất. Ô chưa có dữ liệu giữ “—”; một mốc duy nhất chưa đủ để tính chênh lệch.
+
+Thay đổi ngày sẽ ẩn báo cáo trước và vô hiệu hoá xuất file cho đến khi tải đúng khoảng mới. Tên file chứa cả ngày đầu và cuối. Lựa chọn tuần đang theo dõi và các tuần đã lưu vẫn có trong **Khoảng báo cáo**; các bản tuần đã chốt giữ nguyên.
+
+API `GET /api/reports?start=YYYY-MM-DD&end=YYYY-MM-DD` trả báo cáo tuỳ chọn sau lớp đăng nhập. Endpoint này chỉ đọc lịch sử, không ghi đè báo cáo tuần. Chạy `supabase/report-range.sql` sau các migration Insights để mở rộng bộ đọc lịch sử từ 90 lên 365 ngày; đã áp dụng trên Supabase dự án trong phiên phát triển.

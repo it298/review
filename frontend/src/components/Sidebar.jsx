@@ -15,7 +15,7 @@ const groups=[
   {key:'compare',label:'Tốc độ tăng',icon:'trend'},
   {key:'comparison',label:'Đối thủ',icon:'hotel'},
   {key:'evidence',label:'Ảnh kiểm chứng',icon:'review'},
-  {key:'reports',label:'Báo cáo tuần',icon:'calendar'}
+  {key:'reports',label:'Báo cáo',icon:'calendar'}
  ]},
  {key:'connections',label:'Kết nối',icon:'link',items:[
   {key:'places',label:'Google',icon:'link',title:'Kết nối Google'},

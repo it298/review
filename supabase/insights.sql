@@ -13,7 +13,7 @@ revoke all on public.review_tracker_alert_reads,public.review_tracker_weekly_rep
 grant select,insert on public.review_tracker_alert_reads,public.review_tracker_weekly_reports,public.review_tracker_evidence to service_role;
 create or replace function public.review_tracker_insights_read(p_days integer default 90) returns jsonb
 language sql stable security invoker set search_path=public as $$
- with limits as(select ((now() at time zone 'Asia/Ho_Chi_Minh')::date-(least(greatest(p_days,7),90)-1))::timestamp at time zone 'Asia/Ho_Chi_Minh' cutoff),
+ with limits as(select ((now() at time zone 'Asia/Ho_Chi_Minh')::date-(least(greatest(p_days,7),365)-1))::timestamp at time zone 'Asia/Ho_Chi_Minh' cutoff),
  h as (select * from review_tracker_source_history where attempted_at>=now()-interval '400 days'),
  r as (select distinct on(entity_key,source,(rating_at at time zone 'Asia/Ho_Chi_Minh')::date)
  entity_key,source,(rating_at at time zone 'Asia/Ho_Chi_Minh')::date as "day",rating,rating_max,rating_at,id rating_history_id

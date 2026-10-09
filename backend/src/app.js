@@ -6,7 +6,7 @@ import {validateOtaResult} from './ota-validation.js';
 import {validateGoogleSummary} from './google-summary-validation.js';
 import {validatePublicSummary} from './public-summary-validation.js';
 import {validateManualSummary} from './manual-summary.js';
-import {buildAlerts,reports} from './insights.js';
+import {buildAlerts,reports,reportForRange} from './insights.js';
 import {uploadEvidence,downloadEvidence} from './evidence.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
@@ -65,7 +65,7 @@ export function createApp(){
  app.post('/api/manual-summary',async(req,res,next)=>{try{res.json(await rpc('review_tracker_manual_summary_ingest',{p:validateManualSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await rpc('review_tracker_insights_read',{p_days:days});res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});
  app.post('/api/alerts/read',async(req,res,next)=>{try{if(typeof req.body?.key!=='string'||req.body.key.length>600||!req.body.key.length)return res.status(400).json({error:'Mã cảnh báo không hợp lệ.'});await rpc('review_tracker_alert_read',{p_key:req.body.key});res.json({ok:true});}catch(e){next(e);}});
- app.get('/api/reports',async(_req,res,next)=>{try{res.json(await reports());}catch(e){next(e);}});
+ app.get('/api/reports',async(req,res,next)=>{try{res.json(req.query.start!==undefined||req.query.end!==undefined?await reportForRange(req.query.start,req.query.end):await reports());}catch(e){next(e);}});
  app.get('/api/evidence',async(req,res,next)=>{try{if(typeof req.query.entity!=='string'||req.query.entity.length>200||!['google','tripadvisor','agoda','booking','expedia','trip','traveloka','grab','shopee'].includes(req.query.source))return res.status(400).json({error:'Bộ lọc ảnh không hợp lệ.'});res.json(await rpc('review_tracker_evidence_read',{p_entity:req.query.entity,p_source:req.query.source}));}catch(e){next(e);}});
  app.get('/api/evidence/:id/image',async(req,res,next)=>{try{if(!/^\d{1,15}$/.test(req.params.id))return res.status(400).json({error:'Mốc ảnh không hợp lệ.'});res.type('image/png').send(await downloadEvidence(Number(req.params.id)));}catch(e){next(e);}});
  app.get('/api/source-history',async(req,res,next)=>{try{
