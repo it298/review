@@ -1,5 +1,20 @@
 # Đồng bộ JSON từ Agoda Partner Portal (YCS)
 
+## Bốn khách sạn đã kiểm tra và bật đồng bộ
+
+Ngày 09/10/2026, phiên YCS hiện có đã đọc JSON thành công cho cả bốn khách sạn được người dùng yêu cầu. Lượt daemon lúc 11:55 (giờ Việt Nam) trả xác nhận lưu thành công:
+
+| Khách sạn | ID | Điểm /10 | Tổng đánh giá |
+| --- | --- | --- | --- |
+| Vistara Quy Nhon Sea Hotel | 83491477 | 9,4 | 143 |
+| Sontra Sea Hotel | 31244978 | 9,0 | 494 |
+| Vistara Gia Lai Sea Hotel | 94654312 | 10,0 | 5 |
+| Yzistel Hoi An (tên trong YCS: YZISTEL) | 64821141 | 9,5 | 420 |
+
+Đây là số thực tại lượt kiểm tra, không phải số cố định. Cấu hình riêng trên máy đã bật `AGODA_YCS_ENABLED=true` và `AGODA_YCS_PROPERTY_IDS=83491477,94654312,64821141,31244978`. Daemon cũ chỉ đọc một khách sạn đã được dừng và thay bằng daemon mới. Phiên vẫn ở máy, không lấy OTP từ email hoặc bấm email đăng nhập tự động.
+
+Một số số liệu YCS khác số trang Agoda công khai trước đó. Giữ lịch sử cũ; không dùng chênh lệch ở lần chuyển từ trang công khai sang YCS để kết luận nguyên nhân tăng/giảm review. Giao diện hiện lưu phương thức `api`, chưa có nhãn phạm vi YCS riêng cho biểu đồ. Những khách sạn này được loại khỏi quét Agoda công khai trong cùng daemon để số mới không bị ghi đè bởi luồng cũ.
+
 Đã kiểm tra phiên thật trên Windows ngày 09/10/2026 với Vistara Quy Nhon Sea Hotel, ID `83491477`. Luồng không phụ thuộc PMS và không cần người dùng mở F12/chụp ảnh.
 
 ## Dữ liệu đã xác minh

@@ -13,4 +13,5 @@ Thumbs.db
 worker/evidence/
 worker/google-profile/
 worker/ycs-profile/
+worker/extranet-profiles/
 worker/*.traineddata*
