@@ -1,6 +1,22 @@
 # Đồng bộ JSON từ Agoda Partner Portal (YCS)
 
-## Bốn khách sạn đã kiểm tra và bật đồng bộ
+## Trạng thái hiện tại: dùng Agoda công khai
+
+Theo yêu cầu người dùng ngày 09/10/2026, daemon trên Windows đã chuyển lại sang **điểm và tổng đánh giá trên trang Agoda công khai**, đúng thẻ thống kê của nguồn Agoda. Cấu hình cục bộ `AGODA_YCS_ENABLED=false`. Đây cũng là giá trị mặc định trong `.env.example`. Phiên YCS vẫn giữ trên máy, nhưng không được dùng trong các lượt đồng bộ tự động hiện tại.
+
+Dừng daemon trước khi đổi cấu hình và khởi động lại sau khi đổi. Có thể cập nhật ngay một lượt từ thư mục `worker/`:
+
+```bash
+node --env-file=.env src/run.js --source=agoda
+```
+
+Không cần triển khai backend/frontend mới cho việc đổi về bộ đọc công khai hiện có. Bộ đọc xác nhận ID khách sạn và thẻ `Điểm số qua Agoda / Dựa trên … bài đánh giá`; không cộng số review Booking.com hay nguồn khác vào cột Agoda. Khi không đọc được số hợp lệ, giữ dữ liệu trước đó. Booking Extranet và các nguồn khác dùng cấu hình độc lập.
+
+Lịch sử YCS đã thu thập vẫn được giữ. Chênh lệch ở thời điểm đổi phạm vi thu thập **không chứng minh tăng/giảm review thực tế**; biểu đồ hiện chưa tách baseline công khai/YCS.
+
+Các mục dưới đây ghi lại lần thử YCS và hướng dẫn sử dụng tùy chọn này nếu sau này người dùng yêu cầu bật lại.
+
+## Bốn khách sạn đã kiểm tra trong lần thử YCS
 
 Ngày 09/10/2026, phiên YCS hiện có đã đọc JSON thành công cho cả bốn khách sạn được người dùng yêu cầu. Lượt daemon lúc 11:55 (giờ Việt Nam) trả xác nhận lưu thành công:
 
@@ -11,7 +27,7 @@ Ngày 09/10/2026, phiên YCS hiện có đã đọc JSON thành công cho cả b
 | Vistara Gia Lai Sea Hotel | 94654312 | 10,0 | 5 |
 | Yzistel Hoi An (tên trong YCS: YZISTEL) | 64821141 | 9,5 | 420 |
 
-Đây là số thực tại lượt kiểm tra, không phải số cố định. Cấu hình riêng trên máy đã bật `AGODA_YCS_ENABLED=true` và `AGODA_YCS_PROPERTY_IDS=83491477,94654312,64821141,31244978`. Daemon cũ chỉ đọc một khách sạn đã được dừng và thay bằng daemon mới. Phiên vẫn ở máy, không lấy OTP từ email hoặc bấm email đăng nhập tự động.
+Đây là số thực tại lượt kiểm tra 11:55, không phải số cố định. Ở lượt thử đó, cấu hình riêng trên máy đã bật `AGODA_YCS_ENABLED=true` và `AGODA_YCS_PROPERTY_IDS=83491477,94654312,64821141,31244978`. Hiện `AGODA_YCS_ENABLED=false` theo yêu cầu chuyển về công khai ở trên. Phiên vẫn ở máy, không lấy OTP từ email hoặc bấm email đăng nhập tự động.
 
 Một số số liệu YCS khác số trang Agoda công khai trước đó. Giữ lịch sử cũ; không dùng chênh lệch ở lần chuyển từ trang công khai sang YCS để kết luận nguyên nhân tăng/giảm review. Giao diện hiện lưu phương thức `api`, chưa có nhãn phạm vi YCS riêng cho biểu đồ. Những khách sạn này được loại khỏi quét Agoda công khai trong cùng daemon để số mới không bị ghi đè bởi luồng cũ.
 
