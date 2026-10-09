@@ -39,9 +39,10 @@ async function cardFor(page,source){
  if(source==='traveloka')return page.getByRole('heading',{level:1}).first().locator('xpath=../..');
  throw Object.assign(new Error('No verified image region'),{code:'no_public_summary'});
 }
-export async function runPublicSummaries({request,dryRun=false,sourceFilter,entityKey}){
+export async function runPublicSummaries({request,dryRun=false,sourceFilter,entityKey,excludeTargets=[]}){
  let targets=dryRun?JSON.parse(await readFile(new URL('../../data/company-directory.json',import.meta.url),'utf8')).flatMap(e=>e.sources.filter(s=>s.source!=='google'&&!s.warning&&(!['agoda','trip','traveloka'].includes(s.source)||e.relationship==='comparison')).map(s=>({...s,entity_key:e.key,name:e.name,source_url:s.url}))):await request('/api/public/worker/targets');
  if(sourceFilter)targets=targets.filter(t=>t.source===sourceFilter);if(entityKey)targets=targets.filter(t=>t.entity_key===entityKey);
+ targets=targets.filter(t=>!excludeTargets.some(excluded=>excluded.source===t.source&&excluded.hotel_key===t.entity_key));
  if(!targets.length)return;
  const dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence','public-summary');await mkdir(dir,{recursive:true});
  const browser=await chromium.launch({headless:false,channel:'chromium'});let engine;

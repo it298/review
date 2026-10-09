@@ -12,4 +12,5 @@ Thumbs.db
 .vercel/
 worker/evidence/
 worker/google-profile/
+worker/ycs-profile/
 worker/*.traineddata*
