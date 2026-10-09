@@ -22,3 +22,5 @@ Kiểm tra PostgreSQL/PGlite về dữ liệu theo ngày, điểm/tổng độc 
 Khi worker tắt, số liệu ngừng cập nhật; giao diện vẫn dùng dữ liệu đã lưu và có thể báo chậm hơn 48 giờ. Tính năng ảnh dùng dung lượng Storage của project hiện tại; ảnh giữ riêng, không tự xóa. Báo cáo tuần chốt khi có vòng quét hoặc lượt mở báo cáo, không có lịch gửi độc lập khi worker và ứng dụng đều không hoạt động.
 
 Tham khảo thư viện/API: [ExcelJS](https://github.com/exceljs/exceljs), [jsPDF](https://github.com/parallax/jsPDF), [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control). Noto Sans được đóng gói với giấy phép trong `frontend/public/fonts/OFL.txt`.
+
+Giao diện theo dõi chỉ thông báo biến động điểm hoặc tổng đánh giá. Trạng thái chưa xác minh, nguồn chặn truy cập, lỗi thu thập và chậm cập nhật được giữ trong dữ liệu vận hành, không hiển thị trên bảng, thông báo, cảnh báo hoặc báo cáo xuất. Ô chưa có số liệu dùng dấu “—”; số liệu đã ghi nhận giữ nguyên giá trị và thời gian. Lịch sử vẫn giữ từng lần làm mới với ghi chú trung tính.

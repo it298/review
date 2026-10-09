@@ -7,7 +7,7 @@ function EvidenceImage({event}){
  const [url,setUrl]=useState(''),[error,setError]=useState('');
  useEffect(()=>{if(!event?.has_image)return;let stopped=false,imageUrl;apiBlob('/api/evidence/'+event.id+'/image').then(blob=>{imageUrl=URL.createObjectURL(blob);if(stopped)URL.revokeObjectURL(imageUrl);else setUrl(imageUrl);}).catch(e=>{if(!stopped)setError(e.message);});return()=>{stopped=true;if(imageUrl)URL.revokeObjectURL(imageUrl);};},[event?.id,event?.has_image]);
  if(!event)return <div className="evidence-empty"><Icon name="review" size={30}/><p>Chưa có ảnh của mốc trước.</p></div>;
- if(!event.has_image)return <div className="evidence-empty"><Icon name="review" size={30}/><p>Mốc này chưa có ảnh được lưu.</p><small>Worker lưu ảnh vùng số liệu đã xác minh; ảnh chặn truy cập hoặc đăng nhập không được tải lên.</small></div>;
+ if(!event.has_image)return <div className="evidence-empty"><Icon name="review" size={30}/><p>Mốc này chưa có ảnh được lưu.</p></div>;
  if(error)return <p className="notice error">{error}</p>;
  return url?<a href={url} target="_blank" rel="noopener noreferrer" aria-label="Mở ảnh kiểm chứng kích thước gốc"><img src={url} alt={'Ảnh nguồn tại '+time(event.rating_at||event.count_at)}/></a>:<div className="evidence-empty" role="status">Đang tải ảnh…</div>;
 }

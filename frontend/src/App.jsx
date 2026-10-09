@@ -8,7 +8,7 @@ import Attention from './pages/Attention.jsx';
 import GrowthComparison from './pages/GrowthComparison.jsx';
 import Evidence from './pages/Evidence.jsx';
 import WeeklyReports from './pages/WeeklyReports.jsx';
-import {insightTitles,alertText} from './lib/insight-labels.js';
+import {insightTitles,alertText,visibleAlerts} from './lib/insight-labels.js';
 import LocationGroup,{locationPages} from './pages/LocationGroup.jsx';
 import { api } from './lib/api.js';
 import Icon from './components/Icon.jsx';
@@ -19,7 +19,7 @@ export default function App(){
  useEffect(()=>{
   if(login||!sessionStorage.getItem('review-access-token')){setAlerts([]);setToast(null);return;}
   let stopped=false,known=null;
-  async function poll(){if(document.visibilityState==='hidden')return;try{const data=await api('/api/insights?days=7');if(stopped)return;const fresh=data.alerts.filter(a=>a.relationship==='managed'&&!a.read);setAlerts(fresh);if(known){const added=fresh.find(a=>!known.has(a.key));if(added)setToast(added);}known=new Set(fresh.map(a=>a.key));}catch{}}
+  async function poll(){if(document.visibilityState==='hidden')return;try{const data=await api('/api/insights?days=7');if(stopped)return;const fresh=visibleAlerts(data.alerts).filter(a=>a.relationship==='managed'&&!a.read);setAlerts(fresh);if(known){const added=fresh.find(a=>!known.has(a.key));if(added)setToast(added);}known=new Set(fresh.map(a=>a.key));}catch{}}
   poll();const timer=setInterval(poll,60000);window.addEventListener('insights-updated',poll);return()=>{stopped=true;clearInterval(timer);window.removeEventListener('insights-updated',poll);};
  },[login]);
  useEffect(()=>{const required=()=>setLogin(true);window.addEventListener('auth-required',required);return()=>window.removeEventListener('auth-required',required);},[]);
