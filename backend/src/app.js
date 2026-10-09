@@ -5,6 +5,7 @@ import { matrix,track,sync } from './service.js';
 import {validateOtaResult} from './ota-validation.js';
 import {validateGoogleSummary} from './google-summary-validation.js';
 import {validatePublicSummary} from './public-summary-validation.js';
+import {validateManualSummary} from './manual-summary.js';
 import {buildAlerts,reports} from './insights.js';
 import {uploadEvidence,downloadEvidence} from './evidence.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
@@ -61,6 +62,7 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
+ app.post('/api/manual-summary',async(req,res,next)=>{try{res.json(await rpc('review_tracker_manual_summary_ingest',{p:validateManualSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await rpc('review_tracker_insights_read',{p_days:days});res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});
  app.post('/api/alerts/read',async(req,res,next)=>{try{if(typeof req.body?.key!=='string'||req.body.key.length>600||!req.body.key.length)return res.status(400).json({error:'Mã cảnh báo không hợp lệ.'});await rpc('review_tracker_alert_read',{p_key:req.body.key});res.json({ok:true});}catch(e){next(e);}});
  app.get('/api/reports',async(_req,res,next)=>{try{res.json(await reports());}catch(e){next(e);}});
