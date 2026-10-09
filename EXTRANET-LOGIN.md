@@ -1,6 +1,6 @@
 # Chuẩn bị phiên Extranet các OTA còn lại
 
-Đã có helper mở trình duyệt riêng cho Traveloka TERA, Booking.com Extranet, Trip.com eBooking, Ctrip eBooking và Expedia Partner Central. **Helper đăng nhập không phải bộ đồng bộ JSON.** Agoda YCS đã có bộ đọc kiểm chứng; các nền tảng khác cần kiểm tra phiên thật và JSON thống kê trước khi triển khai.
+Đã có helper mở trình duyệt riêng cho Traveloka TERA, Booking.com Extranet, Trip.com eBooking, Ctrip eBooking và Expedia Partner Central. **Helper đăng nhập không phải bộ đồng bộ JSON.** Agoda YCS đã có bộ đọc JSON kiểm chứng. Booking đã kiểm chứng thẻ HTML tổng của Vistara Gia Lai Sea Hotel và có bộ đọc tự động; xem [BOOKING-EXTRANET.md](BOOKING-EXTRANET.md) để triển khai backend và bật worker. Traveloka, Trip/Ctrip và Expedia cần kiểm tra phiên thật trước khi triển khai.
 
 Trong `worker/`, dùng một lệnh cho từng nền tảng:
 
@@ -14,7 +14,7 @@ node --env-file=.env src/open-extranet-login.js --source=expedia
 
 Chỉ chạy nền tảng bạn có quyền quản lý. Tự đăng nhập, chọn khách sạn và mở Reviews/Guest reviews, sau đó đóng Chromium rồi báo nền tảng và khách sạn đã mở. Không cần ảnh, F12, cookie/token hay mật khẩu gửi vào chat.
 
-Mỗi phiên lưu riêng ở `worker/extranet-profiles/<source>/`, đã loại khỏi Git. Helper không ghi response, nội dung review, dữ liệu đặt phòng hoặc thông tin khách. Chưa tự kiểm tra đăng nhập thành công, chưa đồng bộ, chưa có worker cho các profile này. Không chạy nhiều tiến trình dùng cùng một profile.
+Mỗi phiên lưu riêng ở `worker/extranet-profiles/<source>/`, đã loại khỏi Git. Helper không ghi response, nội dung review, dữ liệu đặt phòng hoặc thông tin khách và không tự xác nhận đăng nhập thành công. Booking cần bật riêng bộ đọc sau khi backend và ánh xạ ID đã được triển khai. Các nền tảng khác chưa có bộ đọc cho các profile này. Không chạy nhiều tiến trình dùng cùng một profile.
 
 ## Cổng chính thức
 

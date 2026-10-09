@@ -23,7 +23,7 @@ try{
  console.log(portal.name+': tu dang nhap tai khoan va OTP trong cua so trinh duyet.');
  console.log('Chon khach san can thu, mo trang danh gia / Reviews, sau do dong cua so nay.');
  console.log('Profile rieng chi luu tren may, khong sao chep cookie, mat khau hay token len StayScope.');
- console.log('Buoc nay chi chuan bi dang nhap. Bo doc JSON cua nen tang nay chua duoc bat.');
+ console.log(source==='booking'?'Buoc nay chi luu phien. Bo doc Booking can backend moi va cau hinh BOOKING_EXTRANET_ENABLED de chay tu dong.':'Buoc nay chi chuan bi dang nhap. Bo doc JSON cua nen tang nay chua duoc bat.');
  let stop;
  await new Promise(done=>{stop=done;context.once('close',done);process.once('SIGINT',done);});
  process.off('SIGINT',stop);

@@ -8,6 +8,7 @@ import {runGoogleSummaries} from './google-summary.js';
 import {runPublicSummaries} from './public-summary.js';
 import {publishEvidence} from './evidence.js';
 import {configuredYcsTargets,runYcsSummaries} from './ycs-summary.js';
+import {configuredBookingTargets,runBookingSummaries} from './booking-summary.js';
 const dryRun=process.argv.includes('--dry-run');
 const endpoint=process.env.TRACKER_API_URL,token=process.env.OTA_WORKER_SECRET;
 if(!dryRun&&(!endpoint||!token||token.length<24))throw new Error('Set TRACKER_API_URL and OTA_WORKER_SECRET (24+ characters)');
@@ -17,7 +18,17 @@ if(process.argv.includes('--check-config')){await request('/api/ota/worker/targe
 async function run(){
  const sourceFilter=process.argv.find(s=>s.startsWith('--source='))?.slice(9);
  const entityKey=process.argv.find(s=>s.startsWith('--entity='))?.slice(9),propertyId=process.argv.find(s=>s.startsWith('--property='))?.slice(11);
- let registered,ycsTargets=[];
+ let registered,ycsTargets=[],bookingTargets=[];
+ if(process.env.BOOKING_EXTRANET_ENABLED==='true'||sourceFilter==='booking-extranet'){
+  try{bookingTargets=configuredBookingTargets(await request('/api/booking/worker/targets'),process.env.BOOKING_EXTRANET_PROPERTY_IDS);}
+  catch(e){if(sourceFilter==='booking-extranet')throw e;console.error('Booking Extranet targets unavailable; other source collectors continue.');}
+  if(!sourceFilter||['booking','booking-extranet'].includes(sourceFilter)){
+   const selected=bookingTargets.filter(t=>(!entityKey||t.entity_key===entityKey)&&(!propertyId||t.extranet_property_id===propertyId));
+   if(!selected.length&&sourceFilter==='booking-extranet')throw new Error('No configured Booking Extranet target matches the selected property.');
+   if(selected.length)try{await runBookingSummaries({request,targets:selected,dryRun});}catch(e){console.error('Booking Extranet browser could not complete this cycle; keeping previous values.');if(sourceFilter==='booking-extranet')throw e;}
+  }
+  if(sourceFilter==='booking-extranet')return;
+ }
  if(process.env.AGODA_YCS_ENABLED==='true'||sourceFilter==='ycs'){
   registered=await request('/api/ota/worker/targets');
   ycsTargets=configuredYcsTargets(registered,process.env.AGODA_YCS_PROPERTY_IDS);
@@ -29,7 +40,7 @@ async function run(){
   if(sourceFilter==='ycs')return;
  }
  if(!sourceFilter||sourceFilter!=='google'){
-  try{await runPublicSummaries({request,dryRun,sourceFilter:sourceFilter==='public'?undefined:sourceFilter,entityKey,excludeTargets:ycsTargets});}catch(e){console.error('Public summary cycle failed: '+e.message);if(sourceFilter&&!['agoda','trip','traveloka'].includes(sourceFilter))throw e;}
+  try{await runPublicSummaries({request,dryRun,sourceFilter:sourceFilter==='public'?undefined:sourceFilter,entityKey,excludeTargets:[...ycsTargets,...bookingTargets.map(t=>({...t,hotel_key:t.entity_key}))]});}catch(e){console.error('Public summary cycle failed: '+e.message);if(sourceFilter&&!['agoda','trip','traveloka'].includes(sourceFilter))throw e;}
   if(sourceFilter&&!['google','agoda','trip','traveloka'].includes(sourceFilter))return;
  }
  if(!sourceFilter||sourceFilter==='google'){

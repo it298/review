@@ -6,6 +6,9 @@ import {publicSourceUrl,publicSourceIdentity,validatePublicSummary} from '../../
 import {parseAgodaCard,parseSummary} from './parse.js';
 import {publishEvidence} from './evidence.js';
 const number=s=>Number(String(s).replace(',','.')),count=s=>Number(String(s).replace(/[.,\s]/g,''));
+export function skipBookingPublicTarget(target,enabled,ids){
+ return enabled===true&&target.source==='booking'&&/^\d{1,30}$/.test(target.extranet_property_id||'')&&String(ids||'').split(',').map(s=>s.trim()).includes(target.extranet_property_id);
+}
 export function parsePublicCard(source,text){
  let m;
  if(source==='booking'){
@@ -43,6 +46,9 @@ export async function runPublicSummaries({request,dryRun=false,sourceFilter,enti
  let targets=dryRun?JSON.parse(await readFile(new URL('../../data/company-directory.json',import.meta.url),'utf8')).flatMap(e=>e.sources.filter(s=>s.source!=='google'&&!s.warning&&(!['agoda','trip','traveloka'].includes(s.source)||e.relationship==='comparison')).map(s=>({...s,entity_key:e.key,name:e.name,source_url:s.url}))):await request('/api/public/worker/targets');
  if(sourceFilter)targets=targets.filter(t=>t.source===sourceFilter);if(entityKey)targets=targets.filter(t=>t.entity_key===entityKey);
  targets=targets.filter(t=>!excludeTargets.some(excluded=>excluded.source===t.source&&excluded.hotel_key===t.entity_key));
+ // This guard also works while the Extranet endpoint is temporarily unavailable:
+ // the existing target feed includes the verified mapping from the database.
+ targets=targets.filter(t=>!skipBookingPublicTarget(t,process.env.BOOKING_EXTRANET_ENABLED==='true',process.env.BOOKING_EXTRANET_PROPERTY_IDS));
  if(!targets.length)return;
  const dir=resolve(process.env.OTA_EVIDENCE_DIR||'evidence','public-summary');await mkdir(dir,{recursive:true});
  const browser=await chromium.launch({headless:false,channel:'chromium'});let engine;
