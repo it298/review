@@ -3,25 +3,32 @@ import {api} from '../lib/api.js';
 import {platforms} from '../lib/directory.js';
 import Icon from './Icon.jsx';
 const localTime=date=>new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
+const rankCategoryFor=category=>category==='hotel'?'hotel':category==='cafe'?'restaurant':category==='activity'?'attraction':'hotel';
 export default function ManualSummary({locations,initial,onClose,onSaved}){
  const dialog=useRef(null),request=useRef(null);
  const [entity,setEntity]=useState(initial.entityKey||locations[0]?.entity_key||'');
  const place=locations.find(r=>r.entity_key===entity);
  const [source,setSource]=useState(initial.source||place?.sources[0]?.source||'google');
  const [rating,setRating]=useState(''),[count,setCount]=useState(''),[captured,setCaptured]=useState(()=>localTime(new Date())),[note,setNote]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const [rankPosition,setRankPosition]=useState(initial.rankPosition==null?'':String(initial.rankPosition)),[rankTotal,setRankTotal]=useState(initial.rankTotal==null?'':String(initial.rankTotal)),[rankCategory,setRankCategory]=useState(initial.rankCategory||rankCategoryFor(place?.category)),[rankArea,setRankArea]=useState(initial.rankArea||'');
  useEffect(()=>{const node=dialog.current;node.showModal();return()=>node.close();},[]);
- function choose(value){setEntity(value);const next=locations.find(r=>r.entity_key===value);if(!next?.sources.some(s=>s.source===source))setSource(next?.sources[0]?.source||'google');setRating('');setCount('');setError('');}
- async function save(e){e.preventDefault();setError('');if(rating===''&&count===''){setError('Nhập điểm hoặc tổng đánh giá.');return;}setBusy(true);
-  try{const payload={entityKey:entity,source,rating:rating===''?null:Number(rating.replace(',','.')),reviewCount:count===''?null:Number(count),capturedAt:new Date(captured).toISOString(),note};
+ function clearRank(){setRankPosition('');setRankTotal('');setRankArea('');}
+ function choose(value){setEntity(value);const next=locations.find(r=>r.entity_key===value);if(!next?.sources.some(s=>s.source===source))setSource(next?.sources[0]?.source||'google');setRating('');setCount('');clearRank();setRankCategory(rankCategoryFor(next?.category));setError('');}
+ async function save(e){e.preventDefault();setError('');const hasRank=rankPosition!==''||rankTotal!==''||rankArea.trim()!=='';
+  if(rating===''&&count===''&&!hasRank){setError('Nhập điểm, tổng đánh giá hoặc thứ hạng.');return;}
+  if(hasRank&&(!rankPosition||!rankTotal||!rankArea.trim())){setError('Nhập đủ thứ hạng, tổng số và khu vực.');return;}
+  setBusy(true);
+  try{const payload={entityKey:entity,source,rating:rating===''?null:Number(rating.replace(',','.')),reviewCount:count===''?null:Number(count),...(hasRank?{rankPosition:Number(rankPosition),rankTotal:Number(rankTotal),rankCategory,rankArea:rankArea.trim()}:{}),capturedAt:new Date(captured).toISOString(),note};
    const fingerprint=JSON.stringify(payload);if(request.current?.fingerprint!==fingerprint)request.current={fingerprint,id:crypto.randomUUID()};
    await api('/api/manual-summary',{method:'POST',body:JSON.stringify({...payload,requestId:request.current.id})});await onSaved();window.dispatchEvent(new Event('insights-updated'));onClose();
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <dialog ref={dialog} className="manual-entry-dialog" aria-labelledby="manual-entry-title" onCancel={e=>{e.preventDefault();if(!busy)onClose();}}>
-  <form onSubmit={save}><header><div><h2 id="manual-entry-title">Nhập số liệu thủ công</h2><p>Ghi lại điểm và tổng đang hiển thị trên nền tảng.</p></div><button type="button" className="manual-close" aria-label="Đóng nhập thủ công" disabled={busy} onClick={onClose}>×</button></header>
+  <form onSubmit={save}><header><div><h2 id="manual-entry-title">Nhập số liệu thủ công</h2><p>Ghi lại điểm, tổng đánh giá hoặc thứ hạng đang hiển thị.</p></div><button type="button" className="manual-close" aria-label="Đóng nhập thủ công" disabled={busy} onClick={onClose}>×</button></header>
    <div className="manual-entry-body"><label>Địa điểm<select aria-label="Địa điểm nhập thủ công" value={entity} disabled={busy} onChange={e=>choose(e.target.value)}>{locations.map(r=><option key={r.entity_key} value={r.entity_key}>{r.name}</option>)}</select></label>
-    <label>Nền tảng<select aria-label="Nền tảng nhập thủ công" value={source} disabled={busy} onChange={e=>{setSource(e.target.value);setRating('');setCount('');setError('');}}>{place?.sources.map(s=><option key={s.source} value={s.source}>{platforms[s.source]?.name}</option>)}</select></label>
+    <label>Nền tảng<select aria-label="Nền tảng nhập thủ công" value={source} disabled={busy} onChange={e=>{setSource(e.target.value);setRating('');setCount('');clearRank();setError('');}}>{place?.sources.map(s=><option key={s.source} value={s.source}>{platforms[s.source]?.name}</option>)}</select></label>
     <div className="manual-entry-values"><label>Điểm / {platforms[source]?.scale}<input aria-label="Điểm nhập thủ công" type="text" inputMode="decimal" pattern="[0-9]+([.,][0-9]+)?" placeholder={platforms[source]?.scale===10?'Ví dụ: 9,3':'Ví dụ: 4,7'} disabled={busy} value={rating} onChange={e=>{setRating(e.target.value);setError('');}}/></label><label>{['grab','shopee'].includes(source)?'Tổng lượt chấm điểm':'Tổng đánh giá'}<input aria-label="Tổng nhập thủ công" type="number" min="0" max="9007199254740991" step="1" placeholder="Ví dụ: 177" disabled={busy} value={count} onChange={e=>{setCount(e.target.value);setError('');}}/></label></div>
+    {source==='tripadvisor'&&<fieldset className="manual-rank-fields"><legend>Thứ hạng TripAdvisor</legend><div className="manual-entry-values"><label>Vị trí<input aria-label="Thứ hạng TripAdvisor" type="number" min="1" step="1" placeholder="Ví dụ: 82" disabled={busy} value={rankPosition} onChange={e=>{setRankPosition(e.target.value);setError('');}}/></label><label>Tổng số cùng loại<input aria-label="Tổng địa điểm trong thứ hạng TripAdvisor" type="number" min="1" step="1" placeholder="Ví dụ: 84" disabled={busy} value={rankTotal} onChange={e=>{setRankTotal(e.target.value);setError('');}}/></label></div><div className="manual-entry-values"><label>Loại địa điểm<select aria-label="Loại thứ hạng TripAdvisor" disabled={busy} value={rankCategory} onChange={e=>setRankCategory(e.target.value)}><option value="hotel">Khách sạn</option><option value="restaurant">Nhà hàng</option><option value="attraction">Điểm tham quan</option></select></label><label>Khu vực<input aria-label="Khu vực thứ hạng TripAdvisor" type="text" maxLength="160" placeholder="Ví dụ: Quy Nhơn" disabled={busy} value={rankArea} onChange={e=>{setRankArea(e.target.value);setError('');}}/></label></div><small>Ví dụ: hạng 82 trong 84 khách sạn tại Quy Nhơn. Có thể nhập thứ hạng riêng mà không cần điểm hoặc tổng review.</small></fieldset>}
     <small>Bỏ trống ô không nhập. Ô đó sẽ giữ số liệu đã có.</small>
     <label>Thời điểm ghi nhận<input aria-label="Thời điểm ghi nhận thủ công" type="datetime-local" required max={localTime(new Date())} min={localTime(new Date(Date.now()-365*86400000))} disabled={busy} value={captured} onChange={e=>{setCaptured(e.target.value);setError('');}}/></label>
     <label>Ghi chú <span>(tuỳ chọn)</span><textarea aria-label="Ghi chú nhập thủ công" maxLength="500" rows="2" placeholder="Ví dụ: đọc trực tiếp trên trang khách sạn" disabled={busy} value={note} onChange={e=>setNote(e.target.value)}/></label>
