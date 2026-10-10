@@ -18,7 +18,7 @@ export default function SourceOverview({data,query='',fixedCategory,fixedRelatio
  const visible=rows.filter(p=>(activeCategory==='all'||p.category===activeCategory)&&(activeRelationship==='all'||p.relationship===activeRelationship)&&p.name.toLocaleLowerCase().includes((search||query).toLocaleLowerCase()));
  const manualLocations=directory.filter(e=>visible.some(r=>r.key===e.entity_key)&&e.sources.length);
  const columns=activeCategory==='hotel'?['google','tripadvisor','agoda','booking','expedia','trip','traveloka']:activeCategory==='cafe'||activeCategory==='store'?['google','tripadvisor','grab','shopee']:activeCategory==='activity'?['google','tripadvisor']:Object.keys(platforms);
- const rankKinds={hotel:'khách sạn',restaurant:'nhà hàng',attraction:'điểm tham quan'};
+ const rankKinds={hotel:'khách sạn',restaurant:'nhà hàng',attraction:'điểm tham quan',b_and_b:'B&B / nhà trọ',specialty_lodging:'cơ sở lưu trú đặc biệt'};
  function cell(row,source){
   const link=row.sources.find(s=>s.source===source),reading=row.readings[source];
   const url=safeSourceUrl(link?.source_url||reading?.source_url);

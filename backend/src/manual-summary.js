@@ -9,7 +9,7 @@ export function validateManualSummary(body,now=new Date()){
  if(!hasRating&&!hasCount&&!hasRank)invalid('Nhập điểm, tổng đánh giá hoặc thứ hạng.');
  if(hasRating&&(typeof rating!=='number'||!Number.isFinite(rating)||rating<0||rating>scales[source]))invalid('Điểm phải từ 0 đến '+scales[source]+'.');
  if(hasCount&&(!Number.isSafeInteger(reviewCount)||reviewCount<0))invalid('Tổng đánh giá phải là số nguyên từ 0 trở lên.');
- if(hasRank&&(source!=='tripadvisor'||!Number.isSafeInteger(rankPosition)||rankPosition<1||!Number.isSafeInteger(rankTotal)||rankTotal<rankPosition||!['hotel','restaurant','attraction'].includes(rankCategory)||typeof rankArea!=='string'||!rankArea.trim()||rankArea.trim().length>160||/[\r\n]/.test(rankArea)))invalid('Nhập đầy đủ hạng, tổng số, loại địa điểm và khu vực TripAdvisor.');
+ if(hasRank&&(source!=='tripadvisor'||!Number.isSafeInteger(rankPosition)||rankPosition<1||!Number.isSafeInteger(rankTotal)||rankTotal<rankPosition||!['hotel','restaurant','attraction','b_and_b','specialty_lodging'].includes(rankCategory)||typeof rankArea!=='string'||!rankArea.trim()||rankArea.trim().length>160||/[\r\n]/.test(rankArea)))invalid('Nhập đầy đủ hạng, tổng số, loại địa điểm và khu vực TripAdvisor.');
  if(typeof note!=='string'||note.length>500)invalid('Ghi chú tối đa 500 ký tự.');
  const captured=body.capturedAt==null?now:new Date(body.capturedAt);
  if(body.capturedAt!=null&&(typeof body.capturedAt!=='string'||!/(Z|[+-]\d{2}:\d{2})$/.test(body.capturedAt)))invalid('Thời điểm ghi nhận không hợp lệ.');

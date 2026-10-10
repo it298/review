@@ -20,7 +20,7 @@ begin
  if captured is null or captured>clock_timestamp() or captured<now()-interval '365 days' or (point is null and total is null and not has_rank)
   or (point is not null and (point<0 or point>scale or point::text in ('NaN','Infinity','-Infinity')))
   or (total is not null and (total<0 or total>9007199254740991 or (p->>'reviewCount')::numeric<>total))
-  or (has_rank and (target.source<>'tripadvisor' or rp is null or rp<1 or rt is null or rt<rp or coalesce(p->>'rankCategory','') not in ('hotel','restaurant','attraction') or coalesce(length(trim(p->>'rankArea')),0) not between 1 and 160 or position(chr(10) in coalesce(p->>'rankArea',''))>0 or position(chr(13) in coalesce(p->>'rankArea',''))>0))
+  or (has_rank and (target.source<>'tripadvisor' or rp is null or rp<1 or rt is null or rt<rp or coalesce(p->>'rankCategory','') not in ('hotel','restaurant','attraction','b_and_b','specialty_lodging') or coalesce(length(trim(p->>'rankArea')),0) not between 1 and 160 or position(chr(10) in coalesce(p->>'rankArea',''))>0 or position(chr(13) in coalesce(p->>'rankArea',''))>0))
   or length(coalesce(p->>'note',''))>500 then raise exception using errcode='22023',message='Điểm, tổng hoặc thời điểm ghi nhận không hợp lệ.';end if;
  select * into existing from review_tracker_source_history where origin='manual' and origin_key=p->>'requestId';
  if found then

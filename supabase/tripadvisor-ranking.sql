@@ -16,10 +16,10 @@ alter table public.review_tracker_source_history
 alter table public.review_tracker_directory_sources drop constraint if exists review_tracker_directory_rank_check;
 alter table public.review_tracker_directory_sources add constraint review_tracker_directory_rank_check check(
  (rank_position is null and rank_total is null and rank_category is null and rank_area is null and rank_captured_at is null)
- or (source='tripadvisor' and rank_position is not null and rank_position>=1 and rank_total is not null and rank_total>=rank_position and rank_category is not null and rank_category in ('hotel','restaurant','attraction') and rank_area is not null and length(rank_area) between 1 and 160 and rank_captured_at is not null));
+ or (source='tripadvisor' and rank_position is not null and rank_position>=1 and rank_total is not null and rank_total>=rank_position and rank_category is not null and rank_category in ('hotel','restaurant','attraction','b_and_b','specialty_lodging') and rank_area is not null and length(rank_area) between 1 and 160 and rank_captured_at is not null));
 alter table public.review_tracker_source_history drop constraint if exists review_tracker_history_rank_check;
 alter table public.review_tracker_source_history add constraint review_tracker_history_rank_check check(
- rank_position is null or (rank_position>=1 and rank_total is not null and rank_total>=rank_position and rank_category is not null and rank_category in ('hotel','restaurant','attraction') and rank_area is not null and length(rank_area) between 1 and 160 and rank_captured_at is not null));
+ rank_position is null or (rank_position>=1 and rank_total is not null and rank_total>=rank_position and rank_category is not null and rank_category in ('hotel','restaurant','attraction','b_and_b','specialty_lodging') and rank_area is not null and length(rank_area) between 1 and 160 and rank_captured_at is not null));
 
 create or replace function public.review_tracker_history_directory() returns trigger
 language plpgsql security invoker set search_path=public as $$
@@ -63,7 +63,7 @@ begin
  if (p->>'ratingMax')::numeric<>scale then raise exception 'Wrong rating scale';end if;
  if p->>'rankPosition' is not null then
   rp:=(p->>'rankPosition')::integer;rt:=(p->>'rankTotal')::integer;
-  if target.source<>'tripadvisor' or rp is null or rp<1 or rt is null or rt<rp or p->>'rankCategory' is null or p->>'rankCategory' not in ('hotel','restaurant','attraction') or coalesce(length(trim(p->>'rankArea')),0) not between 1 and 160 then raise exception 'Invalid Tripadvisor ranking';end if;
+  if target.source<>'tripadvisor' or rp is null or rp<1 or rt is null or rt<rp or p->>'rankCategory' is null or p->>'rankCategory' not in ('hotel','restaurant','attraction','b_and_b','specialty_lodging') or coalesce(length(trim(p->>'rankArea')),0) not between 1 and 160 then raise exception 'Invalid Tripadvisor ranking';end if;
  end if;
  captured:=(p->>'capturedAt')::timestamptz;
  if (p->>'rating' is null or target.rating_captured_at>captured) and (p->>'reviewCount' is null or target.count_captured_at>captured) and (p->>'countDisplay' is null or target.count_display_captured_at>captured) and (p->>'rankPosition' is null or (target.rank_captured_at is not null and target.rank_captured_at>captured)) then return jsonb_build_object('status','stale');end if;
