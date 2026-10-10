@@ -18,10 +18,11 @@ export default function SourceOverview({data,query='',fixedCategory,fixedRelatio
  const visible=rows.filter(p=>(activeCategory==='all'||p.category===activeCategory)&&(activeRelationship==='all'||p.relationship===activeRelationship)&&p.name.toLocaleLowerCase().includes((search||query).toLocaleLowerCase()));
  const manualLocations=directory.filter(e=>visible.some(r=>r.key===e.entity_key)&&e.sources.length);
  const columns=activeCategory==='hotel'?['google','tripadvisor','agoda','booking','expedia','trip','traveloka']:activeCategory==='cafe'||activeCategory==='store'?['google','tripadvisor','grab','shopee']:activeCategory==='activity'?['google','tripadvisor']:Object.keys(platforms);
+ const rankKinds={hotel:'khách sạn',restaurant:'nhà hàng',attraction:'điểm tham quan'};
  function cell(row,source){
   const link=row.sources.find(s=>s.source===source),reading=row.readings[source];
   const url=safeSourceUrl(link?.source_url||reading?.source_url);
-  const hasData=reading&&(reading.rating!=null||reading.review_count!=null||reading.count_display);
+  const hasData=reading&&(reading.rating!=null||reading.review_count!=null||reading.count_display||reading.rank_position!=null);
   const ratingAt=reading?.rating_captured_at||reading?.captured_at;
   const countAt=(reading?.count_display?reading?.count_display_captured_at:reading?.count_captured_at)||reading?.captured_at;
   const at=value=>new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'});
@@ -31,6 +32,7 @@ export default function SourceOverview({data,query='',fixedCategory,fixedRelatio
     {reading.rating!=null&&ratingAt&&<small>Điểm: {at(ratingAt)}</small>}
     <div className="source-review-count">{reading.count_display||(reading.review_count==null?'—':Number(reading.review_count).toLocaleString('vi-VN'))} {(reading.count_display||reading.review_count!=null)&&<span>{reading.count_kind==='ratings'?'lượt chấm điểm':'đánh giá'}</span>}</div>
     {(reading.count_display||reading.review_count!=null)&&countAt&&<small>{reading.count_kind==='ratings'?'Tổng lượt chấm điểm':'Tổng review'}: {at(countAt)}</small>}
+    {source==='tripadvisor'&&reading.rank_position!=null&&<><div className="source-ranking">#{Number(reading.rank_position).toLocaleString('vi-VN')} <span>trong {Number(reading.rank_total).toLocaleString('vi-VN')} {rankKinds[reading.rank_category]||'địa điểm'} tại {reading.rank_area}</span></div>{reading.rank_captured_at&&<small>Thứ hạng ghi nhận: {at(reading.rank_captured_at)}</small>}</>}
     {reading.count_display&&reading.review_count!=null&&<small>Tổng chính xác lần trước: {Number(reading.review_count).toLocaleString('vi-VN')}{reading.count_captured_at&&' · '+at(reading.count_captured_at)}</small>}
     {(reading.rating_method==='manual'||reading.count_method==='manual'||reading.collection_method==='manual')?<span className="pilot-tag manual-tag">Nhập thủ công</span>:reading.collection_method&&<span className="pilot-tag">{reading.collection_method==='browser'?'Ghi nhận từ trình duyệt':reading.collection_method==='ocr'?'Tự động · đọc ảnh':'Tự động · đọc trang'}</span>}
    </>:<div className="source-missing"><span>—</span></div>}

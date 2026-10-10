@@ -16,7 +16,7 @@ export function mergeReading(current={},incoming={}){
  return result;
 }
 export function directoryRows(directory,data,summaries,targets){
- const rows=directory.map(e=>{const readings={};for(const s of e.sources||[]){if(s.rating!=null||s.review_count!=null||s.count_display||s.last_error)readings[s.source]={...s,rating_max:s.rating_max||platforms[s.source]?.scale,is_directory_summary:true};}return {...e,key:e.entity_key,sources:[...(e.sources||[])],readings};});
+ const rows=directory.map(e=>{const readings={};for(const s of e.sources||[]){if(s.rating!=null||s.review_count!=null||s.count_display||s.rank_position!=null||s.last_error)readings[s.source]={...s,rating_max:s.rating_max||platforms[s.source]?.scale,is_directory_summary:true};}return {...e,key:e.entity_key,sources:[...(e.sources||[])],readings};});
  for(const p of data.places){
   let row=rows.find(e=>e.google_place_id===p.id);
   if(!row){row={key:'google:'+p.id,name:p.name,category:'hotel',relationship:'managed',google_place_id:p.id,sources:[],readings:{}};rows.push(row);}

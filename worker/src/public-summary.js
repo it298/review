@@ -26,6 +26,16 @@ export function parsePublicCard(source,text){
  if(source==='trip'||source==='traveloka'){const s=parseSummary(source,text);return {rating:s.rating,reviewCount:s.count};}
  throw Object.assign(new Error('No verified public summary'),{code:'no_public_summary'});
 }
+export function parseTripadvisorRank(text){
+ for(const line of String(text||'').normalize('NFC').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)){
+  let m=line.match(/^(?:Số|Hạng)\s*#?\s*([\d.,]+)\s+(?:trong|trên)\s+([\d.,]+)\s+(khách sạn|nhà hàng|điểm tham quan|điểm du lịch)\s+(?:tại|ở)\s+(.+)$/i),kind;
+  if(m){kind=/khách sạn/i.test(m[3])?'hotel':/nhà hàng/i.test(m[3])?'restaurant':'attraction';}
+  else{m=line.match(/^(?:ranked\s*)?#?\s*([\d.,]+)\s+(?:of|out of)\s+([\d.,]+)\s+(hotels?|restaurants?|attractions?)\s+in\s+(.+)$/i);if(m)kind=/hotel/i.test(m[3])?'hotel':/restaurant/i.test(m[3])?'restaurant':'attraction';}
+  if(!m)continue;const rankPosition=count(m[1]),rankTotal=count(m[2]),rankArea=m[4].replace(/\s+/g,' ').replace(/[.!]$/,'').trim();
+  if(Number.isSafeInteger(rankPosition)&&rankPosition>0&&Number.isSafeInteger(rankTotal)&&rankTotal>=rankPosition&&rankArea)return {rankPosition,rankTotal,rankCategory:kind,rankArea};
+ }
+ return null;
+}
 function objects(raw){const result=[];function walk(o){if(!o||typeof o!=='object')return;if(Array.isArray(o)){o.forEach(walk);return;}result.push(o);if(o['@graph'])walk(o['@graph']);}for(const text of raw){try{walk(JSON.parse(text));}catch{}}return result;}
 export function aggregateFor(source,raw,url){const token=publicSourceIdentity(source,url);const matches=objects(raw).filter(o=>o.aggregateRating&&(o.url?publicSourceIdentity(source,o.url)===token:source==='grab'&&o['@id']===token));if(matches.length!==1)return null;const r=matches[0].aggregateRating;return {name:matches[0].name,rating:number(r.ratingValue),reviewCount:r.reviewCount==null?r.ratingCount==null?null:count(r.ratingCount):count(r.reviewCount),countKind:r.reviewCount==null&&r.ratingCount!=null?'ratings':'reviews'};}
 async function cardFor(page,source){
@@ -66,7 +76,7 @@ export async function runPublicSummaries({request,dryRun=false,sourceFilter,enti
    if(!identity||!expected||identity!==expected||target.resolved_source_token&&target.resolved_source_token!==identity)throw Object.assign(new Error('Source identity mismatch'),{code:'invalid_data'});
    const region=await cardFor(page,target.source);await region.waitFor({state:'visible',timeout:12000});await region.scrollIntoViewIfNeeded();
    if(target.source==='agoda')await region.getByText(/^\d{1,2}(?:[.,]\d{1,2})?$/).first().waitFor({state:'visible',timeout:12000});
-   const visible=await region.innerText(),raw=await page.locator('script[type="application/ld+json"]').allTextContents(),aggregate=['booking','tripadvisor','grab'].includes(target.source)?aggregateFor(target.source,raw,page.url()):null;
+   const visible=await region.innerText(),raw=await page.locator('script[type="application/ld+json"]').allTextContents(),aggregate=['booking','tripadvisor','grab'].includes(target.source)?aggregateFor(target.source,raw,page.url()):null,rank=target.source==='tripadvisor'?parseTripadvisorRank(await page.locator('body').innerText()):null;
    let summary;
    if(target.source==='grab'){
     if(!aggregate||!visible.includes(aggregate.name)||!new RegExp('(?:^|\\n)'+String(aggregate.rating).replace('.','[.,]')+'(?:\\s|$)').test(visible))throw Object.assign(new Error('Grab summary mismatch'),{code:'no_public_summary'});
@@ -77,13 +87,13 @@ export async function runPublicSummaries({request,dryRun=false,sourceFilter,enti
    if(!engine){engine=await createWorker('vie+eng');await engine.setParameters({tessedit_pageseg_mode:'6'});}
    ocr=(await engine.recognize(bytes)).data;
    try{const image=parsePublicCard(target.source,ocr.text);agreed=ocr.confidence>=90&&image.rating===summary.rating&&image.reviewCount===summary.reviewCount&&(image.countDisplay||null)===(summary.countDisplay||null);}catch{}
-   payload=validatePublicSummary({entityKey:target.entity_key,source:target.source,status:'success',method:agreed?'ocr':'dom',sourceUrl:target.source_url,resolvedUrl:page.url(),...summary,capturedAt:new Date().toISOString(),corroborated:agreed});
+   payload=validatePublicSummary({entityKey:target.entity_key,source:target.source,status:'success',method:agreed?'ocr':'dom',sourceUrl:target.source_url,resolvedUrl:page.url(),...summary,...(rank||{}),capturedAt:new Date().toISOString(),corroborated:agreed});
    evidenceBytes=bytes;
-   detail={name:await page.getByRole('heading',{level:1}).first().innerText({timeout:1000}).catch(()=>page.title()),visible,aggregate,ocr:{text:ocr.text,confidence:ocr.confidence},payload};
+   detail={name:await page.getByRole('heading',{level:1}).first().innerText({timeout:1000}).catch(()=>page.title()),visible,aggregate,rank,ocr:{text:ocr.text,confidence:ocr.confidence},payload};
   }catch(e){payload={entityKey:target.entity_key,source:target.source,status:'failed',method:'dom',error:e.code||(/Timeout|net::/.test(e.message)?'network':'invalid_data')};detail={error:e.message,payload,resolvedUrl:page.url(),cardText:await page.locator(target.source==='agoda'?'.Review-reviewBranding':target.source==='trip'?'#outerReviewList':'h1').first().innerText({timeout:1000}).catch(()=>null)};await page.screenshot({path:resolve(dir,base+'-failed.png')}).catch(()=>{});}
   finally{await page.close();}
   await writeFile(resolve(dir,base+'.json'),JSON.stringify(detail,null,2));
   if(!dryRun){await request('/api/public/worker/results',payload);await publishEvidence(request,payload,evidenceBytes);}
-  console.log(JSON.stringify({source:target.source,entityKey:target.entity_key,status:payload.status,rating:payload.rating,reviewCount:payload.reviewCount,countDisplay:payload.countDisplay,method:payload.method,error:payload.error,dryRun}));
+  console.log(JSON.stringify({source:target.source,entityKey:target.entity_key,status:payload.status,rating:payload.rating,reviewCount:payload.reviewCount,countDisplay:payload.countDisplay,rankPosition:payload.rankPosition,rankTotal:payload.rankTotal,rankCategory:payload.rankCategory,rankArea:payload.rankArea,method:payload.method,error:payload.error,dryRun}));
  }}finally{await engine?.terminate();await browser.close();}
 }
