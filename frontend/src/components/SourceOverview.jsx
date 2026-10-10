@@ -3,9 +3,12 @@ import {api} from '../lib/api.js';
 import {categories,platforms,directoryRows,safeSourceUrl} from '../lib/directory.js';
 import Icon from './Icon.jsx';
 import ManualSummary from './ManualSummary.jsx';
+import {readingMethods,observationAge} from '../lib/provenance.js';
 export default function SourceOverview({data,query='',fixedCategory,fixedRelationship,showMetrics=true}){
  const [summaries,setSummaries]=useState([]),[targets,setTargets]=useState([]),[directory,setDirectory]=useState([]),[error,setError]=useState(''),[busy,setBusy]=useState(true),[search,setSearch]=useState(''),[category,setCategory]=useState('all'),[relationship,setRelationship]=useState('managed');
  const [manual,setManual]=useState(null),[saved,setSaved]=useState(false);
+ const [clock,setClock]=useState(Date.now);
+ useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),60000);return()=>clearInterval(timer);},[]);
  async function load(){
   setBusy(true);setError('');
   const results=await Promise.allSettled(['/api/ota/summary','/api/ota/status','/api/directory'].map(url=>api(url)));
@@ -25,16 +28,21 @@ export default function SourceOverview({data,query='',fixedCategory,fixedRelatio
   const hasData=reading&&(reading.rating!=null||reading.review_count!=null||reading.count_display||reading.rank_position!=null);
   const ratingAt=reading?.rating_captured_at||reading?.captured_at;
   const countAt=(reading?.count_display?reading?.count_display_captured_at:reading?.count_captured_at)||reading?.captured_at;
+  const methods=reading?readingMethods(reading):[];
+  const observed=[reading?.rating!=null&&ratingAt,(reading?.review_count!=null||reading?.count_display)&&countAt,reading?.rank_position!=null&&reading?.rank_captured_at].filter(Boolean);
+  const sameTime=observed.length>0&&observed.every(v=>Date.parse(v)===Date.parse(observed[0]));
   const at=value=>new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'});
+  const recorded=value=>at(value)+(observationAge(value,clock)?' · '+observationAge(value,clock):'');
   return <div className="source-reading">
    {hasData?<>
     <div className="source-rating">{reading.rating!=null&&<Icon name="star" size={15}/>}<strong>{reading.rating==null?'—':Number(reading.rating).toLocaleString('vi-VN')}</strong>{reading.rating!=null&&<span>/{reading.rating_max||platforms[source].scale}</span>}</div>
-    {reading.rating!=null&&ratingAt&&<small>Điểm: {at(ratingAt)}</small>}
+    {!sameTime&&reading.rating!=null&&ratingAt&&<small>Điểm ghi nhận: {recorded(ratingAt)}</small>}
     <div className="source-review-count">{reading.count_display||(reading.review_count==null?'—':Number(reading.review_count).toLocaleString('vi-VN'))} {(reading.count_display||reading.review_count!=null)&&<span>{reading.count_kind==='ratings'?'lượt chấm điểm':'đánh giá'}</span>}</div>
-    {(reading.count_display||reading.review_count!=null)&&countAt&&<small>{reading.count_kind==='ratings'?'Tổng lượt chấm điểm':'Tổng review'}: {at(countAt)}</small>}
-    {source==='tripadvisor'&&reading.rank_position!=null&&<><div className="source-ranking">#{Number(reading.rank_position).toLocaleString('vi-VN')} <span>trong {Number(reading.rank_total).toLocaleString('vi-VN')} {rankKinds[reading.rank_category]||'địa điểm'} tại {reading.rank_area}</span></div>{reading.rank_captured_at&&<small>Thứ hạng ghi nhận: {at(reading.rank_captured_at)}</small>}</>}
+    {!sameTime&&(reading.count_display||reading.review_count!=null)&&countAt&&<small>Tổng ghi nhận: {recorded(countAt)}</small>}
+    {source==='tripadvisor'&&reading.rank_position!=null&&<><div className="source-ranking">#{Number(reading.rank_position).toLocaleString('vi-VN')} <span>trong {Number(reading.rank_total).toLocaleString('vi-VN')} {rankKinds[reading.rank_category]||'địa điểm'} tại {reading.rank_area}</span></div>{!sameTime&&reading.rank_captured_at&&<small>Thứ hạng ghi nhận: {recorded(reading.rank_captured_at)}</small>}</>}
     {reading.count_display&&reading.review_count!=null&&<small>Tổng chính xác lần trước: {Number(reading.review_count).toLocaleString('vi-VN')}{reading.count_captured_at&&' · '+at(reading.count_captured_at)}</small>}
-    {(reading.rating_method==='manual'||reading.count_method==='manual'||reading.rank_method==='manual'||reading.collection_method==='manual')?<span className="pilot-tag manual-tag">Nhập thủ công</span>:reading.collection_method&&<span className="pilot-tag">{reading.collection_method==='browser'?'Ghi nhận từ trình duyệt':reading.collection_method==='ocr'?'Tự động · đọc ảnh':'Tự động · đọc trang'}</span>}
+    <div className="source-provenance">{methods.map(m=><span key={m.method} className={'pilot-tag '+(m.method==='manual'?'manual-tag':m.method==='extranet'?'extranet-tag':'')} title={m.fields}>{methods.length>1?m.fields+' · ':''}{m.label}</span>)}</div>
+    {sameTime&&<small className="source-observed-at">Ghi nhận: {recorded(observed[0])}</small>}
    </>:<div className="source-missing"><span>—</span></div>}
    {url&&!link?.warning&&<a className="source-link" href={url} target="_blank" rel="noopener noreferrer">Mở {platforms[source].name} ↗</a>}
    {row.entity_key&&link&&<button className="manual-cell-button" aria-label={'Nhập thủ công '+platforms[source].name+' — '+row.name} onClick={()=>{setSaved(false);setManual({entityKey:row.entity_key,source});}}><Icon name="edit" size={12}/>Nhập số liệu</button>}

@@ -5,7 +5,7 @@ export function mergeReading(current={},incoming={}){
  const result={...current,...incoming};
  for(const [field,date,method] of [['rating','rating_captured_at','rating_method'],['review_count','count_captured_at','count_method']]){
   const currentAt=current[date]||current.captured_at,incomingAt=incoming[date]||incoming.captured_at;
-  const newer=incoming[field]!=null&&(current[field]==null||stamp(incomingAt)>stamp(currentAt)||(stamp(incomingAt)===stamp(currentAt)&&current[method]!=='manual'));
+  const newer=incoming[field]!=null&&(current[field]==null||stamp(incomingAt)>stamp(currentAt)||(stamp(incomingAt)===stamp(currentAt)&&!['manual','extranet'].includes(current[method])));
   const chosen=newer?incoming:current;result[field]=chosen[field]??null;result[date]=chosen[date]||chosen.captured_at||null;result[method]=chosen[method]||chosen.collection_method||null;
   if(field==='review_count')result.count_kind=chosen.count_kind||'reviews';
  }

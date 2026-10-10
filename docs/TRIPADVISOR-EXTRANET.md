@@ -19,5 +19,10 @@ The migration is repeatable and preserves existing observations.
 This first capture uses the manual observation ingestor, with an immutable
 history entry and a note identifying Tripadvisor Management Center and the
 verified location ID. It does not enable a periodic authenticated collector.
+Run `supabase/tripadvisor-extranet-provenance.sql` to correct the method of
+these nine verified observations to `extranet`. Import origin/key and actual
+capture times stay unchanged. Other manual entries remain `manual`; a note
+mentioning Extranet alone never changes provenance. The UI shows “Đọc từ
+Extranet” and elapsed time since capture, without claiming a live connection.
 A listing showing zero reviews and no overall rating must keep its score
 empty; the empty bubble graphic is not a score of zero.
