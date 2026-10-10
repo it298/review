@@ -10,7 +10,7 @@ export function validateReportRange(start,end,now=new Date()){
 }
 export async function reportForRange(start,end,now=new Date()){
  const range=validateReportRange(start,end,now);
- const inputs=await rpc('review_tracker_insights_read',{p_days:range.days});
+ const inputs=await rpc('review_tracker_report_inputs_read',{p_days:range.days});
  return {report:buildWeeklyReport(inputs,range.start,range.end,now),mode:'custom'};
 }
 export function buildAlerts(data,now=new Date(),lookbackDays=7){
@@ -28,22 +28,23 @@ export function buildWeeklyReport(data,start,end,now=new Date()){
  const rows=[];
  for(const e of data.directory.filter(e=>e.relationship==='managed'))for(const link of e.sources||[]){
   if(link.warning)continue;const points=data.daily.filter(p=>p.entity_key===e.entity_key&&p.source===link.source&&p.day>=start&&p.day<=end).sort((a,b)=>a.day.localeCompare(b.day));
-  const ratings=points.filter(p=>p.rating!=null),counts=points.filter(p=>p.review_count!=null),first=counts[0],last=counts.at(-1);
-  rows.push({entity_key:e.entity_key,name:e.name,category:e.category,source:link.source,rating_max:Number(ratings.at(-1)?.rating_max||(['google','tripadvisor','grab','shopee'].includes(link.source)?5:10)),rating:ratings.at(-1)?.rating??null,rating_change:ratings.length>=2?Number((ratings.at(-1).rating-ratings[0].rating).toFixed(2)):null,
-   review_count:last?.review_count??null,count_change:counts.length>=2&&first.count_kind===last.count_kind?last.review_count-first.review_count:null,count_kind:last?.count_kind||'reviews',count_days:counts.length,rating_days:ratings.length,count_first_day:first?.day||null,count_last_day:last?.day||null,rating_at:ratings.at(-1)?.rating_at||null,count_at:last?.count_at||null,
-   status:!points.length?'missing':ratings.length&&counts.length?'confirmed':'partial'});
+  const ratings=points.filter(p=>p.rating!=null&&!(link.source==='agoda'&&(p.rating_method||p.method)==='api')),counts=points.filter(p=>p.review_count!=null&&!(link.source==='agoda'&&(p.count_method||p.method)==='api')),first=counts[0],last=counts.at(-1);
+  rows.push({entity_key:e.entity_key,name:e.name,category:e.category,source:link.source,rating_max:Number(ratings.at(-1)?.rating_max||(['google','tripadvisor','grab','shopee'].includes(link.source)?5:10)),rating:ratings.at(-1)?.rating??null,rating_first:ratings[0]?.rating??null,rating_first_day:ratings[0]?.day||null,rating_last_day:ratings.at(-1)?.day||null,rating_change:ratings.length>=2&&Number(ratings.at(-1).rating_max)===Number(ratings[0].rating_max)?Number((ratings.at(-1).rating-ratings[0].rating).toFixed(2)):null,
+   review_count:last?.review_count??null,review_count_first:first?.review_count??null,count_change:counts.length>=2&&counts.every(p=>(p.count_kind||'reviews')===(first.count_kind||'reviews'))?last.review_count-first.review_count:null,count_kind:last?.count_kind||'reviews',count_days:counts.length,rating_days:ratings.length,count_first_day:first?.day||null,count_last_day:last?.day||null,rating_at:ratings.at(-1)?.rating_at||null,count_at:last?.count_at||null,
+   status:!ratings.length&&!counts.length?'missing':ratings.length&&counts.length?'confirmed':'partial'});
  }
- const alerts=buildAlerts({...data,changes:data.changes.filter(c=>vietnamDay(c.at)>=start&&vietnamDay(c.at)<=end)},now,400).filter(a=>a.relationship==='managed'&&vietnamDay(a.at)>=start&&vietnamDay(a.at)<=end);
- return {version:1,start,end,generated_at:now.toISOString(),rows,alerts,locations:new Set(rows.map(r=>r.entity_key)).size,confirmed_sources:rows.filter(r=>r.status==='confirmed').length,missing_sources:rows.filter(r=>r.status==='missing').length,
+ const reportChanges=data.changes.filter(c=>{const row=rows.find(r=>r.entity_key===c.entity_key&&r.source===c.source);return row&&c.previous_at&&vietnamDay(c.previous_at)>=start&&vietnamDay(c.at)>=start&&vietnamDay(c.at)<=end&&(c.metric==='rating'?row.rating_days:row.count_days)>=2;});
+ const alerts=buildAlerts({...data,changes:reportChanges},now,400).filter(a=>a.relationship==='managed'&&vietnamDay(a.at)>=start&&vietnamDay(a.at)<=end);
+ return {version:3,start,end,generated_at:now.toISOString(),rows,alerts,locations:new Set(rows.map(r=>r.entity_key)).size,confirmed_sources:rows.filter(r=>r.status==='confirmed').length,missing_sources:rows.filter(r=>r.status==='missing').length,
   top_growth:rows.filter(r=>r.count_change!=null&&r.count_change>0).sort((a,b)=>b.count_change-a.count_change).slice(0,5),rating_drops:rows.filter(r=>r.rating_change!=null&&r.rating_change<0).sort((a,b)=>a.rating_change-b.rating_change).slice(0,5),
-  note:'Chênh lệch tính giữa ngày đầu/cuối có số liệu trong khoảng ngày đã chọn, riêng từng nguồn. Không cộng tổng giữa các nền tảng. Mốc không chính xác và trường thiếu không được coi là 0.'};
+  note:'So sánh hai ngày đầu/cuối có số liệu trong khoảng đã chọn; cần ít nhất 2 ngày. Mốc thực tế được ghi ở chi tiết. Agoda dùng số công khai, loại các lượt YCS khỏi phép so sánh. Ô thiếu là —. Không cộng tổng giữa các nền tảng.'};
 }
 let saving;
 export async function reports(data){
  const today=vietnamDay(new Date()),current=weekRange(today),previous=weekRange(shiftDay(current.start,-1));let saved=await rpc('review_tracker_reports_read');
  if(!saved.some(r=>r.week_start===previous.start)){
-  if(!saving)saving=(async()=>{const inputs=data||await rpc('review_tracker_insights_read',{p_days:90});await rpc('review_tracker_report_save',{p_week:previous.start,p_payload:buildWeeklyReport(inputs,previous.start,previous.end)});})().finally(()=>{saving=null;});
+  if(!saving)saving=(async()=>{const inputs=data||await rpc('review_tracker_report_inputs_read',{p_days:90});await rpc('review_tracker_report_save',{p_week:previous.start,p_payload:buildWeeklyReport(inputs,previous.start,previous.end)});})().finally(()=>{saving=null;});
   await saving;saved=await rpc('review_tracker_reports_read');
  }
- const inputs=data||await rpc('review_tracker_insights_read',{p_days:90});return {current:buildWeeklyReport(inputs,current.start,today),saved};
+ const inputs=data||await rpc('review_tracker_report_inputs_read',{p_days:90});return {current:buildWeeklyReport(inputs,current.start,today),saved};
 }

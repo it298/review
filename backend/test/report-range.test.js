@@ -19,7 +19,7 @@ test('custom reports include both boundary dates, omit outside data, and keep a 
 test('custom report API requires app auth, rejects invalid query before database access and only reads the needed history',async()=>{
  const realFetch=global.fetch;process.env.APP_PASSWORD='report-range-test-password';process.env.SUPABASE_URL='https://report-range-example.supabase.co';process.env.SUPABASE_SECRET_KEY='sb_secret_test_only';let calls=0;
  const today=vietnamDay(new Date()),start=shiftDay(today,-120);
- global.fetch=async(url,options)=>{if(!String(url).startsWith('https://report-range-example.supabase.co'))return realFetch(url,options);calls++;assert.ok(String(url).endsWith('review_tracker_insights_read'));assert.equal(JSON.parse(options.body).p_days,121);return Response.json({directory:[],daily:[],changes:[],statuses:[],readKeys:[]});};
+ global.fetch=async(url,options)=>{if(!String(url).startsWith('https://report-range-example.supabase.co'))return realFetch(url,options);calls++;assert.ok(String(url).endsWith('review_tracker_report_inputs_read'));assert.equal(JSON.parse(options.body).p_days,121);return Response.json({directory:[],daily:[],changes:[],statuses:[],readKeys:[]});};
  const server=createApp().listen(0,'127.0.0.1');await once(server,'listening');const url='http://127.0.0.1:'+server.address().port+'/api/reports';
  try{
  assert.equal((await realFetch(url+'?start='+start+'&end='+today)).status,401);
