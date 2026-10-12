@@ -14,4 +14,5 @@ worker/evidence/
 worker/google-profile/
 worker/ycs-profile/
 worker/extranet-profiles/
+worker/evidence/*.lock
 worker/*.traineddata*

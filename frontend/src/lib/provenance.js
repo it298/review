@@ -1,4 +1,4 @@
-export const methodLabel=method=>({manual:'Nhập thủ công',extranet:'Đọc từ Extranet',browser:'Ghi nhận từ trình duyệt',ocr:'Tự động · đọc ảnh',dom:'Tự động · đọc trang',api:'Đọc từ API','google-api':'Đọc từ Google API'})[method]||'Đã ghi nhận';
+export const methodLabel=method=>({manual:'Nhập thủ công',extranet:'Đọc từ Extranet','extranet-auto':'Tự động · Extranet',browser:'Ghi nhận từ trình duyệt',ocr:'Tự động · đọc ảnh',dom:'Tự động · đọc trang',api:'Đọc từ API','google-api':'Đọc từ Google API'})[method]||'Đã ghi nhận';
 
 export function readingMethods(reading){
  const fields=[

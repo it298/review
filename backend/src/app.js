@@ -6,6 +6,7 @@ import {validateOtaResult} from './ota-validation.js';
 import {validateGoogleSummary} from './google-summary-validation.js';
 import {validatePublicSummary} from './public-summary-validation.js';
 import {validateBookingSummary} from './booking-summary-validation.js';
+import {validateExtranetSummary} from './extranet-summary-validation.js';
 import {validateManualSummary} from './manual-summary.js';
 import {buildAlerts,reports,reportForRange} from './insights.js';
 import {uploadEvidence,downloadEvidence} from './evidence.js';
@@ -54,6 +55,8 @@ export function createApp(){
   app.post('/api/public/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_public_summary_ingest',{p:validatePublicSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/booking/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_booking_targets_read'));}catch(e){next(e);}});
  app.post('/api/booking/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_booking_summary_ingest',{p:validateBookingSummary(req.body)}));}catch(e){next(e);}});
+ app.get('/api/extranet/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_targets_read'));}catch(e){next(e);}});
+ app.post('/api/extranet/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_summary_ingest',{p:validateExtranetSummary(req.body)}));}catch(e){next(e);}});
  app.use('/api',(req,res,next)=>{
   if(!process.env.APP_PASSWORD || process.env.APP_PASSWORD.length<16)return res.status(503).json({error:'Cần cấu hình APP_PASSWORD dài ít nhất 16 ký tự.'});
   if(!authorized(req.headers.authorization,process.env.APP_PASSWORD))return res.status(401).json({error:'Vui lòng đăng nhập.'});next();
