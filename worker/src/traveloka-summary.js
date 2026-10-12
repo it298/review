@@ -3,6 +3,7 @@ import {fileURLToPath} from 'node:url';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {validateExtranetSummary} from '../../backend/src/extranet-summary-validation.js';
+import {readTravelokaReviews} from './traveloka-reviews.js';
 const fail=code=>Object.assign(new Error('Traveloka summary could not be verified.'),{code:code||'invalid_data'});
 export const travelokaProfile=()=>fileURLToPath(new URL('../extranet-profiles/traveloka/',import.meta.url));
 const normalize=s=>String(s).normalize('NFC').replace(/\s+/g,' ').trim().toLocaleLowerCase('vi');
@@ -31,6 +32,7 @@ export async function readTravelokaSummary(page,target,{timeout=45000}={}){
  await page.goto('https://tera.traveloka.com/vi-vn/guest-review/',{waitUntil:'domcontentloaded',timeout});
  if(/\/login\/?/.test(new URL(page.url()).pathname))throw fail('login_required');
  if(!travelokaReviewPage(page.url()))throw fail();
+ try{await page.getByTestId('hotel-list-dropdown-active-id').waitFor({state:'visible',timeout});}catch(error){if(/\/login\/?/.test(new URL(page.url()).pathname))throw fail('login_required');throw error;}
  if(!await identity(page,target)){
   const dropdown=page.getByTestId('hotel-list-dropdown');await dropdown.getByTestId('hotel-list-dropdown-select').click();
   const option=dropdown.getByText(target.extranet_property_id,{exact:true});await option.waitFor({state:'visible',timeout});
@@ -66,6 +68,9 @@ export async function runTravelokaSummaries({targets,request,dryRun=false}){
   if(!['success','stale','dry-run'].includes(outcome.status))throw fail('network');
   const result={source:'traveloka-extranet',entityKey:target.entity_key,extranetPropertyId:target.extranet_property_id,rating:payload.rating,reviewCount:payload.reviewCount,capturedAt:payload.capturedAt,status:outcome.status,saved:outcome.status==='success'};
   results.push(result);console.log(JSON.stringify(result));
+  // Individual review failure never invalidates a successfully saved summary.
+  try{const batch=await readTravelokaReviews(page,target);const saved=dryRun?{status:'dry-run'}:await request('/api/reviews/worker/results',batch);console.log(JSON.stringify({worker:'traveloka-individual-reviews',entity:target.entity_key,reviews:batch.reviews.length,...saved}));}
+  catch{console.error(JSON.stringify({worker:'traveloka-individual-reviews',entity:target.entity_key,status:'not_read'}));}
  }catch(error){const code=['login_required','invalid_data','network','blocked'].includes(error.code)?error.code:'network';
   console.error('Traveloka '+target.entity_key+': '+code+'; previous values preserved.');
   if(!dryRun)await request('/api/extranet/worker/results',validateExtranetSummary({entityKey:target.entity_key,source:'traveloka',extranetPropertyId:target.extranet_property_id,method:'extranet-auto',status:'failed',error:code}));

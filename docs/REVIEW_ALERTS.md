@@ -36,10 +36,37 @@ Lỗi đọc review không làm mất lần đồng bộ tổng số/sao thành 
 
 Luồng OTA sẵn có (`/api/ota/worker/results`) chuyển review được xác minh vào cơ
 chế chung sau khi lưu thành công; không chuyển dữ liệu chỉ có summary hoặc các
-review mẫu/pilot cũ. Các worker Traveloka/Booking Extranet hiện chỉ đọc điểm/tổng,
-và Tripadvisor worker đang bị chặn: chúng chưa tự đọc review riêng lẻ.
+review mẫu/pilot cũ. Booking Extranet hiện chỉ đọc điểm/tổng; Tripadvisor worker
+đang bị chặn nên chưa tự đọc review riêng lẻ.
+
+Traveloka TERA: worker `traveloka-run.js --daemon` đọc điểm/tổng rồi đổi bộ lọc
+thành “Tất cả đánh giá”. Nó quan sát JSON do chính trang đã đăng nhập gửi tới
+`astcapi-public.ast.traveloka.com/api/v2/public/review/getHotelReviews`, kiểm tra
+hotelId, bộ lọc không giới hạn ngày và thứ tự NEWEST_TIMESTAMP. Chỉ mã review,
+điểm gốc, timestamp và reviewText được lưu, không cookie/token/context, thông tin
+đặt phòng hoặc tên khách. Thời gian cập nhật riêng không có trong JSON này nên
+không cam kết phát hiện chỉnh sửa điểm. Đọc trang đầu 10 review mới nhất mỗi
+khách sạn/lượt; cần giữ phiên đăng nhập còn hiệu lực và máy Windows chạy worker.
+Ngày 12/10/2026 đã đọc thử thành công 33 review của 4 khách sạn.
 
 ## Nối các bộ đọc còn lại
+
+### Worker review công khai riêng
+
+Trong thư mục `worker`, chạy `npm run reviews:daemon`. Worker đọc các review
+mới nhất đang hiển thị trên Agoda và Trip.com, độc lập với worker điểm/tổng và
+OCR (OCR thành công không khiến bộ đọc review bị bỏ qua). Dùng
+`npm run reviews -- --source=agoda --entity=hotel-key` để kiểm tra một nguồn.
+Chu kỳ mặc định 60 phút, cấu hình `REVIEW_INTERVAL_MINUTES` tối thiểu 15 phút.
+Không đăng nhập OTA, không ghi thông tin đặt phòng hay token; dùng đúng nguồn
+đã đăng ký. Không tạo mốc theo dõi rỗng khi panel review chưa đọc được.
+
+Bộ đọc hiện dùng số review gần nhất của trang đầu, tối đa 10 review/lượt;
+không cam kết phát hiện đủ nếu số review mới vượt số review trang đầu giữa
+hai lượt quét. Google API là bộ đọc có phân trang; Google chưa kết nối API
+không được tính là đã đọc review. Traveloka có bộ đọc riêng như trên.
+Các nguồn chưa có bộ đọc không được
+worker này báo là đã hoạt động.
 
 `GET /api/reviews/worker/targets` trả nguồn quản lý đã đăng ký.
 `POST /api/reviews/worker/results` dùng `OTA_WORKER_SECRET`, payload:
