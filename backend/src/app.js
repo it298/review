@@ -8,6 +8,7 @@ import {validatePublicSummary} from './public-summary-validation.js';
 import {validateBookingSummary} from './booking-summary-validation.js';
 import {validateExtranetSummary} from './extranet-summary-validation.js';
 import {validateManualSummary} from './manual-summary.js';
+import {validateReviewBatch,ingestOtaReviews,withReviewAlerts} from './review-alerts.js';
 import {buildAlerts,reports,reportForRange} from './insights.js';
 import {uploadEvidence,downloadEvidence} from './evidence.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
@@ -48,7 +49,9 @@ export function createApp(){
  app.post('/api/evidence/worker/upload',workerAuth,express.raw({type:'image/png',limit:'2mb'}),async(req,res,next)=>{try{res.json(await uploadEvidence(req.query,req.body));}catch(e){next(e);}});
  app.post('/api/insights/worker/report',workerAuth,async(_req,res,next)=>{try{await reports();res.json({ok:true});}catch(e){next(e);}});
  app.get('/api/ota/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_ota_targets_read'));}catch(e){next(e);}});
- app.post('/api/ota/worker/results',workerAuth,async(req,res,next)=>{try{const payload=validateOtaResult(req.body);res.json(await rpc('review_tracker_ota_ingest',{p:payload}));}catch(e){next(e);}});
+ app.post('/api/ota/worker/results',workerAuth,async(req,res,next)=>{try{const payload=validateOtaResult(req.body);const result=await rpc('review_tracker_ota_ingest',{p:payload});let reviewAlerts;if(result.status==='success')try{reviewAlerts=await ingestOtaReviews(payload);}catch{reviewAlerts={status:'unavailable'};}res.json({...result,reviewAlerts});}catch(e){next(e);}});
+ app.get('/api/reviews/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_review_targets_read'));}catch(e){next(e);}});
+ app.post('/api/reviews/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_reviews_ingest',{p:validateReviewBatch(req.body)}));}catch(e){next(e);}});
  app.get('/api/google/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_google_targets_read'));}catch(e){next(e);}});
  app.post('/api/google/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_google_summary_ingest',{p:validateGoogleSummary(req.body)}));}catch(e){next(e);}});
   app.get('/api/public/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_public_targets_read'));}catch(e){next(e);}});
@@ -69,7 +72,7 @@ export function createApp(){
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
  app.post('/api/manual-summary',async(req,res,next)=>{try{res.json(await rpc('review_tracker_manual_summary_ingest',{p:validateManualSummary(req.body)}));}catch(e){next(e);}});
- app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await rpc('review_tracker_insights_read',{p_days:days});res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});
+ app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await withReviewAlerts(await rpc('review_tracker_insights_read',{p_days:days}),days);res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});
  app.post('/api/alerts/read',async(req,res,next)=>{try{if(typeof req.body?.key!=='string'||req.body.key.length>600||!req.body.key.length)return res.status(400).json({error:'Mã cảnh báo không hợp lệ.'});await rpc('review_tracker_alert_read',{p_key:req.body.key});res.json({ok:true});}catch(e){next(e);}});
  app.get('/api/reports',async(req,res,next)=>{try{res.json(req.query.start!==undefined||req.query.end!==undefined?await reportForRange(req.query.start,req.query.end):await reports());}catch(e){next(e);}});
  app.get('/api/evidence',async(req,res,next)=>{try{if(typeof req.query.entity!=='string'||req.query.entity.length>200||!['google','tripadvisor','agoda','booking','expedia','trip','traveloka','grab','shopee'].includes(req.query.source))return res.status(400).json({error:'Bộ lọc ảnh không hợp lệ.'});res.json(await rpc('review_tracker_evidence_read',{p_entity:req.query.entity,p_source:req.query.source}));}catch(e){next(e);}});

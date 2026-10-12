@@ -19,13 +19,13 @@ test('custom reports include both boundary dates, omit outside data, and keep a 
 test('custom report API requires app auth, rejects invalid query before database access and only reads the needed history',async()=>{
  const realFetch=global.fetch;process.env.APP_PASSWORD='report-range-test-password';process.env.SUPABASE_URL='https://report-range-example.supabase.co';process.env.SUPABASE_SECRET_KEY='sb_secret_test_only';let calls=0;
  const today=vietnamDay(new Date()),start=shiftDay(today,-120);
- global.fetch=async(url,options)=>{if(!String(url).startsWith('https://report-range-example.supabase.co'))return realFetch(url,options);calls++;assert.ok(String(url).endsWith('review_tracker_report_inputs_read'));assert.equal(JSON.parse(options.body).p_days,121);return Response.json({directory:[],daily:[],changes:[],statuses:[],readKeys:[]});};
+ global.fetch=async(url,options)=>{if(!String(url).startsWith('https://report-range-example.supabase.co'))return realFetch(url,options);calls++;assert.ok(/review_tracker_(report_inputs|review_alerts)_read$/.test(String(url)));assert.equal(JSON.parse(options.body).p_days,121);return Response.json({directory:[],daily:[],changes:[],statuses:[],readKeys:[],lowReviews:[]});};
  const server=createApp().listen(0,'127.0.0.1');await once(server,'listening');const url='http://127.0.0.1:'+server.address().port+'/api/reports';
  try{
  assert.equal((await realFetch(url+'?start='+start+'&end='+today)).status,401);
  const get=query=>realFetch(url+query,{headers:{Authorization:'Bearer '+process.env.APP_PASSWORD}});
  assert.equal((await get('?start='+start)).status,400);assert.equal(calls,0);
- const response=await get('?start='+start+'&end='+today);assert.equal(response.status,200);const result=await response.json();assert.equal(result.mode,'custom');assert.equal(result.report.start,start);assert.equal(result.report.end,today);assert.equal(calls,1);
+ const response=await get('?start='+start+'&end='+today);assert.equal(response.status,200);const result=await response.json();assert.equal(result.mode,'custom');assert.equal(result.report.start,start);assert.equal(result.report.end,today);assert.equal(calls,2);
  }finally{global.fetch=realFetch;server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
 test('expanded report SQL reads older-than-90-day observations with Vietnam date buckets, is repeatable and stays private',async()=>{

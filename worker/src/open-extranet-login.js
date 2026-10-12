@@ -14,13 +14,16 @@ const portals={
 const source=process.argv.find(arg=>arg.startsWith('--source='))?.slice(9);
 const portal=portals[source];
 if(!portal)throw new Error('Choose --source=traveloka, tripadvisor, booking, trip, ctrip or expedia.');
+const channel=process.argv.find(arg=>arg.startsWith('--browser='))?.slice(10)||'chromium';
+if(!['chromium','chrome'].includes(channel))throw new Error('Choose --browser=chromium or chrome.');
 const profile=fileURLToPath(new URL('../extranet-profiles/'+source+'/',import.meta.url));
 await mkdir(profile,{recursive:true});
 let context;
 try{
- context=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:false,locale:'vi-VN',viewport:{width:1440,height:1000}});
+ context=await chromium.launchPersistentContext(profile,{channel,headless:false,locale:'vi-VN',viewport:{width:1440,height:1000}});
  const page=context.pages()[0]||await context.newPage();
- await page.goto(portal.url,{waitUntil:'domcontentloaded',timeout:60000});
+ // Keep the interactive window open even if this portal loads slowly.
+ await page.goto(portal.url,{waitUntil:'commit',timeout:30000}).catch(()=>console.log('Trang dang tai; ban co the mo lai portal trong cua so nay.'));
  console.log(portal.name+': tu dang nhap tai khoan va OTP trong cua so trinh duyet.');
  console.log('Chon khach san can thu, mo trang danh gia / Reviews, sau do dong cua so nay.');
  console.log('Profile rieng chi luu tren may, khong sao chep cookie, mat khau hay token len StayScope.');

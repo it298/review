@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { state,mutate,lock,getValue,setValue } from './store.js';
-import { readLocation,validateAccount,validateLocation } from './google.js';
+import { readLocation,readReviewPage,validateAccount,validateLocation } from './google.js';
+import {ingestGoogleReviews} from './review-alerts.js';
 export function matrix(s){
  const places=Object.values(s.places).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>({id:p.id,name:p.name,rating:p.rating,googleMapsUri:p.google_maps_uri}));
  const dates=new Map();
@@ -26,7 +27,7 @@ export async function sync(jobId){
    const id=job.pending[0];const s=await state();const p=s.places[id];
    if(!p){job.pending.shift();processed++;await setValue('job:'+job.id,job,86400);continue;}
    let result;
-   try{if(!p.google_account || !p.google_location)throw new Error('Địa điểm cũ chưa được liên kết với Google Business Profile. Vào Địa điểm để liên kết.');const fresh=await readLocation(p.google_account,p.google_location);const updated=await mutate({op:'save',id,identity:'gbp:'+p.google_location,fresh});result={ok:true,placeId:id,name:updated.name};}
+   try{if(!p.google_account || !p.google_location)throw new Error('Địa điểm cũ chưa được liên kết với Google Business Profile. Vào Địa điểm để liên kết.');const fresh=await readLocation(p.google_account,p.google_location);const updated=await mutate({op:'save',id,identity:'gbp:'+p.google_location,fresh});let reviewAlerts;try{reviewAlerts=await ingestGoogleReviews(updated,readReviewPage);}catch{reviewAlerts={status:'unavailable'};}result={ok:true,placeId:id,name:updated.name,reviewAlerts};}
    catch(error){await mutate({op:'error',id,error:error.message});result={ok:false,placeId:id,name:p.name,error:error.message};}
    job.results.push(result);job.pending.shift();processed++;await setValue('job:'+job.id,job,86400);
   }

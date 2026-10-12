@@ -1,4 +1,5 @@
 import {rpc} from './store.js';
+import {withReviewAlerts} from './review-alerts.js';
 export const vietnamDay=at=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(at));
 export const shiftDay=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 export function weekRange(day){const weekday=new Date(day+'T00:00:00Z').getUTCDay();const start=shiftDay(day,-((weekday+6)%7));return {start,end:shiftDay(start,6)};}
@@ -10,12 +11,13 @@ export function validateReportRange(start,end,now=new Date()){
 }
 export async function reportForRange(start,end,now=new Date()){
  const range=validateReportRange(start,end,now);
- const inputs=await rpc('review_tracker_report_inputs_read',{p_days:range.days});
+ const inputs=await withReviewAlerts(await rpc('review_tracker_report_inputs_read',{p_days:range.days}),range.days);
  return {report:buildWeeklyReport(inputs,range.start,range.end,now),mode:'custom'};
 }
 export function buildAlerts(data,now=new Date(),lookbackDays=7){
  const entities=new Map(data.directory.map(e=>[e.entity_key,e])),reads=new Set(data.readKeys),alerts=[];
  const decorate=a=>{const e=entities.get(a.entity_key);if(!e)return;alerts.push({...a,name:e.name,category:e.category,relationship:e.relationship,read:reads.has(a.key)});};
+ for(const r of data.lowReviews||[]){if(!Number.isFinite(Date.parse(r.at))||Date.parse(r.at)<now.getTime()-lookbackDays*86400000||Date.parse(r.at)>now.getTime())continue;decorate({...r,key:'review:'+r.id,type:'low_review',severity:'high'});}
  for(const c of data.changes){if(Date.parse(c.at)<now.getTime()-lookbackDays*86400000)continue;const drop=Number((Number(c.value)-Number(c.previous)).toFixed(2));if(c.metric==='rating'&&-drop<(Number(c.rating_max)===5?0.1:0.2)-1e-8)continue;
   decorate({...c,key:'change:'+c.id+':'+c.metric,type:c.metric==='rating'?'rating_drop':'count_drop',severity:c.metric==='rating'?'high':'medium',delta:drop});}
  for(const e of data.directory)for(const link of e.sources||[]){if(link.warning)continue;const s=data.statuses.find(s=>s.entity_key===e.entity_key&&s.source===link.source);if(!s)continue;
@@ -43,8 +45,8 @@ let saving;
 export async function reports(data){
  const today=vietnamDay(new Date()),current=weekRange(today),previous=weekRange(shiftDay(current.start,-1));let saved=await rpc('review_tracker_reports_read');
  if(!saved.some(r=>r.week_start===previous.start)){
-  if(!saving)saving=(async()=>{const inputs=data||await rpc('review_tracker_report_inputs_read',{p_days:90});await rpc('review_tracker_report_save',{p_week:previous.start,p_payload:buildWeeklyReport(inputs,previous.start,previous.end)});})().finally(()=>{saving=null;});
+  if(!saving)saving=(async()=>{const inputs=data||await withReviewAlerts(await rpc('review_tracker_report_inputs_read',{p_days:90}),90);await rpc('review_tracker_report_save',{p_week:previous.start,p_payload:buildWeeklyReport(inputs,previous.start,previous.end)});})().finally(()=>{saving=null;});
   await saving;saved=await rpc('review_tracker_reports_read');
  }
- const inputs=data||await rpc('review_tracker_report_inputs_read',{p_days:90});return {current:buildWeeklyReport(inputs,current.start,today),saved};
+ const inputs=data||await withReviewAlerts(await rpc('review_tracker_report_inputs_read',{p_days:90}),90);return {current:buildWeeklyReport(inputs,current.start,today),saved};
 }

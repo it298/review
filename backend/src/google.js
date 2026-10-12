@@ -115,3 +115,20 @@ export async function readLocation(account,location){
  const address=info.storefrontAddress;
  return {name:(info.title || location).slice(0,200),reviewCount:count,rating,address:address ? [...(address.addressLines || []),address.locality,address.administrativeArea,address.regionCode].filter(Boolean).join(', ') : '',url:info.metadata?.mapsUri || fallback.href,googleAccount:account,googleLocation:location,dataSource:'google_business_profile'};
 }
+export function googleReviewRecords(reviews,account,location){
+ validateAccount(account);validateLocation(location);
+ if(!Array.isArray(reviews)||reviews.length>50)throw failure('Danh sách review Google không hợp lệ.',502);
+ const stars={ONE:1,TWO:2,THREE:3,FOUR:4,FIVE:5};
+ return reviews.map(r=>{
+  if(!r.reviewId||!stars[r.starRating]||!r.createTime||!r.updateTime||r.name&&r.name!==account+'/'+location+'/reviews/'+r.reviewId)throw failure('Review Google thiếu điểm, ngày hoặc sai địa điểm.',502);
+  return {reviewId:r.reviewId,rating:stars[r.starRating],ratingMax:5,reviewedAt:r.createTime,updatedAt:r.updateTime,author:r.reviewer?.displayName||'',content:r.comment||'',title:''};
+ });
+}
+export async function readReviewPage(account,location,pageToken){
+ validateAccount(account);validateLocation(location);
+ if(pageToken!=null&&(typeof pageToken!=='string'||pageToken.length>8000))throw failure('Trang review Google không hợp lệ.',400);
+ const url=new URL('https://mybusiness.googleapis.com/v4/'+account+'/'+location+'/reviews');
+ url.searchParams.set('pageSize','50');url.searchParams.set('orderBy','updateTime desc');if(pageToken)url.searchParams.set('pageToken',pageToken);
+ const data=await googleGet(url);
+ return {reviews:googleReviewRecords(data.reviews||[],account,location),nextPageToken:data.nextPageToken};
+}
