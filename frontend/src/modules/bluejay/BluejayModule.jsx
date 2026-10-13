@@ -185,7 +185,12 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
       setPayload(result);
 
       if (refresh) {
-        setNotice("Đã yêu cầu dữ liệu trực tiếp từ Blue Jay và lưu trong hệ thống.");
+        if(tab==='dashboard'){
+          const live=result.hotels.filter(h=>h.ok&&h.source==='live').length,cached=result.hotels.filter(h=>h.ok&&h.source==='cache').length;
+          if(live)setNotice(`Đã lấy dữ liệu mới và lưu ${live}/${result.hotels.length} khách sạn.${cached?' Có '+cached+' khách sạn đang dùng bản đã lưu.':''}`);
+          else setError(cached?'Chưa lấy được dữ liệu mới. Đang hiển thị '+cached+' khách sạn từ bản đã lưu.':result.hotels.find(h=>!h.ok)?.error||'Chưa lấy được dữ liệu mới từ Bluejay.');
+        }else if(result.source==='live')setNotice('Đã lấy dữ liệu mới từ Bluejay và lưu trong hệ thống.');
+        else setError(result.warning||'Chưa lấy được dữ liệu mới. Đang hiển thị bản đã lưu.');
       }
       await refreshStatus();
     } catch (e) {
@@ -455,7 +460,7 @@ function Dashboard({ payload }) {
                     <SourceBadge source={row.source} savedAt={row.savedAt} />
                   </>
                 ) : (
-                  <div className="rowError">Chưa có dữ liệu</div>
+                  <div className="rowError">{row.error||'Chưa có dữ liệu'}</div>
                 )}
               </div>
             );

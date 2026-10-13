@@ -166,7 +166,7 @@ app.get("/dashboard", async (req, res) => {
         return {
           ok: false,
           hotel,
-          error: 'Chưa lấy được công suất khách sạn này.',
+          error: error?.status===503?'Chưa cấu hình BLUEJAY_API_KEY trên backend Render.':error?.status===401||error?.status===403?'Bluejay từ chối khóa API hoặc quyền truy cập khách sạn.':'Chưa lấy được công suất khách sạn này. Kiểm tra kết nối API Bluejay.',
         };
       }
     })

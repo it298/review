@@ -42,7 +42,7 @@ test('both modules share authentication; Blue Jay rejects invalid inputs, keeps 
   assert.equal((await fetch(base+'/api/bluejay/dashboard?from=2026-02-30&to=2026-03-01',{headers})).status,400);
   assert.equal((await fetch(base+'/api/bluejay/hotels/999/occupancy?from=2026-10-13&to=2026-10-13',{headers})).status,404);
   assert.equal((await fetch(base+'/api/bluejay/sync',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({from:'2026-10-13',to:'2026-10-13',hotelIds:[999],datasets:['occupancy']})})).status,400);
-  let data=await(await fetch(base+'/api/bluejay/dashboard?from=2026-10-13&to=2026-10-13',{headers})).json();assert.equal(data.aggregate.occupancyRate,null);assert.equal(data.aggregate.total,null);assert.equal(data.aggregate.availableHotels,0);assert.equal(providerCalls,0);
+  let data=await(await fetch(base+'/api/bluejay/dashboard?from=2026-10-13&to=2026-10-13',{headers})).json();assert.equal(data.aggregate.occupancyRate,null);assert.equal(data.aggregate.total,null);assert.equal(data.aggregate.availableHotels,0);assert.equal(providerCalls,0);assert.ok(data.hotels.every(h=>h.error==='Chưa cấu hình BLUEJAY_API_KEY trên backend Render.'));
   const params={dateType:'1',from:'2026-10-13',to:'2026-10-13'},raw={data:{GrandTotal:{GrandTotalRoomOccupied:8,GrandTotalRoom:10,GrandTotalRoomEmpty:2,GrandTotalBlocked:0,GrandTotalOccupancyRate:80,RoomTypes:[]}}};
   records.set(recordKey('occupancy',5381,params),{savedAt:'2026-10-13T01:00:00Z',value:raw});
   data=await(await fetch(base+'/api/bluejay/hotels/5381/occupancy?from=2026-10-13&to=2026-10-13',{headers})).json();assert.equal(data.source,'cache');assert.equal(data.data.summary.occupancyRate,80);assert.equal(providerCalls,0);
