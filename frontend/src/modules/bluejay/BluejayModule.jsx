@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {api} from "../../lib/api.js";
 import "./bluejay.css";
 import Payables from './Payables.jsx';
+import {filterOccupancy} from './occupancy-filter.js';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -518,8 +519,9 @@ function Dashboard({ payload }) {
 }
 
 function Occupancy({ payload }) {
-  const summary = payload.data?.summary || {};
-  const roomTypes = payload.data?.roomTypes || [];
+  const [roomTypeId,setRoomTypeId]=useState('');
+  useEffect(()=>setRoomTypeId(''),[payload]);
+  const data=filterOccupancy(payload.data,roomTypeId),summary=data?.summary||{},roomTypes=data?.roomTypes||[],availableRoomTypes=payload.data?.roomTypes||[];
   const dailyRows = roomTypes.flatMap((room) =>
     (room.daily || []).map((day) => ({
       ...day,
@@ -530,7 +532,7 @@ function Occupancy({ payload }) {
 
   function exportRoomTypes() {
     downloadCsv(
-      `occupancy-roomtypes-${payload.hotel?.id || "hotel"}.csv`,
+      `occupancy-roomtypes-${payload.hotel?.id || "hotel"}${roomTypeId?'-type-'+roomTypeId:''}.csv`,
       ["Hạng phòng", "Đã dùng", "Đã đặt", "Trống", "Block", "Tổng", "Công suất %"],
       roomTypes.map((r) => [
         r.name,
@@ -549,10 +551,20 @@ function Occupancy({ payload }) {
       <div className="sectionTitle">
         <div>
           <h2>{payload.hotel?.name}</h2>
-          <p>Báo cáo công suất phòng</p>
+          <p>Báo cáo công suất phòng · {roomTypeId?roomTypes[0]?.name||'Loại phòng đã chọn':'Tất cả loại phòng'}</p>
         </div>
         <SourceBadge source={payload.source} savedAt={payload.savedAt} />
       </div>
+
+      <section className="filters" aria-label="Lọc công suất theo loại phòng">
+        <label className="wide">Loại phòng trong báo cáo
+          <select aria-label="Loại phòng công suất" value={roomTypeId} onChange={e=>setRoomTypeId(e.target.value)} disabled={!availableRoomTypes.length}>
+            <option value="">Tất cả loại phòng</option>
+            {availableRoomTypes.map(room=><option key={room.id} value={String(room.id)}>{room.name}</option>)}
+          </select>
+        </label>
+        <span>{availableRoomTypes.length?'Bộ lọc áp dụng cho số tổng, bảng chi tiết và file xuất.':'Bluejay chưa trả danh sách loại phòng trong báo cáo này.'}</span>
+      </section>
 
       <section className="metrics five">
         <Metric label="Công suất" value={pct(summary.occupancyRate)} />
@@ -566,7 +578,7 @@ function Occupancy({ payload }) {
         <div className="panelHeader">
           <div>
             <h2>Theo hạng phòng</h2>
-            <p>{roomTypes.length} hạng phòng</p>
+            <p>{roomTypes.length} hạng phòng · {roomTypeId?'Đang lọc một loại phòng':'Tất cả loại phòng'}</p>
           </div>
           <button className="ghost" onClick={exportRoomTypes}>
             Xuất CSV
