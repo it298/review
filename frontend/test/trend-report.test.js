@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prepareTrendReport,createTrendWorkbook,printTrendRows} from '../src/lib/trend-report.js';
+import {prepareTrendReport,createTrendWorkbook,printTrendRows,trendPrintDetails} from '../src/lib/trend-report.js';
 
 const series=[{id:'p0',name:'Khách sạn thử',category:'hotel',lastCount:102,lastRating:4.5,countChange:2,ratingChange:.1,countAt:'2026-10-03T02:00:00Z',ratingAt:'2026-10-02T02:00:00Z'}];
 const rows=[{day:'2026-10-01',p0Count:100,p0Rating:4.4,p1Count:500},{day:'2026-10-02',p0Count:null,p0Rating:4.5},{day:'2026-10-03',p0Count:102,p0Rating:null}];
@@ -23,4 +23,9 @@ test('long print ranges retain latest observed field in each bucket without fill
  const weekly=printTrendRows(daily,series,'count');assert.equal(weekly.interval,'week');assert.equal(weekly.rows[0].p0Count,101);assert.equal(weekly.rows[1].p0Count,undefined);assert.equal(daily[1].p0Count,null);
  const monthly=printTrendRows([{day:'2026-01-01',p0Rating:4},{day:'2026-01-31',p0Rating:4.2},{day:'2026-08-01',p0Rating:null}],series,'rating');
  assert.equal(monthly.interval,'month');assert.equal(monthly.rows[0].p0Rating,4.2);assert.equal(monthly.rows[1].p0Rating,undefined);
+});
+test('PDF details keep both metrics, actual observed days and changes across gaps',()=>{
+ const details=trendPrintDetails(rows,series,'count');assert.equal(details.rows[0].p0CountChange,null);assert.equal(details.rows[1].p0CountChange,null);assert.equal(details.rows[2].p0CountChange,2);assert.equal(details.rows[1].p0RatingChange,.1);assert.equal(details.rows[2].p0RatingChange,null);
+ const month=trendPrintDetails([{day:'2026-01-01',p0Count:100,p0Rating:4},{day:'2026-01-31',p0Count:102,p0Rating:null},{day:'2026-08-01',p0Count:98,p0Rating:4.2}],series,'count');
+ assert.equal(month.rows[0].p0CountDay,'2026-01-31');assert.equal(month.rows[0].p0RatingDay,'2026-01-01');assert.equal(month.rows[1].p0CountChange,-4);assert.equal(month.rows[1].p0RatingChange,.2);
 });
