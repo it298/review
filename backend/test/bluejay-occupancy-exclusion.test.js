@@ -14,6 +14,13 @@ test('occupancy excludes M-standard from room rows and totals, including cached 
   assert.deepEqual(normalizeOccupancy(raw),data);
   raw.data.GrandTotal.RoomTypes[0].RoomTypeName='M–standard';
   assert.equal(normalizeOccupancy(raw).roomTypes.length,1);
+  for (const name of ['M-Standard Room-1 Bed', 'M-Standard Room-2 Beds', 'M-standard (Virtual)', 'M Standard Room']) {
+    raw.data.GrandTotal.RoomTypes[0].RoomTypeName=name;
+    assert.equal(normalizeOccupancy(raw).roomTypes.length,1,name);
+    assert.equal(normalizeOccupancy(raw).summary.total,10,name);
+  }
+  raw.data.GrandTotal.RoomTypes[0].RoomTypeName='M-StandardPlus';
+  assert.equal(normalizeOccupancy(raw).roomTypes.length,2);
 });
 
 test('reports without M-standard preserve provider summary',()=>{

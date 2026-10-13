@@ -45,7 +45,7 @@ export function normalizeOccupancy(response) {
       occupancyRate: n(grand.GrandTotalOccupancyRate),
   };
   // Apply on every read, including old cached reports, without changing source data.
-  const excluded = roomTypes.filter(room => String(room.name || '').trim().toLowerCase().replace(/[\s_\u2010-\u2015]+/g, '-') === 'm-standard');
+  const excluded = roomTypes.filter(room => /^m-standard(?:$|[^a-z0-9])/.test(String(room.name || '').trim().toLowerCase().replace(/[\s_\u2010-\u2015]+/g, '-')));
   if (excluded.length) {
     for (const field of ['occupied', 'blocked', 'total', 'empty']) {
       summary[field] = Math.max(0, summary[field] - excluded.reduce((sum, room) => sum + room[field], 0));
