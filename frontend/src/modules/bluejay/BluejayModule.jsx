@@ -4,7 +4,7 @@ import "./bluejay.css";
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
-const HOTEL_COLORS = ["#278669", "#90a565", "#648f9c", "#c69b57"];
+const HOTEL_COLORS = ["#80609d", "#c4a365", "#9c86b5", "#be9660"];
 
 function today() {
   return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Ho_Chi_Minh",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
