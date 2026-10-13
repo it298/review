@@ -11,6 +11,7 @@ const groups=[
   {key:'activities',label:'Hoạt động',icon:'activity'}
  ]},
  {key:'analysis',label:'Phân tích',icon:'trend',items:[
+  {key:'trends',label:'Xu hướng địa điểm',icon:'trend'},
   {key:'history',label:'Biểu đồ & lịch sử',icon:'trend'},
   {key:'compare',label:'Tốc độ tăng',icon:'trend'},
   {key:'comparison',label:'Đối thủ',icon:'hotel'},

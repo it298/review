@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import Icon from '../components/Icon.jsx';
 import SourceOverview from '../components/SourceOverview.jsx';
 import AttentionSummary from '../components/AttentionSummary.jsx';
+import MultiLocationTrend from '../components/MultiLocationTrend.jsx';
 const number=value=>new Intl.NumberFormat('vi-VN').format(value);
 const rating=value=>value==null?'—':Number(value).toLocaleString('vi-VN',{maximumFractionDigits:2});
 function date(value){return value?value.split('-').reverse().join('/'):'—';}
@@ -33,6 +34,7 @@ export default function Dashboard({onManage,onAttention}){
   {lastSync?.skipped && <div className="notice">Đang có phiên cập nhật khác. Vui lòng thử lại sau.</div>}
   {lastSync && !lastSync.skipped && <div className="notice success" role="status"><Icon name="check"/><div>Đã cập nhật {lastSync.results.filter(x=>x.ok).length}/{lastSync.total} khách sạn.{lastSync.remaining?' Còn '+lastSync.remaining+' khách sạn.':''}{lastSync.results.filter(x=>!x.ok).map(x=><p key={x.placeId}>{x.name}: {x.error}</p>)}</div></div>}
   <AttentionSummary onOpen={onAttention}/>
+  <MultiLocationTrend/>
   <SourceOverview data={data} query={query}/>
   <div className="filter-bar"><label className="search-field"><Icon name="search"/><input aria-label="Tìm khách sạn" placeholder="Tìm khách sạn..." value={query} onChange={e=>setQuery(e.target.value)}/></label><label className="period-filter"><Icon name="calendar"/><select aria-label="Khoảng thời gian" value={period} onChange={e=>setPeriod(e.target.value)}><option value="all">Toàn bộ thời gian</option><option value="7">7 ngày gần đây</option><option value="30">30 ngày gần đây</option><option value="90">90 ngày gần đây</option></select></label><span className="filter-count">{places.length} khách sạn Google</span></div>
   {data.places.length===0?<section className="panel onboarding-empty"><span className="empty-illustration"><Icon name="hotel" size={36}/></span><h2>{fetching?'Đang tải workspace...':error?'Dữ liệu đang chờ kết nối':'Kết nối thêm Google Maps'}</h2><p>Kết nối tài khoản Google Business Profile để theo dõi review và lưu lịch sử khách sạn của bạn.</p><button className="primary" onClick={onManage}><Icon name="plus"/>Quản lý khách sạn</button><div className="empty-steps"><span><b>01</b> Kết nối Google</span><Icon name="arrow" size={14}/><span><b>02</b> Chọn khách sạn</span><Icon name="arrow" size={14}/><span><b>03</b> Theo dõi review</span></div></section>:<>
