@@ -25,7 +25,7 @@ const groups=[
 ];
 const groupFor=page=>groups.find(group=>group.items.some(item=>item.key===page))?.key;
 
-export default function Sidebar({page,setPage,onLogout,module='reviews',setModule,bluejayTab='dashboard',setBluejayTab}){
+export default function Sidebar({page,setPage,onLogout,onAccount,user,module='reviews',setModule,bluejayTab='dashboard',setBluejayTab}){
  const [openGroup,setOpenGroup]=useState(()=>groupFor(page)||'locations');
  const [collapsed,setCollapsed]=useState(null);
  const [narrow,setNarrow]=useState(()=>window.matchMedia('(max-width:950px)').matches);
@@ -56,6 +56,6 @@ export default function Sidebar({page,setPage,onLogout,module='reviews',setModul
    })}
    </>}
   </nav>
-  <div className="sidebar-bottom"><div className="workspace-user"><span className="avatar">AD</span><div>Workspace của bạn<small>Quản trị viên</small></div><button type="button" className="signout" title="Đăng xuất" aria-label="Đăng xuất" onClick={onLogout}><Icon name="logout" size={17}/></button></div></div>
+  <div className="sidebar-bottom"><button type="button" className="sidebar-account-button" aria-label="Tài khoản của tôi" onClick={onAccount}><Icon name="shield" size={17}/><span>Tài khoản</span></button><div className="workspace-user"><span className="avatar">{user?.name?.slice(0,2).toUpperCase()||'VJ'}</span><div title={user?.email}>{user?.name?.split('@')[0]||'Workspace của bạn'}<small>{{admin:'Quản trị viên',member:'Nhân viên',viewer:'Chỉ xem'}[user?.role]||'Quản trị viên'}</small></div><button type="button" className="signout" title="Đăng xuất" aria-label="Đăng xuất" onClick={onLogout}><Icon name="logout" size={17}/></button></div></div>
  </aside>;
 }

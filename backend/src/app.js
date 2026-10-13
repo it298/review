@@ -1,4 +1,5 @@
 import express from 'express';
+import {authMode,authenticateUser,installPublicAuth,installPrivateAuth} from './auth.js';
 import {createBluejayRouter} from './modules/bluejay/router.js';
 import { createHash,timingSafeEqual } from 'node:crypto';
 import { state,mutate,getValue,setValue,deleteValue,rpc } from './store.js';
@@ -61,16 +62,20 @@ export function createApp(){
  app.post('/api/booking/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_booking_summary_ingest',{p:validateBookingSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/extranet/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_targets_read'));}catch(e){next(e);}});
  app.post('/api/extranet/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_summary_ingest',{p:validateExtranetSummary(req.body)}));}catch(e){next(e);}});
- app.use('/api',(req,res,next)=>{
+ installPublicAuth(app);
+ app.use('/api',async(req,res,next)=>{
+  if(authMode()==='supabase'){try{await authenticateUser(req);return next();}catch(e){return next(e);}}
   if(!process.env.APP_PASSWORD || process.env.APP_PASSWORD.length<16)return res.status(503).json({error:'Cần cấu hình APP_PASSWORD dài ít nhất 16 ký tự.'});
-  if(!authorized(req.headers.authorization,process.env.APP_PASSWORD))return res.status(401).json({error:'Vui lòng đăng nhập.'});next();
+  if(!authorized(req.headers.authorization,process.env.APP_PASSWORD))return res.status(401).json({error:'Vui lòng đăng nhập.'});req.user={id:'legacy',name:'Quản trị viên',role:'admin'};next();
  });
+ installPrivateAuth(app);
+ app.use('/api',(req,res,next)=>{if(req.user?.role==='viewer'&&!['GET','HEAD'].includes(req.method)&&req.path!=='/alerts/read')return res.status(403).json({error:'Tài khoản chỉ xem không được thay đổi dữ liệu.'});if(req.user?.role==='viewer'&&['1','true'].includes(String(req.query.refresh)))return res.status(403).json({error:'Tài khoản chỉ xem không được đồng bộ dữ liệu mới.'});if(req.user?.role!=='admin'&&['/google/connect','/google/disconnect','/places/track'].includes(req.path))return res.status(403).json({error:'Chỉ quản trị viên có quyền cấu hình kết nối.'});next();});
  app.get('/api/google/status',async(_req,res,next)=>{try{res.json(await connectionStatus());}catch(e){next(e);}});
  app.post('/api/google/connect',async(_req,res,next)=>{try{res.json({url:await startOAuth()});}catch(e){next(e);}});
  app.post('/api/google/disconnect',async(_req,res,next)=>{try{res.json(await disconnectGoogle());}catch(e){next(e);}});
  app.get('/api/google/accounts',async(req,res,next)=>{try{res.json(await listAccounts(typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
- app.get('/api/session',(_req,res)=>res.json({ok:true}));
+ app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/bluejay',createBluejayRouter());
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
  app.post('/api/manual-summary',async(req,res,next)=>{try{res.json(await rpc('review_tracker_manual_summary_ingest',{p:validateManualSummary(req.body)}));}catch(e){next(e);}});

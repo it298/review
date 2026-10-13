@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
 
-const required=['SUPABASE_URL','APP_PASSWORD','CRON_SECRET','CORS_ORIGIN'];
+const required=['SUPABASE_URL','CRON_SECRET','CORS_ORIGIN'];
+if(process.env.AUTH_MODE!=='supabase')required.push('APP_PASSWORD');
 const missing=required.filter(key=>!process.env[key]);
 if(!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SECRET_KEY');
 if(missing.length) throw new Error('Missing environment variables: '+missing.join(', '));
-if(process.env.APP_PASSWORD.length<16) throw new Error('APP_PASSWORD must have at least 16 characters.');
+if(process.env.AUTH_MODE!=='supabase'&&process.env.APP_PASSWORD.length<16) throw new Error('APP_PASSWORD must have at least 16 characters.');
 const port=Number(process.env.PORT || 10000);
 if(!Number.isInteger(port) || port<0 || port>65535) throw new Error('Invalid PORT.');
 const app=createApp();
