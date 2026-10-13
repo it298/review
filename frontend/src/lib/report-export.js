@@ -27,3 +27,4 @@ export async function createReportPdf(report,{fontBase64}={}){
  renderReportMatrix(doc,report,filterLabel(report));return doc;
 }
 export async function pdfReport(report){const doc=await createReportPdf(report);doc.save('bao-cao-review-'+report.start+'_'+report.end+'.pdf');}
+export {fontData as reportFontData};

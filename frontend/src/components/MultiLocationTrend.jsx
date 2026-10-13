@@ -5,6 +5,7 @@ import {categories,platforms} from '../lib/directory.js';
 import {trendSeries} from '../lib/multi-trend.js';
 import {reportToday,shiftReportDay} from '../lib/report-dates.js';
 import Icon from './Icon.jsx';
+import {prepareTrendReport,exportTrendExcel,exportTrendPdf} from '../lib/trend-report.js';
 import './multi-trend.css';
 import './trend-cards.css';
 const num=v=>v==null?'—':Number(v).toLocaleString('vi-VN',{maximumFractionDigits:2});
@@ -21,7 +22,7 @@ function LocationCard({item,rows,metric,scale}){
 }
 export default function MultiLocationTrend(){
  const today=reportToday(),minimum=shiftReportDay(today,-364);
- const [directory,setDirectory]=useState([]),[histories,setHistories]=useState({}),[source,setSource]=useState('google'),[category,setCategory]=useState('all'),[period,setPeriod]=useState(90),[from,setFrom]=useState(shiftReportDay(today,-89)),[to,setTo]=useState(today),[metric,setMetric]=useState('count'),[view,setView]=useState('cards'),[hidden,setHidden]=useState(new Set()),[busy,setBusy]=useState(true),[progress,setProgress]=useState(0),[error,setError]=useState(''),[reload,setReload]=useState(0);
+ const [directory,setDirectory]=useState([]),[histories,setHistories]=useState({}),[source,setSource]=useState('google'),[category,setCategory]=useState('all'),[period,setPeriod]=useState(90),[from,setFrom]=useState(shiftReportDay(today,-89)),[to,setTo]=useState(today),[metric,setMetric]=useState('count'),[view,setView]=useState('cards'),[hidden,setHidden]=useState(new Set()),[busy,setBusy]=useState(true),[progress,setProgress]=useState(0),[error,setError]=useState(''),[reload,setReload]=useState(0),[exporting,setExporting]=useState('');
  const cache=useRef(new Map());
  useEffect(()=>{let stop=false;api('/api/directory').then(d=>{if(!stop)setDirectory(d.filter(p=>p.relationship==='managed'));}).catch(e=>{if(!stop){setError(e.message);setBusy(false);}});return()=>{stop=true;};},[]);
  const locations=useMemo(()=>directory.filter(d=>(category==='all'||d.category===category)&&d.sources?.some(s=>s.source===source)),[directory,category,source]);
@@ -39,6 +40,8 @@ export default function MultiLocationTrend(){
  const {series,rows}=useMemo(()=>valid?trendSeries(locations,histories,start,end):{series:[],rows:[]},[locations,histories,start,end,valid]);
  const available=series.filter(s=>s.hasData),visible=available.filter(s=>!hidden.has(s.entity_key)),scale=platforms[source].scale;
  const count=metric==='count',rating=metric==='rating';
+ const exportSeries=view==='cards'?available:visible;
+ async function exportReport(format){setExporting(format);setError('');try{const report=prepareTrendReport({source,category,metric,view,start,end,series:exportSeries,rows});await (format==='excel'?exportTrendExcel(report):exportTrendPdf(report));}catch(e){setError('Không xuất được báo cáo: '+e.message);}finally{setExporting('');}}
  function changeView(value){setView(value);if(value==='compare')setHidden(new Set(available.slice(4).map(s=>s.entity_key)));}
  function toggle(key){setHidden(current=>{const next=new Set(current);if(next.has(key)){if(available.length-next.size<4)next.delete(key);}else next.add(key);return next;});}
  return <section className="card multi-trend" aria-label="Xu hướng đánh giá các địa điểm">
@@ -47,6 +50,7 @@ export default function MultiLocationTrend(){
    <div className="multi-trend-switch" role="group" aria-label="Chỉ số biểu đồ">{[['count','Tổng đánh giá'],['rating','Điểm số']].map(([value,label])=><button key={value} aria-pressed={metric===value} onClick={()=>setMetric(value)}>{label}</button>)}</div><button className="secondary" disabled={busy} onClick={()=>{cache.current.clear();setReload(n=>n+1);}} aria-label="Tải lại biểu đồ"><Icon name="refresh" size={14}/></button>
   </div>
   <div className="trend-view-bar"><div role="group" aria-label="Cách xem biểu đồ"><button aria-pressed={view==='cards'} onClick={()=>changeView('cards')}>Từng địa điểm</button><button aria-pressed={view==='compare'} onClick={()=>changeView('compare')}>So sánh chung</button></div><span>{view==='cards'?'Mỗi ô một địa điểm · mỗi cột một ngày':'Chọn tối đa 4 địa điểm để so sánh'}</span></div>
+  <div className="trend-export-actions"><span>Xuất đúng bộ lọc và {exportSeries.length} địa điểm đang xem</span><button className="secondary" disabled={busy||!valid||!exportSeries.length||!!exporting} onClick={()=>exportReport('excel')}><Icon name="download" size={15}/>{exporting==='excel'?'Đang xuất…':'Xuất Excel xu hướng'}</button><button className="primary" disabled={busy||!valid||!exportSeries.length||!!exporting} onClick={()=>exportReport('pdf')}><Icon name="download" size={15}/>{exporting==='pdf'?'Đang xuất…':'Xuất PDF xu hướng ngang'}</button></div>
   {error&&<p className="notice error" role="alert">{error}</p>}
   {!valid?<div className="multi-trend-empty">Chọn khoảng ngày hợp lệ trong 365 ngày gần nhất.</div>:busy?<div className="multi-trend-empty" role="status"><Icon name="refresh" className="spin"/>Đang đọc lịch sử · {progress}/{locations.length} địa điểm</div>:!available.length?<div className="multi-trend-empty"><Icon name="trend" size={32}/><strong>Chưa có lịch sử trong khoảng chọn</strong><p>Biểu đồ sẽ hiển thị khi có mốc ghi nhận của {platforms[source].name}.</p></div>:view==='cards'?<><div className="trend-period-note">{available.length} địa điểm · {date(start)} — {date(end)}</div><div className="trend-location-grid">{available.map(s=><LocationCard key={s.entity_key} item={s} rows={rows} metric={metric} scale={scale}/>)}</div></>:<>
    <div className="multi-trend-axis"><span>{count?'Tổng đánh giá':''}</span><span>{rating?'Điểm / '+scale:''}</span></div>
