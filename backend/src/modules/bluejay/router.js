@@ -196,7 +196,7 @@ app.get("/dashboard", async (req, res) => {
       empty:summaries.length?empty:null,
       availableHotels:summaries.length,
       complete:summaries.length===HOTELS.length,
-      occupancyRate: summaries.length&&total ? Number(((occupied / total) * 100).toFixed(2)) : null,
+      occupancyRate: summaries.length&&total>blocked ? Number(((occupied / (total-blocked)) * 100).toFixed(2)) : null,
     },
     hotels: rows,
   });

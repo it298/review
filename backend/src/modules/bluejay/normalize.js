@@ -37,15 +37,25 @@ export function normalizeOccupancy(response) {
     })),
   }));
 
-  return {
-    summary: {
+  const summary = {
       occupied: n(grand.GrandTotalRoomOccupied),
       blocked: n(grand.GrandTotalBlocked),
       total: n(grand.GrandTotalRoom),
       empty: n(grand.GrandTotalRoomEmpty),
       occupancyRate: n(grand.GrandTotalOccupancyRate),
-    },
-    roomTypes,
+  };
+  // Apply on every read, including old cached reports, without changing source data.
+  const excluded = roomTypes.filter(room => String(room.name || '').trim().toLowerCase().replace(/[\s_\u2010-\u2015]+/g, '-') === 'm-standard');
+  if (excluded.length) {
+    for (const field of ['occupied', 'blocked', 'total', 'empty']) {
+      summary[field] = Math.max(0, summary[field] - excluded.reduce((sum, room) => sum + room[field], 0));
+    }
+    const available = summary.total - summary.blocked;
+    summary.occupancyRate = available > 0 ? Number((summary.occupied / available * 100).toFixed(2)) : null;
+  }
+  return {
+    summary,
+    roomTypes: roomTypes.filter(room => !excluded.includes(room)),
   };
 }
 

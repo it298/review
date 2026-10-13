@@ -49,5 +49,9 @@ test('both modules share authentication; Blue Jay rejects invalid inputs, keeps 
   const status=await(await fetch(base+'/api/bluejay/status',{headers})).json();assert.equal(status.configured,false);assert.equal(status.autoSync,false);
   process.env.BLUEJAY_API_KEY='test-provider-key';providerData=raw;
   const refreshed=await fetch(base+'/api/bluejay/hotels/5381/occupancy?from=2026-10-13&to=2026-10-13&refresh=1',{headers});data=await refreshed.json();assert.equal(data.source,'live');assert.equal(data.data.summary.occupancyRate,80);assert.ok(records.has('bluejay:index'));assert.equal(JSON.stringify(data).includes('test-provider-key'),false);assert.equal(providerCalls,1);
+  providerData=structuredClone(raw);providerData.data.GrandTotal.RoomTypes=[{RoomTypeId:99,RoomTypeName:'M-standard',RoomTypeTotalRoomOccupied:3,RoomTypeTotalRoom:4,RoomTypeTotalRoomEmpty:1},{RoomTypeId:1,RoomTypeName:'Standard',RoomTypeTotalRoomOccupied:5,RoomTypeTotalRoom:6,RoomTypeTotalRoomEmpty:1}];
+  data=await(await fetch(base+'/api/bluejay/hotels/5381/occupancy?from=2026-10-13&to=2026-10-13&refresh=1',{headers})).json();assert.equal(data.data.summary.total,6);assert.equal(data.data.summary.occupied,5);assert.equal(data.data.roomTypes.length,1);
+  delete process.env.BLUEJAY_API_KEY;
+  data=await(await fetch(base+'/api/bluejay/dashboard?from=2026-10-13&to=2026-10-13',{headers})).json();assert.equal(data.aggregate.total,6);assert.equal(data.aggregate.occupied,5);assert.equal(data.aggregate.occupancyRate,83.33);assert.equal(data.hotels[0].source,'cache');assert.equal(data.hotels[0].data.roomTypes[0].name,'Standard');
  }finally{await new Promise(resolve=>server.close(resolve));globalThis.fetch=originalFetch;}
 });
