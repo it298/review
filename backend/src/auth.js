@@ -12,7 +12,7 @@ function role(user){
  if(process.env.AUTH_ADMIN_EMAIL&&user.email?.toLowerCase()===process.env.AUTH_ADMIN_EMAIL.trim().toLowerCase())return 'admin';
  const value=user.app_metadata?.workspace_role;return ['admin','member','viewer'].includes(value)?value:null;
 }
-function publicUser(user){return {id:user.id,email:user.email,name:String(user.user_metadata?.name||user.email).slice(0,100),role:role(user)};}
+function publicUser(user){return {id:user.id,email:user.email,name:String(user.user_metadata?.name||user.email).slice(0,100),role:role(user),mustChangePassword:user.app_metadata?.workspace_must_change_password===true};}
 async function authFetch(path,{method='GET',body,token}={}){
  const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!secret||!process.env.SUPABASE_URL)throw fail(503,'Chưa cấu hình dịch vụ đăng nhập.');
@@ -31,6 +31,7 @@ async function throttle(req,action,emailValue=''){
 }
 async function version(id){return await getValue('auth:version:'+id)||'initial';}
 async function revokeAll(id){await setValue('auth:version:'+id,randomBytes(24).toString('hex'),604800);}
+async function finishPasswordChange(id){const data=await authFetch('admin/users/'+encodeURIComponent(id)),user=data.user||data;await authFetch('admin/users/'+encodeURIComponent(id),{method:'PUT',body:{app_metadata:{...user.app_metadata,workspace_must_change_password:false}}});await revokeAll(id);}
 async function issue(user,remember=false){const token=randomBytes(32).toString('base64url'),seconds=remember?604800:43200,expiresAt=new Date(Date.now()+seconds*1000).toISOString();await setValue('auth:session:'+hash(token),{userId:user.id,version:await version(user.id),expiresAt},seconds);return {token,expiresAt,user:publicUser(user)};}
 export async function authenticateUser(req){
  const token=bearer(req);if(!/^[A-Za-z0-9_-]{43}$/.test(token))throw fail(401,'Phiên đăng nhập đã hết hạn.');
@@ -58,7 +59,7 @@ export function installPublicAuth(app){
  app.post('/api/auth/reset-password',async(req,res,next)=>{try{
   if(authMode()!=='supabase'||!password(req.body?.password)||typeof req.body?.accessToken!=='string'||req.body.accessToken.length>6000)throw fail(400,'Mật khẩu mới cần 12–128 ký tự.');await throttle(req,'reset');
   const user=await authFetch('user',{token:req.body.accessToken});if(!role(user))throw fail(403,'Tài khoản chưa được cấp quyền.');
-  await authFetch('user',{method:'PUT',token:req.body.accessToken,body:{password:req.body.password}});await revokeAll(user.id);res.json({ok:true});
+  await authFetch('user',{method:'PUT',token:req.body.accessToken,body:{password:req.body.password}});await finishPasswordChange(user.id);res.json({ok:true});
  }catch(e){next(e);}});
 }
 export function installPrivateAuth(app){
@@ -68,7 +69,7 @@ export function installPrivateAuth(app){
   if(authMode()!=='supabase'||!password(req.body?.password)||typeof req.body?.currentPassword!=='string'||req.body.currentPassword.length>128)throw fail(400,'Mật khẩu mới cần 12–128 ký tự.');await throttle(req,'password',req.user.email);
   let verified;try{verified=await authFetch('token?grant_type=password',{method:'POST',body:{email:req.user.email,password:req.body.currentPassword}});}catch(e){if(e.status===400)throw fail(400,'Mật khẩu hiện tại không đúng.');throw e;}
   if(verified.user.id!==req.user.id)throw fail(403,'Không có quyền thay đổi tài khoản.');
-  await authFetch('user',{method:'PUT',token:verified.access_token,body:{password:req.body.password}});await revokeAll(req.user.id);res.json({ok:true});
+  await authFetch('user',{method:'PUT',token:verified.access_token,body:{password:req.body.password}});await finishPasswordChange(req.user.id);res.json({ok:true});
  }catch(e){next(e);}});
  app.get('/api/auth/users',async(req,res,next)=>{try{
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền quản lý tài khoản.');
@@ -79,6 +80,16 @@ export function installPrivateAuth(app){
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền tạo tài khoản.');
   const body=req.body||{};if(!email(body.email)||!password(body.password)||!['admin','member','viewer'].includes(body.role)||typeof body.name!=='string'||!body.name.trim()||body.name.length>100)throw fail(400,'Nhập tên, email, quyền và mật khẩu từ 12–128 ký tự.');await throttle(req,'create');
   const data=await authFetch('admin/users',{method:'POST',body:{email:body.email.trim().toLowerCase(),password:body.password,email_confirm:true,user_metadata:{name:body.name.trim()},app_metadata:{workspace_role:body.role}}});res.status(201).json({user:publicUser(data.user||data)});
+ }catch(e){next(e);}});
+ app.post('/api/auth/users/:id/reset-password',async(req,res,next)=>{try{
+  if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền reset mật khẩu.');
+  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||req.params.id===req.user.id)throw fail(400,'Dùng mục Đổi mật khẩu cho tài khoản của chính mình.');
+  const result=await authFetch('admin/users/'+req.params.id),user=result.user||result;
+  if(!role(user))throw fail(403,'Tài khoản không thuộc workspace hoặc đã bị khóa.');
+  if(process.env.AUTH_ADMIN_EMAIL&&user.email?.toLowerCase()===process.env.AUTH_ADMIN_EMAIL.trim().toLowerCase())throw fail(400,'Không reset mật khẩu tạm cho quản trị chính.');
+  await throttle(req,'admin-reset');
+  await authFetch('admin/users/'+req.params.id,{method:'PUT',body:{password:'123456',app_metadata:{...user.app_metadata,workspace_must_change_password:true}}});
+  await revokeAll(user.id);res.json({ok:true,message:'Đã reset về 123456. Người dùng phải đổi mật khẩu ở lần đăng nhập tiếp theo.'});
  }catch(e){next(e);}});
  app.patch('/api/auth/users/:id',async(req,res,next)=>{try{
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền đổi quyền tài khoản.');

@@ -17,6 +17,8 @@ Không cần migration database mới. Phiên và giới hạn đăng nhập lư
 - Nhân viên: dữ liệu chung của công ty, nhập số liệu và đồng bộ. Chưa phân quyền theo từng khách sạn hoặc từng module.
 - Chỉ xem: các API đọc; không sửa/đồng bộ dữ liệu. Được đánh dấu cảnh báo đã xem và đổi mật khẩu của chính mình.
 - Khóa/đổi quyền thu hồi phiên cũ. Đổi mật khẩu và đăng xuất mọi thiết bị thu hồi toàn bộ phiên của người dùng. Đăng xuất thiết bị này chỉ thu hồi token hiện tại.
+- Quản trị có nút Reset về 123456 cho tài khoản nhân viên đang hoạt động trong workspace. Có bước xác nhận; không áp dụng cho chính mình hoặc quản trị bootstrap. Reset qua Supabase Admin API, gắn app_metadata.workspace_must_change_password=true và thu hồi phiên cũ. Không cần SMTP.
+- Người dùng đăng nhập bằng 123456 chỉ được xem phiên, đổi mật khẩu hoặc đăng xuất; backend chặn các API dữ liệu, kể cả khi bỏ qua giao diện. Đổi sang mật khẩu tối thiểu 12 ký tự thành công sẽ xóa cờ bắt buộc đổi và yêu cầu đăng nhập lại. Cờ nằm trong app_metadata do server quản lý, không lấy từ user_metadata.
 - Phiên thông thường: 12 giờ, token trong sessionStorage. Giữ đăng nhập: tối đa 7 ngày, token trong localStorage. Frontend không lưu mật khẩu ở chế độ email; token phiên ngẫu nhiên lưu hash phía backend. Supabase access token không được trả về từ API đăng nhập workspace.
 - Backend kiểm tra trạng thái tài khoản từ Supabase và phiên trên mỗi yêu cầu. Frontend kiểm tra phiên trước khi mount module, khi lấy focus và mỗi phút. Phiên hết hạn trở lại đăng nhập; lỗi kết nối ban đầu có nút Thử lại.
 - Link khôi phục xử lý access token ở fragment trong bộ nhớ và xóa khỏi thanh địa chỉ trước khi hiển thị form. Khi đổi mật khẩu xong, người dùng phải đăng nhập lại.

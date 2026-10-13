@@ -68,6 +68,7 @@ export function createApp(){
   if(!process.env.APP_PASSWORD || process.env.APP_PASSWORD.length<16)return res.status(503).json({error:'Cần cấu hình APP_PASSWORD dài ít nhất 16 ký tự.'});
   if(!authorized(req.headers.authorization,process.env.APP_PASSWORD))return res.status(401).json({error:'Vui lòng đăng nhập.'});req.user={id:'legacy',name:'Quản trị viên',role:'admin'};next();
  });
+ app.use('/api',(req,res,next)=>{if(req.user?.mustChangePassword&&!['/session','/auth/password','/auth/logout','/auth/logout-all'].includes(req.path))return res.status(403).json({error:'Bạn cần đổi mật khẩu tạm trước khi vào workspace.'});next();});
  installPrivateAuth(app);
  app.use('/api',(req,res,next)=>{if(req.user?.role==='viewer'&&!['GET','HEAD'].includes(req.method)&&req.path!=='/alerts/read')return res.status(403).json({error:'Tài khoản chỉ xem không được thay đổi dữ liệu.'});if(req.user?.role==='viewer'&&['1','true'].includes(String(req.query.refresh)))return res.status(403).json({error:'Tài khoản chỉ xem không được đồng bộ dữ liệu mới.'});if(req.user?.role!=='admin'&&['/google/connect','/google/disconnect','/places/track'].includes(req.path))return res.status(403).json({error:'Chỉ quản trị viên có quyền cấu hình kết nối.'});next();});
  app.get('/api/google/status',async(_req,res,next)=>{try{res.json(await connectionStatus());}catch(e){next(e);}});
