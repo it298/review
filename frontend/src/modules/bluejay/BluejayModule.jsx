@@ -4,7 +4,7 @@ import "./bluejay.css";
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
-const HOTEL_COLORS = ["#2563eb", "#7c3aed", "#0891b2", "#ea580c"];
+const HOTEL_COLORS = ["#278669", "#90a565", "#648f9c", "#c69b57"];
 
 function today() {
   return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Ho_Chi_Minh",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -263,8 +263,8 @@ export default function BluejayModule({tab="dashboard",onTabChange}) {
     <div className="bluejay-module app">
       <header className="topbar">
         <div>
-          <div className="eyebrow">BLUE JAY PMS · 4 PROPERTIES</div>
-          <h1>Hotel Analytics</h1>
+          <div className="eyebrow">BLUE JAY ANALYTICS · 4 KHÁCH SẠN</div>
+          <h1>{{dashboard:'Tổng quan công suất',occupancy:'Công suất chi tiết',reservations:'Đặt phòng',services:'Dịch vụ',sync:'Đồng bộ dữ liệu'}[tab]}</h1>
           <p>Tổng hợp công suất, đặt phòng và dịch vụ</p>
         </div>
         <div className={`windowStatus ${windowAllowed ? "open" : "closed"}`}>
