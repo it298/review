@@ -1,0 +1,250 @@
+.bluejay-module {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f5f7fb;
+  font-synthesis: none;
+}
+.bluejay-module * { box-sizing: border-box; }
+.bluejay-module { margin: 0; min-width: 320px; }
+.bluejay-module button, .bluejay-module input, .bluejay-module select { font: inherit; }
+.bluejay-module button { cursor: pointer; }
+.bluejay-module .app { max-width: 1440px; margin: 0 auto; padding: 28px 24px 70px; }
+
+.bluejay-module .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.bluejay-module .eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 800; color: #64748b; }
+.bluejay-module h1 { margin: 6px 0 4px; font-size: 32px; letter-spacing: -.03em; }
+.bluejay-module .topbar p, .bluejay-module .panelHeader p, .bluejay-module .sectionTitle p, .bluejay-module .syncHero p {
+  margin: 0;
+  color: #7a8799;
+}
+
+.bluejay-module .windowStatus {
+  display: grid;
+  gap: 4px;
+  min-width: 240px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  border: 1px solid;
+}
+.bluejay-module .windowStatus b { font-size: 13px; }
+.bluejay-module .windowStatus span { font-size: 12px; opacity: .78; }
+.bluejay-module .windowStatus.open { background: #ecfdf3; border-color: #b7e8c8; color: #166534; }
+.bluejay-module .windowStatus.closed { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+
+.bluejay-module .nav {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  background: #e9eef6;
+  width: fit-content;
+  border-radius: 13px;
+  margin-bottom: 14px;
+}
+.bluejay-module .nav button {
+  border: 0;
+  background: transparent;
+  color: #526174;
+  font-weight: 800;
+  padding: 9px 15px;
+  border-radius: 9px;
+}
+.bluejay-module .nav button.active { background: #fff; color: #0f172a; box-shadow: 0 3px 10px rgba(15, 23, 42, .08); }
+
+.bluejay-module .filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 11px;
+  background: #fff;
+  border: 1px solid #e7ebf2;
+  padding: 15px;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, .045);
+}
+.bluejay-module .filters label, .bluejay-module .syncControls label {
+  display: grid;
+  gap: 6px;
+  min-width: 155px;
+  color: #68758a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.bluejay-module .filters label.wide { min-width: 245px; }
+.bluejay-module input, .bluejay-module select {
+  height: 42px;
+  border: 1px solid #d8dee9;
+  border-radius: 10px;
+  padding: 0 11px;
+  color: #172033;
+  background: #fff;
+  outline: none;
+}
+.bluejay-module input:focus, .bluejay-module select:focus { border-color: #8eb4ff; box-shadow: 0 0 0 3px rgba(37, 99, 235, .1); }
+
+.bluejay-module .primary, .bluejay-module .secondary, .bluejay-module .ghost {
+  height: 42px;
+  border-radius: 10px;
+  font-weight: 800;
+  padding: 0 15px;
+}
+.bluejay-module .primary { border: 0; color: #fff; background: #2563eb; }
+.bluejay-module .primary:hover { background: #1d4ed8; }
+.bluejay-module .secondary { border: 1px solid #cbd5e1; color: #334155; background: #fff; }
+.bluejay-module .ghost { border: 1px solid #d8dee9; background: #fff; color: #334155; }
+.bluejay-module button:disabled { opacity: .55; cursor: not-allowed; }
+
+.bluejay-module .hint, .bluejay-module .notice, .bluejay-module .error {
+  margin-top: 12px;
+  border-radius: 11px;
+  padding: 11px 13px;
+  font-size: 13px;
+}
+.bluejay-module .hint { background: #fff8e8; color: #8a5a00; border: 1px solid #f8dfaa; }
+.bluejay-module .notice { background: #ecfdf3; color: #166534; border: 1px solid #b7e8c8; }
+.bluejay-module .error { background: #fff0f0; color: #b42318; border: 1px solid #ffd0d0; }
+
+.bluejay-module .metrics {
+  display: grid;
+  gap: 13px;
+  margin-top: 16px;
+}
+.bluejay-module .metrics.five { grid-template-columns: repeat(5, 1fr); }
+.bluejay-module .metrics.three { grid-template-columns: repeat(3, 1fr); }
+.bluejay-module .metric {
+  background: #fff;
+  border: 1px solid #e7ebf2;
+  padding: 17px;
+  border-radius: 15px;
+  box-shadow: 0 5px 22px rgba(15, 23, 42, .04);
+  min-width: 0;
+}
+.bluejay-module .metric span { display: block; color: #748094; font-size: 12px; font-weight: 700; }
+.bluejay-module .metric strong { display: block; margin-top: 7px; font-size: 26px; letter-spacing: -.02em; overflow: hidden; text-overflow: ellipsis; }
+.bluejay-module .metric small { display: block; margin-top: 5px; color: #94a3b8; }
+
+.bluejay-module .panel, .bluejay-module .hotelCard, .bluejay-module .syncHero {
+  background: #fff;
+  border: 1px solid #e7ebf2;
+  border-radius: 16px;
+  box-shadow: 0 5px 22px rgba(15, 23, 42, .04);
+}
+.bluejay-module .panel { margin-top: 16px; padding: 18px; }
+.bluejay-module .panelHeader, .bluejay-module .sectionTitle, .bluejay-module .syncHero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+.bluejay-module .panelHeader { margin-bottom: 14px; }
+.bluejay-module .panelHeader h2, .bluejay-module .sectionTitle h2, .bluejay-module .syncHero h2 { margin: 0 0 4px; font-size: 19px; }
+.bluejay-module .sectionTitle { margin-top: 20px; }
+.bluejay-module .syncHero { padding: 20px; margin-top: 4px; }
+
+.bluejay-module .compareList { display: grid; gap: 12px; }
+.bluejay-module .compareRow {
+  display: grid;
+  grid-template-columns: 230px minmax(180px, 1fr) 70px 90px 130px;
+  align-items: center;
+  gap: 14px;
+}
+.bluejay-module .compareName b { display: block; }
+.bluejay-module .compareName small { color: #94a3b8; }
+.bluejay-module .compareRooms { color: #64748b; font-size: 13px; }
+.bluejay-module .rowError { color: #b42318; grid-column: 2 / -1; }
+
+.bluejay-module .barTrack { height: 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; min-width: 110px; }
+.bluejay-module .barFill { height: 100%; border-radius: 999px; transition: width .2s ease; }
+
+.bluejay-module .hotelGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+}
+.bluejay-module .hotelCard { padding: 17px; }
+.bluejay-module .hotelCardTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.bluejay-module .hotelCardTop small { color: #94a3b8; font-weight: 800; font-size: 10px; }
+.bluejay-module .hotelCardTop h3 { margin: 5px 0 0; font-size: 15px; }
+.bluejay-module .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; }
+.bluejay-module .hotelRate { font-size: 34px; font-weight: 900; margin: 22px 0 9px; }
+.bluejay-module .hotelStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.bluejay-module .hotelStats span { color: #8792a5; font-size: 11px; }
+.bluejay-module .hotelStats b { display: block; color: #263244; font-size: 15px; margin-top: 3px; }
+.bluejay-module .hotelFooter { margin-top: 14px; }
+
+.bluejay-module .sourceBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .03em;
+  border-radius: 999px;
+  padding: 5px 8px;
+}
+.bluejay-module .sourceBadge.live { background: #dcfce7; color: #166534; }
+.bluejay-module .sourceBadge.cache { background: #fff4d5; color: #8a5a00; }
+
+.bluejay-module .tableWrap { overflow: auto; max-width: 100%; }
+.bluejay-module table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bluejay-module th, .bluejay-module td { padding: 11px 10px; border-bottom: 1px solid #edf0f5; text-align: left; white-space: nowrap; }
+.bluejay-module th { position: sticky; top: 0; z-index: 1; background: #fafbfd; color: #66758a; font-size: 11px; letter-spacing: .02em; text-transform: uppercase; }
+.bluejay-module tbody tr:hover { background: #fbfcfe; }
+.bluejay-module .rateCell { min-width: 190px; display: grid; grid-template-columns: 55px 1fr; align-items: center; gap: 8px; }
+
+.bluejay-module .reservationTools { align-items: flex-end; }
+.bluejay-module .inlineTools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.bluejay-module .inlineTools input { min-width: 270px; }
+.bluejay-module .statusPill { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 800; }
+
+.bluejay-module .serviceGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.bluejay-module .serviceCard { border: 1px solid #e6eaf1; border-radius: 13px; padding: 14px; display: grid; gap: 7px; }
+.bluejay-module .serviceCard > span { color: #65748a; font-size: 12px; font-weight: 800; }
+.bluejay-module .serviceCard > strong { font-size: 21px; }
+.bluejay-module .serviceCard > small { color: #8a96a8; }
+.bluejay-module .serviceItems { border-top: 1px solid #edf0f5; margin-top: 5px; padding-top: 8px; display: grid; gap: 5px; }
+.bluejay-module .serviceItems div { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: #64748b; }
+
+.bluejay-module .syncControls { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.bluejay-module .schedule { display: flex; gap: 8px; align-items: center; margin-top: 16px; color: #64748b; font-size: 12px; }
+.bluejay-module .schedule span { background: #eef2f7; padding: 5px 8px; border-radius: 8px; font-weight: 800; color: #334155; }
+.bluejay-module .schedule small { margin-left: 4px; }
+.bluejay-module .logStatus { font-size: 11px; font-weight: 900; padding: 4px 8px; border-radius: 999px; }
+.bluejay-module .logStatus.ok { color: #166534; background: #dcfce7; }
+.bluejay-module .logStatus.bad { color: #b42318; background: #fee2e2; }
+.bluejay-module .logError { display: block; margin-top: 5px; color: #b42318; max-width: 480px; white-space: normal; }
+.bluejay-module .muted { color: #8a96a8; }
+
+@media (max-width: 1120px) {
+  .bluejay-module .metrics.five { grid-template-columns: repeat(3, 1fr); }
+  .bluejay-module .hotelGrid { grid-template-columns: repeat(2, 1fr); }
+  .bluejay-module .serviceGrid { grid-template-columns: repeat(2, 1fr); }
+  .bluejay-module .compareRow { grid-template-columns: 200px 1fr 65px 80px; }
+  .bluejay-module .compareRow .sourceBadge { display: none; }
+}
+
+@media (max-width: 760px) {
+  .bluejay-module .app { padding: 20px 14px 50px; }
+  .bluejay-module .topbar, .bluejay-module .panelHeader, .bluejay-module .sectionTitle, .bluejay-module .syncHero { align-items: stretch; flex-direction: column; }
+  .bluejay-module .windowStatus { min-width: 0; }
+  .bluejay-module .nav { width: 100%; overflow-x: auto; }
+  .bluejay-module .nav button { white-space: nowrap; }
+  .bluejay-module .filters label, .bluejay-module .filters label.wide { min-width: calc(50% - 6px); flex: 1; }
+  .bluejay-module .metrics.five, .bluejay-module .metrics.three { grid-template-columns: repeat(2, 1fr); }
+  .bluejay-module .hotelGrid, .bluejay-module .serviceGrid { grid-template-columns: 1fr; }
+  .bluejay-module .compareRow { grid-template-columns: 1fr 70px; }
+  .bluejay-module .compareBar, .bluejay-module .compareRooms, .bluejay-module .compareRow .sourceBadge { grid-column: 1 / -1; }
+  .bluejay-module .inlineTools { justify-content: flex-start; }
+  .bluejay-module .inlineTools input { min-width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .bluejay-module .filters label, .bluejay-module .filters label.wide { min-width: 100%; }
+  .bluejay-module .metrics.five, .bluejay-module .metrics.three { grid-template-columns: 1fr; }
+}

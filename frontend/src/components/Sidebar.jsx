@@ -24,7 +24,7 @@ const groups=[
 ];
 const groupFor=page=>groups.find(group=>group.items.some(item=>item.key===page))?.key;
 
-export default function Sidebar({page,setPage,onLogout}){
+export default function Sidebar({page,setPage,onLogout,module='reviews',setModule,bluejayTab='dashboard',setBluejayTab}){
  const [openGroup,setOpenGroup]=useState(()=>groupFor(page)||'locations');
  const [collapsed,setCollapsed]=useState(false);
  const [narrow,setNarrow]=useState(()=>window.matchMedia('(max-width:950px)').matches);
@@ -36,9 +36,12 @@ export default function Sidebar({page,setPage,onLogout}){
   return <button key={item.key} type="button" title={title} aria-label={title} className={page===item.key?'active':''} aria-current={page===item.key?'page':undefined} onClick={()=>setPage(item.key)}><Icon name={item.icon}/><span className="nav-text">{item.label}</span>{page===item.key&&<span className="active-dot"/>}</button>;
  }
  return <aside className={'sidebar compact-sidebar'+(compact?' is-compact':'')}>
-  <div className="sidebar-heading"><div className="brand"><span className="brand-mark"><Icon name="hotel" size={22}/></span><div>Stay<span className="brand-accent">Scope</span><small>REVIEW INTELLIGENCE</small></div></div></div>
+  <div className="sidebar-heading"><div className="brand"><span className="brand-mark"><Icon name="hotel" size={22}/></span><div>VJH<span className="brand-accent"> Hub</span><small>COMPANY WORKSPACE</small></div></div></div>
   <button type="button" className="sidebar-toggle" title={compact?'Mở rộng sidebar':'Thu gọn sidebar'} aria-label={compact?'Mở rộng sidebar':'Thu gọn sidebar'} aria-expanded={!compact} onClick={()=>setCollapsed(value=>!value)}><Icon name={compact?'panelOpen':'panelClose'} size={17}/><span>Thu gọn</span></button>
   <nav className="sidebar-navigation" aria-label="Điều hướng chính">
+   <div className="module-nav"><small>Không gian chung</small>{[['home','Tổng quan hệ thống','dashboard'],['reviews','Theo dõi đánh giá','star'],['bluejay','Blue Jay Analytics','hotel']].map(([key,label,icon])=><button key={key} title={label} aria-label={label} className={module===key?'active':''} aria-current={module===key?'page':undefined} onClick={()=>setModule?.(key)}><Icon name={icon}/><span className="nav-text">{label}</span></button>)}</div>
+   {module==='bluejay'&&<><span className="module-section-label">Blue Jay Analytics</span>{[['dashboard','Tổng quan công suất','dashboard'],['occupancy','Công suất chi tiết','hotel'],['reservations','Đặt phòng','calendar'],['services','Dịch vụ','store'],['sync','Đồng bộ Blue Jay','refresh']].map(([key,label,icon])=><button key={key} title={label} aria-label={label} className={bluejayTab===key?'active':''} aria-current={bluejayTab===key?'page':undefined} onClick={()=>setBluejayTab?.(key)}><Icon name={icon}/><span className="nav-text">{label}</span></button>)}</>}
+   {module==='reviews'&&<><span className="module-section-label">Theo dõi đánh giá</span>
    <div className="nav-primary">
     {itemButton({key:'dashboard',label:'Tổng quan',icon:'dashboard'})}
     {itemButton({key:'attention',label:'Cần chú ý',icon:'alert'})}
@@ -50,6 +53,7 @@ export default function Sidebar({page,setPage,onLogout}){
      {(compact||expanded)&&<div id={'sidebar-'+group.key} className="nav-group-items">{group.items.map(itemButton)}</div>}
     </section>;
    })}
+   </>}
   </nav>
   <div className="sidebar-bottom"><div className="workspace-user"><span className="avatar">AD</span><div>Workspace của bạn<small>Quản trị viên</small></div><button type="button" className="signout" title="Đăng xuất" aria-label="Đăng xuất" onClick={onLogout}><Icon name="logout" size={17}/></button></div></div>
  </aside>;

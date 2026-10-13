@@ -1,4 +1,5 @@
 import express from 'express';
+import {createBluejayRouter} from './modules/bluejay/router.js';
 import { createHash,timingSafeEqual } from 'node:crypto';
 import { state,mutate,getValue,setValue,deleteValue,rpc } from './store.js';
 import { matrix,track,sync } from './service.js';
@@ -70,6 +71,7 @@ export function createApp(){
  app.get('/api/google/accounts',async(req,res,next)=>{try{res.json(await listAccounts(typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(_req,res)=>res.json({ok:true}));
+ app.use('/api/bluejay',createBluejayRouter());
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
  app.post('/api/manual-summary',async(req,res,next)=>{try{res.json(await rpc('review_tracker_manual_summary_ingest',{p:validateManualSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await withReviewAlerts(await rpc('review_tracker_insights_read',{p_days:days}),days);res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});
