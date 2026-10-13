@@ -221,6 +221,54 @@
 .bluejay-module .logError { display: block; margin-top: 5px; color: #b42318; max-width: 480px; white-space: normal; }
 .bluejay-module .muted { color: #8a96a8; }
 
+.bluejay-module .bj-dashboard-charts { display:grid; gap:16px; margin:16px 0; }
+.bluejay-module .bj-dashboard-charts .panel { margin:0; min-width:0; }
+.bluejay-module .bj-chart-unit { color:#674982; font-size:12px; font-weight:700; }
+.bluejay-module .bj-column-chart { display:flex; gap:12px; margin:30px 0 18px; }
+.bluejay-module .bj-chart-ticks { height:200px; display:flex; flex-direction:column; justify-content:space-between; font-size:11px; color:#817389; flex-shrink:0; }
+.bluejay-module .bj-chart-columns { display:grid; gap:24px; flex:1; min-width:0; }
+.bluejay-module .bj-chart-column { min-width:0; text-align:center; }
+.bluejay-module .bj-column-track { height:200px; position:relative; border-bottom:1px solid #ded6e6; background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),#eee9f1 calc(25% - 1px),#eee9f1 25%); display:flex; align-items:flex-end; justify-content:center; }
+.bluejay-module .bj-column-fill { width:56%; max-width:90px; border-radius:8px 8px 0 0; }
+.bluejay-module .bj-column-track strong { position:absolute; top:-24px; left:0; right:0; font-size:18px; color:#4e365f; }
+.bluejay-module .bj-chart-column>b { display:block; margin-top:12px; font-size:13px; }
+.bluejay-module .bj-chart-column>small { display:block; font-size:11px; margin-top:5px; color:#817389; }
+.bluejay-module .bj-chart-legend { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:22px; font-size:12px; }
+.bluejay-module .bj-chart-legend span { display:flex; align-items:center; gap:6px; }
+.bluejay-module .bj-chart-legend i { width:10px; height:10px; border-radius:3px; }
+.bluejay-module .bj-dashboard-charts .used { background:#674982; }
+.bluejay-module .bj-dashboard-charts .empty { background:#e8dbb7; }
+.bluejay-module .bj-dashboard-charts .blocked { background:#a8adb8; }
+.bluejay-module .bj-composition-row { margin-bottom:22px; }
+.bluejay-module .bj-composition-row>b { display:block; font-size:13px; margin-bottom:8px; }
+.bluejay-module .bj-stacked-bar { height:22px; background:#f0ebf3; border-radius:5px; overflow:hidden; display:flex; }
+.bluejay-module .bj-composition-values { display:flex; gap:22px; flex-wrap:wrap; margin-top:7px; font-size:12px; color:#817389; }
+.bluejay-module .bj-composition-values strong { color:#4e365f; margin-left:5px; }
+.bluejay-module .bj-hotel-picker { display:grid; gap:6px; font-size:11px; min-width:210px; }
+.bluejay-module .bj-hotel-picker select { padding:10px; border:1px solid #ded6e6; border-radius:8px; background:white; color:#4e365f; max-width:100%; }
+.bluejay-module .bj-room-rate { display:flex; align-items:center; gap:10px; min-width:180px; }
+.bluejay-module .bj-room-rate strong { width:65px; }
+.bluejay-module .bj-room-track { height:9px; background:#f0ebf3; border-radius:5px; flex:1; overflow:hidden; }
+.bluejay-module .bj-room-track span { display:block; height:100%; background:#674982; }
+.bluejay-module .bj-daily-heading { margin-top:28px; }
+.bluejay-module .bj-daily-scroll { max-width:100%; overflow:auto; }
+.bluejay-module .bj-daily-chart { display:grid; gap:12px; margin:18px 0; }
+.bluejay-module .bj-daily-column { text-align:center; font-size:12px; }
+.bluejay-module .bj-daily-column>strong { display:block; margin-bottom:8px; color:#674982; }
+.bluejay-module .bj-day-track { height:150px; display:flex; align-items:flex-end; justify-content:center; border-bottom:1px solid #ded6e6; background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),#eee9f1 calc(25% - 1px),#eee9f1 25%); }
+.bluejay-module .bj-day-track span { display:block; background:#674982; width:60%; max-width:50px; border-radius:5px 5px 0 0; }
+.bluejay-module .bj-daily-column>b { display:block; margin-top:8px; }
+.bluejay-module .bj-daily-column>small { color:#817389; display:block; margin-top:5px; }
+.bluejay-module .bj-dashboard-charts details summary { cursor:pointer; color:#674982; padding:10px 0; font-weight:600; }
+.bluejay-module .bj-data-times { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; }
+.bluejay-module .bj-data-times>div { display:flex; flex-direction:column; gap:8px; font-size:12px; }
+@media(max-width:760px){
+  .bluejay-module .bj-chart-columns { gap:8px; }
+  .bluejay-module .bj-chart-column>b { font-size:11px; overflow-wrap:anywhere; }
+  .bluejay-module .bj-column-track strong { font-size:13px; }
+  .bluejay-module .bj-hotel-picker { min-width:0; }
+}
+
 @media (max-width: 1120px) {
   .bluejay-module .metrics.five { grid-template-columns: repeat(3, 1fr); }
   .bluejay-module .hotelGrid { grid-template-columns: repeat(2, 1fr); }

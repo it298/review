@@ -3,6 +3,7 @@ import {api} from "../../lib/api.js";
 import "./bluejay.css";
 import Payables from './Payables.jsx';
 import {filterOccupancy} from './occupancy-filter.js';
+import DashboardCharts from './DashboardCharts.jsx';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -272,7 +273,7 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
       <header className="topbar">
         <div>
           <div className="eyebrow">BLUE JAY ANALYTICS · 4 KHÁCH SẠN</div>
-          <h1>{{dashboard:'Tổng quan công suất',occupancy:'Công suất chi tiết',reservations:'Đặt phòng',services:'Dịch vụ',sync:'Đồng bộ dữ liệu'}[tab]}</h1>
+          <h1>{{dashboard:'Dashboard công suất',occupancy:'Công suất chi tiết',reservations:'Đặt phòng',services:'Dịch vụ',sync:'Đồng bộ dữ liệu'}[tab]}</h1>
           <p>Tổng hợp công suất, đặt phòng và dịch vụ</p>
         </div>
         <div className={`windowStatus ${windowAllowed ? "open" : "closed"}`}>
@@ -416,108 +417,18 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
 
 function Dashboard({ payload }) {
   const aggregate = payload.aggregate || {};
-  const hotelRows = payload.hotels || [];
-
-  return (
-    <>
-      <section className="metrics five">
-        <Metric label="Công suất toàn hệ thống" value={pct(aggregate.occupancyRate)} />
-        <Metric label="Phòng đã sử dụng" value={number(aggregate.occupied)} />
-        <Metric label="Phòng trống" value={number(aggregate.empty)} />
-        <Metric label="Phòng block" value={number(aggregate.blocked)} />
-        <Metric label="Tổng room-night" value={number(aggregate.total)} />
-      </section>
-
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2>So sánh công suất</h2>
-            <p>Công suất theo từng property trong khoảng đã chọn</p>
-          </div>
-        </div>
-
-        <div className="compareList">
-          {hotelRows.map((row, index) => {
-            const s = row.data?.summary;
-            return (
-              <div className="compareRow" key={row.hotel.id}>
-                <div className="compareName">
-                  <b>{row.hotel.name}</b>
-                  <small>HotelId {row.hotel.id}</small>
-                </div>
-
-                {row.ok && s ? (
-                  <>
-                    <div className="compareBar">
-                      <OccupancyBar
-                        value={s.occupancyRate}
-                        color={HOTEL_COLORS[index % HOTEL_COLORS.length]}
-                      />
-                    </div>
-                    <strong>{pct(s.occupancyRate)}</strong>
-                    <span className="compareRooms">
-                      {number(s.occupied)} / {number(s.total)}
-                    </span>
-                    <SourceBadge source={row.source} savedAt={row.savedAt} />
-                  </>
-                ) : (
-                  <div className="rowError">{row.error||'Chưa có dữ liệu'}</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="hotelGrid">
-        {hotelRows.map((row, index) => {
-          const s = row.data?.summary;
-          return (
-            <article className="hotelCard" key={row.hotel.id}>
-              <div className="hotelCardTop">
-                <div>
-                  <small>HOTEL {row.hotel.id}</small>
-                  <h3>{row.hotel.name}</h3>
-                </div>
-                <div
-                  className="dot"
-                  style={{ background: HOTEL_COLORS[index % HOTEL_COLORS.length] }}
-                />
-              </div>
-
-              {row.ok && s ? (
-                <>
-                  <div className="hotelRate">{pct(s.occupancyRate)}</div>
-                  <OccupancyBar
-                    value={s.occupancyRate}
-                    color={HOTEL_COLORS[index % HOTEL_COLORS.length]}
-                  />
-                  <div className="hotelStats">
-                    <span>
-                      Đã dùng <b>{number(s.occupied)}</b>
-                    </span>
-                    <span>
-                      Trống <b>{number(s.empty)}</b>
-                    </span>
-                    <span>
-                      Block <b>{number(s.blocked)}</b>
-                    </span>
-                  </div>
-                  <div className="hotelFooter">
-                    <SourceBadge source={row.source} savedAt={row.savedAt} />
-                  </div>
-                </>
-              ) : (
-                <p className="muted">Chưa có dữ liệu cho bộ lọc này.</p>
-              )}
-            </article>
-          );
-        })}
-      </section>
-    </>
-  );
+  return <>
+    <section className="metrics five">
+      <Metric label="Công suất toàn hệ thống" value={pct(aggregate.occupancyRate)} />
+      <Metric label="Phòng đã sử dụng" value={number(aggregate.occupied)} />
+      <Metric label="Phòng trống" value={number(aggregate.empty)} />
+      <Metric label="Phòng block" value={number(aggregate.blocked)} />
+      <Metric label="Tổng room-night" value={number(aggregate.total)} />
+    </section>
+    <DashboardCharts payload={payload} />
+    <section className="panel"><div className="panelHeader"><div><h2>Thời điểm dữ liệu</h2><p>Đọc theo khoảng ngày đã chọn · các loại M-Standard được loại khỏi báo cáo</p></div></div><div className="bj-data-times">{(payload.hotels||[]).map(row=><div key={row.hotel.id}><b>{row.hotel.name}</b>{row.ok?<SourceBadge source={row.source} savedAt={row.savedAt}/>:<span className="muted">Chưa có dữ liệu</span>}</div>)}</div></section>
+  </>;
 }
-
 function Occupancy({ payload }) {
   const [roomTypeId,setRoomTypeId]=useState('');
   useEffect(()=>setRoomTypeId(''),[payload]);
