@@ -34,3 +34,25 @@ Blue Jay không trả về trình duyệt. CSV chỉ xuất dữ liệu báo cá
 
 Chưa nhập tài liệu hướng dẫn, setup.cmd hay start.cmd từ ZIP vào luồng thực thi.
 Chỉ dùng mã nghiệp vụ/UI của ZIP và chuyển thành module trong ứng dụng hiện tại.
+
+## Công nợ OTA/đại lý
+
+Sidebar Blue Jay có mục Công nợ OTA, đọc dữ liệu riêng từ báo cáo
+`https://id.bluejaypms.com/report-payables`. Dữ liệu là **dư nợ theo Bluejay**,
+chưa phải số phải thu đã đối soát hoa hồng hay chứng từ OTA chuyển tiền.
+Không tự trừ thêm đặt cọc hoặc tính số dư từ giá phòng.
+
+Xuất Excel `.xls`/`.xlsx` từ Bluejay, chọn đúng khách sạn tại mục nhập file,
+kiểm tra kỳ báo cáo và xác nhận lưu. File Bluejay không có tên khách sạn nên
+không tự suy đoán cơ sở. Parser chỉ nhận báo cáo VND, tối đa 2 MB/1.000 dòng;
+server kiểm tra lại các dòng và tổng tiền trước khi lưu. Tên khách không lưu.
+Nguồn khác OTA được giữ đúng tên nếu xuất hiện trong báo cáo; dùng bộ lọc nguồn.
+
+`GET /api/bluejay/payables?hotelId=all&from=YYYY-MM-DD&to=YYYY-MM-DD`
+chỉ trả bản đúng kỳ đã nhập, khách sạn chưa có bản để `data:null`.
+`POST /api/bluejay/payables/import` yêu cầu đăng nhập có quyền ghi;
+viewer chỉ xem/xuất. Bản mới nhất theo kỳ dùng dataset `payables`, từng lần
+ghi nhận dùng `payables-history`, cùng cache Supabase riêng giữ 366 ngày.
+`GET /api/bluejay/payables/history` trả 20 lần gần nhất; mở kỳ báo cáo sẽ
+hiển thị bản hiện hành của kỳ đó. Không có scheduler công nợ được bật.
+Excel xuất tổng hợp và booking theo bộ lọc hiện tại; PDF ngang xuất bảng tổng hợp.

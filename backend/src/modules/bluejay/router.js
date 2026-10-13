@@ -22,6 +22,7 @@ import {
 } from "./normalize.js";
 import { apiWindowStatus, normalizeMonth } from "./date-utils.js";
 import { syncMany } from "./sync.js";
+import {importPayables,payablesForRange,payablesHistory} from './payables.js';
 
 export function createBluejayRouter(){
 const app = express.Router();
@@ -127,6 +128,10 @@ app.get("/status", async (req, res) => {
 app.get("/hotels", (req, res) => {
   res.json(HOTELS);
 });
+
+app.get('/payables',async(req,res,next)=>{try{if(!req.query.from||!req.query.to)return res.status(400).json({error:'Chọn khoảng ngày của báo cáo.'});res.json(await payablesForRange({hotelId:req.query.hotelId||'all',from:req.query.from,to:req.query.to}));}catch(e){next(e);}});
+app.get('/payables/history',async(req,res,next)=>{try{res.json(await payablesHistory(req.query.hotelId||'all'));}catch(e){next(e);}});
+app.post('/payables/import',async(req,res,next)=>{try{res.json(await importPayables(req.body));}catch(e){next(e);}});
 
 app.get("/dashboard", async (req, res) => {
   let { from, to, dateType = "1", refresh = "0" } = req.query;

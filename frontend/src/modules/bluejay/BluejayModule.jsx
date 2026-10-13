@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {api} from "../../lib/api.js";
 import "./bluejay.css";
+import Payables from './Payables.jsx';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -85,7 +86,8 @@ function OccupancyBar({ value, color = "#2563eb" }) {
   );
 }
 
-export default function BluejayModule({tab="dashboard",onTabChange}) {
+export default function BluejayModule(props){return props.tab==='payables'?<Payables user={props.user}/>:<CoreBluejayModule {...props}/>;}
+function CoreBluejayModule({tab="dashboard",onTabChange}) {
   const setTab = onTabChange;
   const [hotels, setHotels] = useState([]);
   const [hotelId, setHotelId] = useState("5381");

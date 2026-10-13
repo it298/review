@@ -9,6 +9,7 @@
     "preview": "vite preview --configLoader native"
   },
   "dependencies": {
+    "@e965/xlsx": "0.20.3",
     "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.468.0",
