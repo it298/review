@@ -6,6 +6,8 @@ import {filterOccupancy} from './occupancy-filter.js';
 import DashboardCharts from './DashboardCharts.jsx';
 import {summarizeBookings} from './reservation-summary.js';
 import {ResponsiveContainer, PieChart, Pie, Cell, Tooltip} from 'recharts';
+import RoomHistory from './RoomHistory.jsx';
+import {monthRange} from './room-history.js';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -108,6 +110,7 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [reservationStatus, setReservationStatus] = useState("");
+  const [historyMonth,setHistoryMonth]=useState(currentMonth());
 
   useEffect(() => {
     Promise.all([
@@ -129,6 +132,7 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
       refreshStatus();
     }
   }, [tab]);
+  useEffect(()=>{setPayload(null);setError('');},[hotelId]);
 
   useEffect(() => {
     if (dateType === "2") {
@@ -157,7 +161,7 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
     return url;
   }
 
-  async function load(refresh = false) {
+  async function load(refresh = false, reportOverride = null) {
     setLoading(true);
     setError("");
     setNotice("");
@@ -176,6 +180,7 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
       } else if (tab === "reservations") {
         url = dateQuery(new URL(`${API}/hotels/${hotelId}/reservations`));
         url.searchParams.set("dateType", reservationDateType);
+        if(reportOverride)for(const [key,value] of Object.entries(reportOverride))url.searchParams.set(key,value);
         if (refresh) url.searchParams.set("refresh", "1");
       } else if (tab === "services") {
         url = dateQuery(new URL(`${API}/hotels/${hotelId}/services`));
@@ -186,7 +191,7 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
       }
 
       const result = await getJson(url);
-      setPayload(result);
+      setPayload({...result,reportFilters:{from:url.searchParams.get('from'),to:url.searchParams.get('to'),dateType:url.searchParams.get('dateType')}});
 
       if (refresh) {
         if(tab==='dashboard'){
@@ -338,6 +343,8 @@ function CoreBluejayModule({tab="dashboard",onTabChange}) {
             </label>
           )}
 
+          {tab==='reservations'&&<><label>Tháng lịch sử<input type="month" aria-label="Tháng lịch sử phòng" value={historyMonth} onChange={e=>setHistoryMonth(e.target.value)}/></label><button className="secondary" disabled={loading||!monthRange(historyMonth)} onClick={()=>{const r=monthRange(historyMonth);setFrom(r.from);setTo(r.to);setReservationDateType('3');setSearch('');setReservationStatus('');setPayload(null);load(false,{from:r.from,to:r.to,dateType:'3'});}}>Xem lịch sử tháng</button></>}
+
           <label>
             Từ
             <input
@@ -486,6 +493,7 @@ function Occupancy({ payload }) {
         <Metric label="Block" value={number(summary.blocked)} />
         <Metric label="Tổng room-night" value={number(summary.total)} />
       </section>
+
 
       <section className="panel">
         <div className="panelHeader">
@@ -645,6 +653,7 @@ function Reservations({
         <Metric label="Đặt cọc" value={money(totals.deposit)} />
       </section>
 
+      <RoomHistory key={`${payload.hotel?.id}-${payload.reportFilters?.from}-${payload.reportFilters?.to}`} payload={payload} onExport={downloadCsv}/>
       <p className="muted">Các số tổng và biểu đồ áp dụng cùng bộ lọc tìm kiếm/trạng thái. Tiền booking gồm cả những đêm ngoài khoảng ngày; không phải doanh thu ngày hoặc ADR. {summary.unknownBookingRows > 0 && `${summary.unknownBookingRows} dòng thiếu mã không được tính vào số booking.`}</p>
       <div className="bj-reservation-summary">
         <BookingBreakdown title="Đặt phòng theo nền tảng / nguồn" groups={summary.sources} financial />

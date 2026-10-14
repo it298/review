@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {normalizeReservations} from '../backend/src/modules/bluejay/normalize.js';
 const build=resolve('frontend/dist');
 const rows=[{bookingCode:'B1',roomName:'101',roomType:'Standard',source:'Ctrip',status:'Đã nhận phòng',roomPrice:1000000,servicePrice:0,totalPrice:1000000,payment:0,balance:1000000,deposit:0}, {bookingCode:'B1',roomName:'102',roomType:'Standard',source:'Ctrip',status:'Đã huỷ',roomPrice:0,servicePrice:0,totalPrice:0,payment:0,balance:0,deposit:0}, {bookingCode:'B2',roomName:'103',roomType:'Suite',source:'Booking.com',status:'Không đến'}];
-const data=normalizeReservations({attributes:{reservations:rows}});
+const data=normalizeReservations({attributes:{reservations:rows.map(r=>({...r,checkInTime:'2026-10-13',checkOutTime:'2026-10-16'}))}});
 const browser=await chromium.launch({executablePath:'C:/Users/PC/AppData/Local/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-win64/chrome-headless-shell.exe',headless:true});
 try {
   const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];
@@ -49,7 +49,18 @@ try {
   assert.equal(await page.locator('.bj-booking-donut').count(),0);
   assert.equal(await page.locator('.bj-donut-empty').count(),2);
   await page.getByPlaceholder('Tìm khách, mã booking, phòng...').fill('');
+  await page.getByLabel('Tháng lịch sử phòng').fill('2026-10');
+  await page.getByRole('button',{name:'Xem lịch sử tháng',exact:true}).click();
+  await page.getByRole('combobox',{name:'Phòng trong lịch sử tháng',exact:true}).waitFor();
+  assert.match(await page.locator('.bj-room-history').innerText(),/Ctrip/);
+  await page.screenshot({path:resolve(build,'bluejay-room-history-qa.png'),fullPage:true});
+  await page.getByRole('combobox',{name:'Phòng trong lịch sử tháng',exact:true}).selectOption('101');
+  assert.equal(await page.locator('.bj-room-history table').last().locator('tbody tr').count(),1);
+  assert.equal(await page.locator('.bj-room-history table').first().locator('tbody tr').first().locator('td').nth(3).innerText(),'3');
+  await page.getByRole('combobox',{name:'Phòng trong lịch sử tháng',exact:true}).selectOption('102');
+  assert.equal(await page.locator('.bj-room-history table').first().locator('tbody tr').first().locator('td').nth(3).innerText(),'0');
   await page.setViewportSize({width:390,height:844});
+  await page.waitForFunction(()=>document.documentElement.scrollWidth<=window.innerWidth);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   assert.deepEqual(errors,[]);
   console.log('Bluejay reservation UI: unique booking counts, shared filters, missing amounts and mobile layout passed.');

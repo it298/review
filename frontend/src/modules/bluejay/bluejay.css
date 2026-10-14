@@ -334,3 +334,8 @@
 .bluejay-module .bj-donut-tooltip { background:#fff; border:1px solid #ded6e6; border-radius:10px; padding:12px; box-shadow:0 6px 20px #34234620; display:grid; gap:6px; font-size:12px; }
 .bluejay-module .bj-donut-empty { padding:20px; }
 @media(max-width:760px) { .bluejay-module .bj-reservation-summary { grid-template-columns:1fr; } }
+.bluejay-module .bj-room-history { margin:20px 0; }
+.bluejay-module .bj-room-history>p,.bluejay-module .bj-room-history>h2 { margin:16px 22px; }
+.bluejay-module .bj-room-history label { display:grid; gap:6px; font-size:12px; }
+.bluejay-module .bj-room-history select { max-width:100%; border:1px solid #ded6e6; padding:10px; border-radius:8px; background:#fff; color:#54396e; }
+.bluejay-module .bj-room-history .tableWrap + .tableWrap { margin-top:20px; }
