@@ -318,3 +318,11 @@
   .bluejay-module .filters label, .bluejay-module .filters label.wide { min-width: 100%; }
   .bluejay-module .metrics.five, .bluejay-module .metrics.three { grid-template-columns: 1fr; }
 }
+.bluejay-module .bj-reservation-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:20px 0; }
+.bluejay-module .bj-booking-bars { padding:20px; display:grid; gap:18px; }
+.bluejay-module .bj-booking-bar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; }
+.bluejay-module .bj-booking-bar b { overflow-wrap:anywhere; }
+.bluejay-module .bj-booking-bar .barTrack { grid-column:1 / -1; grid-row:2; }
+.bluejay-module .bj-booking-bar span,.bluejay-module .bj-booking-bar small { font-size:12px; }
+.bluejay-module .bj-booking-bar small { grid-column:1 / -1; color:#776487; }
+@media(max-width:760px) { .bluejay-module .bj-reservation-summary { grid-template-columns:1fr; } }

@@ -4,6 +4,7 @@ import "./bluejay.css";
 import Payables from './Payables.jsx';
 import {filterOccupancy} from './occupancy-filter.js';
 import DashboardCharts from './DashboardCharts.jsx';
+import {summarizeBookings} from './reservation-summary.js';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -74,7 +75,7 @@ function SourceBadge({ source, savedAt }) {
   return (
     <span className={`sourceBadge ${source}`}>
       {source === "live" ? "LIVE" : "ĐÃ LƯU"}
-      {savedAt ? ` · ${new Date(savedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit",timeZone:'Asia/Ho_Chi_Minh' })}` : ""}
+      {savedAt ? ` · ${new Date(savedAt).toLocaleString("vi-VN", { day:'2-digit',month:'2-digit',year:'numeric',hour: "2-digit", minute: "2-digit",timeZone:'Asia/Ho_Chi_Minh' })}` : ""}
     </span>
   );
 }
@@ -579,7 +580,8 @@ function Reservations({
   setReservationStatus,
   statuses,
 }) {
-  const totals = payload.data?.totals || {};
+  const summary = summarizeBookings(rows);
+  const totals = summary.totals;
 
   function exportRows() {
     downloadCsv(
@@ -599,6 +601,7 @@ function Reservations({
         "Tổng tiền",
         "Đã thanh toán",
         "Còn lại",
+        "Đặt cọc",
       ],
       rows.map((r) => [
         r.bookingCode,
@@ -615,6 +618,7 @@ function Reservations({
         r.totalPrice,
         r.payment,
         r.balance,
+        r.deposit,
       ])
     );
   }
@@ -624,24 +628,34 @@ function Reservations({
       <div className="sectionTitle">
         <div>
           <h2>{payload.hotel?.name}</h2>
-          <p>Reservation</p>
+          <p>Đặt phòng theo bộ lọc ngày đã chọn · loại M-Standard đã được loại bỏ</p>
         </div>
         <SourceBadge source={payload.source} savedAt={payload.savedAt} />
       </div>
 
       <section className="metrics five">
-        <Metric label="Số booking" value={number(totals.count)} />
-        <Metric label="Tiền phòng" value={money(totals.roomPrice)} />
+        <Metric label="Số booking" value={number(summary.bookings)} helper="Đếm mã duy nhất sau lọc" />
+        <Metric label="Lượt phòng" value={number(summary.roomRows)} helper="Dòng phòng trong booking; gồm mọi trạng thái đã lọc" />
+        <Metric label="Tiền phòng" value={money(totals.roomPrice)} helper="Giá trị cả kỳ lưu trú của booking" />
         <Metric label="Tiền dịch vụ" value={money(totals.servicePrice)} />
         <Metric label="Tổng booking" value={money(totals.totalPrice)} />
         <Metric label="Còn lại" value={money(totals.balance)} />
+        <Metric label="Đã thanh toán" value={money(totals.payment)} />
+        <Metric label="Đặt cọc" value={money(totals.deposit)} />
       </section>
+
+      <p className="muted">Các số tổng và biểu đồ áp dụng cùng bộ lọc tìm kiếm/trạng thái. Tiền booking gồm cả những đêm ngoài khoảng ngày; không phải doanh thu ngày hoặc ADR. {summary.unknownBookingRows > 0 && `${summary.unknownBookingRows} dòng thiếu mã không được tính vào số booking.`}</p>
+      <div className="bj-reservation-summary">
+        <BookingBreakdown title="Đặt phòng theo nền tảng / nguồn" groups={summary.sources} financial />
+        <BookingBreakdown title="Trạng thái phòng trong booking" groups={summary.statuses} />
+      </div>
+      <p className="muted">Một booking có thể có nhiều phòng và nhiều trạng thái, nên số booking giữa các nhóm không cộng lại để lấy tổng. Hủy/không đến phản ánh trạng thái API trong báo cáo đã chọn, không phải số sự kiện hủy phát sinh theo ngày.</p>
 
       <section className="panel">
         <div className="panelHeader reservationTools">
           <div>
             <h2>Danh sách đặt phòng</h2>
-            <p>Hiển thị {rows.length} booking sau lọc</p>
+            <p>Hiển thị {summary.bookings} booking · {rows.length} dòng phòng sau lọc</p>
           </div>
           <div className="inlineTools">
             <input
@@ -699,6 +713,13 @@ function Reservations({
       </section>
     </>
   );
+}
+
+function BookingBreakdown({title,groups,financial=false}) {
+  const max = Math.max(1,...groups.map(g=>g.roomRows));
+  return <section className="panel"><div className="panelHeader"><div><h2>{title}</h2><p>Thanh thể hiện lượt phòng · số liệu theo báo cáo API</p></div></div>
+    <div className="bj-booking-bars">{groups.length ? groups.map(g=><div className="bj-booking-bar" key={g.label}><b>{g.label}</b><div className="barTrack"><div className="barFill" style={{width:`${g.roomRows/max*100}%`,background:'#80609d'}} /></div><span>{number(g.roomRows)} lượt phòng · {number(g.bookings)} booking</span>{financial&&<small>Tiền phòng cả booking: {money(g.roomPrice)}</small>}</div>):<p>Không có dòng đặt phòng phù hợp bộ lọc.</p>}</div>
+  </section>;
 }
 
 function Services({ payload }) {

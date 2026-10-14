@@ -3,6 +3,20 @@ function n(value) {
   return Number.isFinite(num) ? num : 0;
 }
 
+export function isExcludedRoom(name) {
+  return /^m(?:\s*[-_\u2010-\u2015]\s*|\s+)standard(?:$|[^a-z0-9])/i.test(String(name || '').trim());
+}
+
+function amount(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function sumAmount(rows, field) {
+  return rows.some(r => r[field] === null) ? null : rows.reduce((sum, r) => sum + r[field], 0);
+}
+
 export function grandFrom(response) {
   return (
     response?.data?.GrandTotal ??
@@ -45,7 +59,7 @@ export function normalizeOccupancy(response) {
       occupancyRate: n(grand.GrandTotalOccupancyRate),
   };
   // Apply on every read, including old cached reports, without changing source data.
-  const excluded = roomTypes.filter(room => /^m-standard(?:$|[^a-z0-9])/.test(String(room.name || '').trim().toLowerCase().replace(/[\s_\u2010-\u2015]+/g, '-')));
+  const excluded = roomTypes.filter(room => isExcludedRoom(room.name));
   if (excluded.length) {
     for (const field of ['occupied', 'blocked', 'total', 'empty']) {
       summary[field] = Math.max(0, summary[field] - excluded.reduce((sum, room) => sum + room[field], 0));
@@ -68,7 +82,14 @@ export function reservationsFrom(response) {
 }
 
 export function normalizeReservations(response) {
-  const rows = reservationsFrom(response).map((r) => ({
+  const seen = new Set();
+  const rows = reservationsFrom(response).filter(r => {
+    if (isExcludedRoom(r.roomType)) return false;
+    const key = JSON.stringify(r);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((r) => ({
     bookingCode: r.bookingCode ?? "",
     referenceCode: r.referenceCode ?? "",
     guestName: r.guestName ?? "",
@@ -80,23 +101,26 @@ export function normalizeReservations(response) {
     checkInTime: r.checkInTime ?? "",
     checkOutTime: r.checkOutTime ?? "",
     night: n(r.night),
-    roomPrice: n(r.roomPrice),
-    servicePrice: n(r.servicePrice),
-    totalPrice: n(r.totalPrice),
-    payment: n(r.payment),
-    balance: n(r.balance),
-    deposit: n(r.deposit),
+    roomPrice: amount(r.roomPrice),
+    servicePrice: amount(r.servicePrice),
+    totalPrice: amount(r.totalPrice),
+    payment: amount(r.payment),
+    balance: amount(r.balance),
+    deposit: amount(r.deposit),
   }));
 
   return {
     rows,
     totals: {
-      count: rows.length,
-      roomPrice: rows.reduce((s, r) => s + r.roomPrice, 0),
-      servicePrice: rows.reduce((s, r) => s + r.servicePrice, 0),
-      totalPrice: rows.reduce((s, r) => s + r.totalPrice, 0),
-      payment: rows.reduce((s, r) => s + r.payment, 0),
-      balance: rows.reduce((s, r) => s + r.balance, 0),
+      count: new Set(rows.map(r => String(r.bookingCode).trim()).filter(Boolean)).size,
+      roomRows: rows.length,
+      unknownBookingRows: rows.filter(r => !String(r.bookingCode).trim()).length,
+      roomPrice: sumAmount(rows, 'roomPrice'),
+      servicePrice: sumAmount(rows, 'servicePrice'),
+      totalPrice: sumAmount(rows, 'totalPrice'),
+      payment: sumAmount(rows, 'payment'),
+      balance: sumAmount(rows, 'balance'),
+      deposit: sumAmount(rows, 'deposit'),
     },
   };
 }

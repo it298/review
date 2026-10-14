@@ -1,0 +1,49 @@
+import {chromium} from '../worker/node_modules/playwright/index.mjs';
+import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import assert from 'node:assert/strict';
+import {normalizeReservations} from '../backend/src/modules/bluejay/normalize.js';
+const build=resolve('frontend/dist');
+const rows=[{bookingCode:'B1',roomName:'101',roomType:'Standard',source:'Ctrip',status:'Đã nhận phòng',roomPrice:1000000,servicePrice:0,totalPrice:1000000,payment:0,balance:1000000,deposit:0}, {bookingCode:'B1',roomName:'102',roomType:'Standard',source:'Ctrip',status:'Đã huỷ',roomPrice:0,servicePrice:0,totalPrice:0,payment:0,balance:0,deposit:0}, {bookingCode:'B2',roomName:'103',roomType:'Suite',source:'Booking.com',status:'Không đến'}];
+const data=normalizeReservations({attributes:{reservations:rows}});
+const browser=await chromium.launch({executablePath:'C:/Users/PC/AppData/Local/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-win64/chrome-headless-shell.exe',headless:true});
+try {
+  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>sessionStorage.setItem('review-access-token','fixture'));
+  await page.route('**/*',async route=>{
+    const url=new URL(route.request().url()),path=url.pathname;
+    if(path.startsWith('/api/')) {
+      let body=[];
+      if(path==='/api/auth/config')body={mode:'supabase'};
+      if(path==='/api/session')body={ok:true,mode:'supabase',user:{id:'test',email:'qa@example.com',role:'admin'},expiresAt:new Date(Date.now()+3600000).toISOString()};
+      if(path==='/api/insights')body={alerts:[],daily:[],directory:[]};
+      if(path==='/api/bluejay/hotels')body=[{id:5381,name:'Sontra Sea Hotel'}];
+      if(path==='/api/bluejay/status')body={apiWindow:{allowed:false},syncLog:[],store:{}};
+      if(path.includes('/reservations'))body={hotel:{id:5381,name:'Sontra Sea Hotel'},source:'cache',savedAt:'2026-10-14T01:16:00Z',data};
+      return route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
+    }
+    if(url.hostname!=='bluejay-qa.local')return route.fulfill({contentType:'text/css',body:''});
+    const file=path==='/'?'index.html':path.slice(1);
+    const contentType=file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html';
+    await route.fulfill({contentType,body:await readFile(resolve(build,file))});
+  });
+  await page.goto('https://bluejay-qa.local/');
+  await page.getByRole('button',{name:'Blue Jay Analytics',exact:true}).click();
+  await page.getByRole('button',{name:'Đặt phòng',exact:true}).click();
+  await page.getByRole('button',{name:'Xem dữ liệu',exact:true}).click();
+  await page.getByRole('heading',{name:'Đặt phòng theo nền tảng / nguồn'}).waitFor();
+  const metric=label=>page.locator('.metric').filter({has:page.getByText(label,{exact:true})}).locator('strong');
+  assert.equal(await metric('Số booking').innerText(),'2');
+  assert.equal(await metric('Lượt phòng').innerText(),'3');
+  assert.equal(await metric('Tiền phòng').innerText(),'—');
+  await page.screenshot({path:resolve(build,'bluejay-reservations-qa.png'),fullPage:true});
+  await page.getByPlaceholder('Tìm khách, mã booking, phòng...').fill('Ctrip');
+  assert.equal(await metric('Số booking').innerText(),'1');
+  assert.equal(await metric('Lượt phòng').innerText(),'2');
+  assert.equal(await metric('Tiền phòng').innerText(),'1.000.000 ₫');
+  await page.setViewportSize({width:390,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+  assert.deepEqual(errors,[]);
+  console.log('Bluejay reservation UI: unique booking counts, shared filters, missing amounts and mobile layout passed.');
+} finally {await browser.close();}
