@@ -8,21 +8,26 @@ const width=value=>`${Math.min(100,Math.max(0,Number(value)||0))}%`;
 export default function DashboardCharts({payload}){
   const rows=payload.hotels||[],available=rows.filter(row=>row.ok&&row.data?.summary);
   const [hotelId,setHotelId]=useState('');
+  const [chartMode,setChartMode]=useState('rooms'),[chartHotel,setChartHotel]=useState('all');
+  const chartRows=rows.filter(row=>chartHotel==='all'||String(row.hotel.id)===chartHotel).flatMap(row=>chartMode==='hotels'?[{...row,columnKey:String(row.hotel.id),label:row.hotel.name}]:row.ok&&row.data?.roomTypes?.length?row.data.roomTypes.map(room=>({...row,columnKey:row.hotel.id+':'+room.id,label:room.name,data:{summary:room}})):[{...row,ok:false,columnKey:String(row.hotel.id),label:'Chưa có loại phòng'}]);
+  const chartMax=Math.ceil(Math.max(1,...chartRows.filter(r=>r.ok).map(r=>r.data.summary.total))/4)*4;
   const selected=available.find(row=>String(row.hotel.id)===hotelId)||available[0];
   const days=occupancyDays(selected?.data?.roomTypes||[]);
   if(!available.length)return <section className="panel"><h2>Dashboard công suất</h2><p>Chưa có dữ liệu trong khoảng ngày đã chọn để vẽ biểu đồ.</p></section>;
   return <div className="bj-dashboard-charts">
     <section className="panel">
-      <div className="panelHeader"><div><h2>Công suất các khách sạn</h2><p>{payload.meta?.from} → {payload.meta?.to} · Một cột cho mỗi khách sạn</p></div><span className="bj-chart-unit">Room-night</span></div>
+      <div className="panelHeader"><div><h2>Công suất các khách sạn</h2><p>{payload.meta?.from} → {payload.meta?.to} · {chartMode==='rooms'?'Mỗi cột một loại phòng, nhóm theo khách sạn':'Mỗi cột một khách sạn'}</p></div><span className="bj-chart-unit">Room-night</span></div>
+      <div className="bj-chart-tools"><div role="group" aria-label="Chế độ biểu đồ công suất"><button aria-pressed={chartMode==='hotels'} onClick={()=>setChartMode('hotels')}>Tổng khách sạn</button><button aria-pressed={chartMode==='rooms'} onClick={()=>setChartMode('rooms')}>Theo loại phòng</button></div><label className="bj-hotel-picker">Lọc khách sạn<select aria-label="Lọc khách sạn trên biểu đồ" value={chartHotel} onChange={e=>setChartHotel(e.target.value)}><option value="all">Tất cả khách sạn</option>{rows.map(row=><option key={row.hotel.id} value={String(row.hotel.id)}>{row.hotel.name}</option>)}</select></label></div>
       <div className="bj-chart-legend"><span><i className="used"/>Đã dùng</span><span><i className="empty"/>Còn trống</span><span><i className="blocked"/>Block</span></div>
-      <div className="bj-summary-scroll"><div className="bj-unified-chart" role="group" aria-label="Biểu đồ cột công suất khách sạn">
-        <div className="bj-unified-axis">{[1,.75,.5,.25,0].map(t=><span key={t}>{count(Math.ceil(Math.max(1,...available.map(r=>r.data.summary.total))/4)*4*t)}</span>)}</div>
-        {rows.map(row=>{const s=row.data?.summary,max=Math.ceil(Math.max(1,...available.map(r=>r.data.summary.total))/4)*4;return <div className="bj-chart-column" key={row.hotel.id}>
+      <div className="bj-summary-scroll"><div className="bj-unified-chart bj-room-group-chart" style={{gridTemplateColumns:`40px repeat(${chartRows.length},minmax(150px,1fr))`,minWidth:40+chartRows.length*168}} role="group" aria-label="Biểu đồ cột công suất khách sạn">
+        <div className="bj-unified-axis">{[1,.75,.5,.25,0].map(t=><span key={t}>{count(chartMax*t)}</span>)}</div>
+        {chartRows.map((row,i)=>{const s=row.data?.summary,max=chartMax;return <div className={'bj-chart-column'+(i===0||chartRows[i-1].hotel.id!==row.hotel.id?' bj-group-start':'')} key={row.columnKey}>
+          <div className="bj-group-hotel">{i===0||chartRows[i-1].hotel.id!==row.hotel.id?row.hotel.name:'\u00a0'}</div>
           <strong className="bj-unified-rate">{row.ok?rate(s?.occupancyRate):'—'}<small>Công suất</small></strong>
           <div className="bj-unified-track">{row.ok&&s&&<div className="bj-unified-stack" style={{height:width(s.total/max*100)}} aria-label={`${row.hotel.name}: đã dùng ${s.occupied}, trống ${s.empty}, block ${s.blocked}`}>
             {[['used',s.occupied,'Đã dùng'],['empty',s.empty,'Còn trống'],['blocked',s.blocked,'Block']].map(([key,value,label])=>value>0&&<span key={key} className={key} style={{height:width(s.total?value/s.total*100:0)}} title={`${label}: ${count(value)} room-night`}>{value/s.total>=.08?count(value):''}</span>)}
           </div>}</div>
-          <b>{row.hotel.name}</b>{row.ok&&s?<><small>Tổng <strong>{count(s.total)}</strong> room-night</small><div className="bj-unified-values"><span>Đã dùng <b>{count(s.occupied)}</b></span><span>Trống <b>{count(s.empty)}</b></span><span>Block <b>{count(s.blocked)}</b></span></div></>:<small>Chưa có dữ liệu</small>}
+          <b>{row.label}</b>{row.ok&&s?<><small>Tổng <strong>{count(s.total)}</strong> room-night</small><div className="bj-unified-values"><span>Đã dùng <b>{count(s.occupied)}</b></span><span>Trống <b>{count(s.empty)}</b></span><span>Block <b>{count(s.blocked)}</b></span></div></>:<small>Chưa có dữ liệu</small>}
         </div>})}
       </div></div>
       <p className="muted">Chiều cao cột: tổng room-night. Công suất phía trên: đã dùng / phòng có thể bán, đã trừ block. Đã loại M-Standard.</p>

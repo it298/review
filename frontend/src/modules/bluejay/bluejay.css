@@ -276,6 +276,14 @@
 .bluejay-module .bj-unified-values span { display:flex; justify-content:space-between; padding:0 15px; }
 .bluejay-module .bj-detail-disclosure>summary { cursor:pointer; font-weight:700; color:#674982; }
 .bluejay-module .bj-detail-disclosure[open]>summary { margin-bottom:22px; }
+.bluejay-module .bj-chart-tools { display:flex; align-items:end; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+.bluejay-module .bj-chart-tools [aria-pressed="true"] { background:#674982; color:white; }
+.bluejay-module .bj-chart-tools [role="group"] { display:flex; gap:6px; }
+.bluejay-module .bj-chart-tools button { border:1px solid #ded6e6; border-radius:8px; padding:10px 14px; background:#fff; color:#674982; font:inherit; font-size:12px; cursor:pointer; }
+.bluejay-module .bj-chart-tools button[aria-pressed="true"] { background:#674982; color:#fff; }
+.bluejay-module .bj-group-hotel { height:43px; font-weight:700; font-size:12px; color:#674982; text-align:left; }
+.bluejay-module .bj-room-group-chart .bj-unified-axis { margin-top:96px; }
+.bluejay-module .bj-group-start { border-left:2px solid #e2d8ea; padding-left:12px; }
 @media(max-width:760px){
   .bluejay-module .bj-chart-columns { gap:8px; }
   .bluejay-module .bj-chart-column>b { font-size:11px; overflow-wrap:anywhere; }
