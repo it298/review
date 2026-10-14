@@ -319,10 +319,18 @@
   .bluejay-module .metrics.five, .bluejay-module .metrics.three { grid-template-columns: 1fr; }
 }
 .bluejay-module .bj-reservation-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:20px 0; }
-.bluejay-module .bj-booking-bars { padding:20px; display:grid; gap:18px; }
-.bluejay-module .bj-booking-bar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; }
-.bluejay-module .bj-booking-bar b { overflow-wrap:anywhere; }
-.bluejay-module .bj-booking-bar .barTrack { grid-column:1 / -1; grid-row:2; }
-.bluejay-module .bj-booking-bar span,.bluejay-module .bj-booking-bar small { font-size:12px; }
-.bluejay-module .bj-booking-bar small { grid-column:1 / -1; color:#776487; }
+.bluejay-module .bj-booking-donut-layout { padding:0 20px 24px; }
+.bluejay-module .bj-booking-donut { position:relative; width:100%; min-width:0; height:260px; }
+.bluejay-module .bj-donut-center { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none; display:grid; text-align:center; gap:4px; }
+.bluejay-module .bj-donut-center strong { font-size:30px; color:#54396e; }
+.bluejay-module .bj-donut-center span { color:#776487; font-size:12px; }
+.bluejay-module .bj-donut-legend { list-style:none; padding:0; margin:0; display:grid; gap:14px; }
+.bluejay-module .bj-donut-legend li { display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:start; gap:10px; }
+.bluejay-module .bj-donut-legend i { width:10px; height:10px; border-radius:50%; margin-top:5px; }
+.bluejay-module .bj-donut-legend li>div { display:grid; gap:4px; }
+.bluejay-module .bj-donut-legend b { overflow-wrap:anywhere; font-size:13px; }
+.bluejay-module .bj-donut-legend span,.bluejay-module .bj-donut-legend small { color:#776487; font-size:12px; }
+.bluejay-module .bj-donut-legend li>strong { font-size:14px; color:#54396e; white-space:nowrap; }
+.bluejay-module .bj-donut-tooltip { background:#fff; border:1px solid #ded6e6; border-radius:10px; padding:12px; box-shadow:0 6px 20px #34234620; display:grid; gap:6px; font-size:12px; }
+.bluejay-module .bj-donut-empty { padding:20px; }
 @media(max-width:760px) { .bluejay-module .bj-reservation-summary { grid-template-columns:1fr; } }

@@ -5,6 +5,7 @@ import Payables from './Payables.jsx';
 import {filterOccupancy} from './occupancy-filter.js';
 import DashboardCharts from './DashboardCharts.jsx';
 import {summarizeBookings} from './reservation-summary.js';
+import {ResponsiveContainer, PieChart, Pie, Cell, Tooltip} from 'recharts';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -716,9 +717,24 @@ function Reservations({
 }
 
 function BookingBreakdown({title,groups,financial=false}) {
-  const max = Math.max(1,...groups.map(g=>g.roomRows));
-  return <section className="panel"><div className="panelHeader"><div><h2>{title}</h2><p>Thanh thể hiện lượt phòng · số liệu theo báo cáo API</p></div></div>
-    <div className="bj-booking-bars">{groups.length ? groups.map(g=><div className="bj-booking-bar" key={g.label}><b>{g.label}</b><div className="barTrack"><div className="barFill" style={{width:`${g.roomRows/max*100}%`,background:'#80609d'}} /></div><span>{number(g.roomRows)} lượt phòng · {number(g.bookings)} booking</span>{financial&&<small>Tiền phòng cả booking: {money(g.roomPrice)}</small>}</div>):<p>Không có dòng đặt phòng phù hợp bộ lọc.</p>}</div>
+  const palette=['#80609d','#c4a365','#478c88','#b66675','#6284b0','#9b886e','#b38ab5','#6e9870'];
+  const statusColors={'Đã hủy':'#b66675','Không đến':'#c17d45','Đã nhận phòng':'#478c88','Đã trả phòng':'#6284b0','Đã xác nhận':'#80609d','Đang giữ phòng':'#c4a365'};
+  const total=groups.reduce((sum,g)=>sum+g.roomRows,0);
+  const sourceColors={'Agoda':'#80609d','Booking.com':'#6284b0','Ctrip':'#c4a365','Traveloka.com':'#478c88','Expedia':'#b66675','Khách lẻ':'#6e9870','Zalo':'#b38ab5'};
+  const color=label=>statusColors[label]||sourceColors[label]||palette[Array.from(label).reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,0)%palette.length];
+  const data=groups.map(g=>({...g,color:color(g.label),percent:total?g.roomRows/total*100:0}));
+  return <section className="panel"><div className="panelHeader"><div><h2>{title}</h2><p>Tỷ trọng lượt phòng theo báo cáo API · cùng bộ lọc với bảng</p></div></div>
+    {total>0?<div className="bj-booking-donut-layout">
+      <div className="bj-booking-donut" role="group" aria-label={`${title}: ${number(total)} lượt phòng`}>
+        <ResponsiveContainer width="100%" height={260}>
+          <PieChart><Pie data={data} dataKey="roomRows" nameKey="label" cx="50%" cy="50%" innerRadius={70} outerRadius={105} paddingAngle={data.length>1?2:0} isAnimationActive={false} stroke="#fff" strokeWidth={2}>
+            {data.map(g=><Cell key={g.label} fill={g.color}/>)}
+          </Pie><Tooltip content={({active,payload})=>{const g=payload?.[0]?.payload;return active&&g?<div className="bj-donut-tooltip"><b>{g.label}</b><span>{number(g.roomRows)} lượt phòng · {pct(g.percent)}</span><span>{number(g.bookings)} booking</span>{financial&&<span>Tiền phòng: {money(g.roomPrice)}</span>}</div>:null;}} /></PieChart>
+        </ResponsiveContainer>
+        <div className="bj-donut-center" aria-hidden="true"><strong>{number(total)}</strong><span>Lượt phòng</span></div>
+      </div>
+      <ul className="bj-donut-legend">{data.map(g=><li key={g.label}><i style={{background:g.color}}/><div><b>{g.label}</b><span>{number(g.roomRows)} lượt phòng · {number(g.bookings)} booking</span>{financial&&<small>Tiền phòng cả booking: {money(g.roomPrice)}</small>}</div><strong>{pct(g.percent)}</strong></li>)}</ul>
+    </div>:<p className="bj-donut-empty">Không có dòng đặt phòng phù hợp bộ lọc.</p>}
   </section>;
 }
 

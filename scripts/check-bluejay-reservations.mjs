@@ -37,11 +37,18 @@ try {
   assert.equal(await metric('Số booking').innerText(),'2');
   assert.equal(await metric('Lượt phòng').innerText(),'3');
   assert.equal(await metric('Tiền phòng').innerText(),'—');
+  assert.equal(await page.locator('.bj-booking-donut svg').count(),2);
+  assert.match(await page.locator('.bj-donut-legend').first().innerText(),/66.67%/);
   await page.screenshot({path:resolve(build,'bluejay-reservations-qa.png'),fullPage:true});
   await page.getByPlaceholder('Tìm khách, mã booking, phòng...').fill('Ctrip');
   assert.equal(await metric('Số booking').innerText(),'1');
   assert.equal(await metric('Lượt phòng').innerText(),'2');
   assert.equal(await metric('Tiền phòng').innerText(),'1.000.000 ₫');
+  assert.match(await page.locator('.bj-donut-legend').first().innerText(),/100%/);
+  await page.getByPlaceholder('Tìm khách, mã booking, phòng...').fill('no-matching-booking');
+  assert.equal(await page.locator('.bj-booking-donut').count(),0);
+  assert.equal(await page.locator('.bj-donut-empty').count(),2);
+  await page.getByPlaceholder('Tìm khách, mã booking, phòng...').fill('');
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   assert.deepEqual(errors,[]);
