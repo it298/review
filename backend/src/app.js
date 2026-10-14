@@ -14,6 +14,7 @@ import {validateReviewBatch,ingestOtaReviews,withReviewAlerts} from './review-al
 import {buildAlerts,reports,reportForRange} from './insights.js';
 import {uploadEvidence,downloadEvidence} from './evidence.js';
 import { connectionStatus,startOAuth,finishOAuth,frontendUrl,disconnectGoogle,listAccounts,listLocations } from './google.js';
+import {marketingStatus,readPerformance,syncPerformance,marketingCron} from './marketing-google.js';
 export function authorized(header,secret){if(!secret)return false;const expected=createHash('sha256').update('Bearer '+secret).digest();const actual=createHash('sha256').update(header || '').digest();return timingSafeEqual(expected,actual);}
 export function createApp(){
  const app=express();app.disable('x-powered-by');
@@ -62,6 +63,7 @@ export function createApp(){
  app.post('/api/booking/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_booking_summary_ingest',{p:validateBookingSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/extranet/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_targets_read'));}catch(e){next(e);}});
  app.post('/api/extranet/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_summary_ingest',{p:validateExtranetSummary(req.body)}));}catch(e){next(e);}});
+ app.get('/api/marketing/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});res.json(await marketingCron());}catch(e){next(e);}});
  installPublicAuth(app);
  app.use('/api',async(req,res,next)=>{
   if(authMode()==='supabase'){try{await authenticateUser(req);return next();}catch(e){return next(e);}}
@@ -78,6 +80,9 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/bluejay',createBluejayRouter());
+ app.get('/api/marketing/status',async(_req,res,next)=>{try{res.json(await marketingStatus());}catch(e){next(e);}});
+ app.get('/api/marketing/report',async(req,res,next)=>{try{res.json(await readPerformance(req.query.placeId,req.query.from,req.query.to));}catch(e){next(e);}});
+ app.post('/api/marketing/sync',async(req,res,next)=>{try{res.json(await syncPerformance(req.body?.from,req.body?.to));}catch(e){next(e);}});
  app.get('/api/directory',async(_req,res,next)=>{try{res.json(await rpc('review_tracker_directory_read'));}catch(e){next(e);}});
  app.post('/api/manual-summary',async(req,res,next)=>{try{res.json(await rpc('review_tracker_manual_summary_ingest',{p:validateManualSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/insights',async(req,res,next)=>{try{const days=Number(req.query.days||30);if(![7,30,90].includes(days))return res.status(400).json({error:'Khoảng ngày không hợp lệ.'});const data=await withReviewAlerts(await rpc('review_tracker_insights_read',{p_days:days}),days);res.json({...data,alerts:buildAlerts(data),generated_at:new Date().toISOString()});}catch(e){next(e);}});

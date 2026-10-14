@@ -82,7 +82,7 @@ export async function accessToken(force=false){
  }finally{await release();}
 }
 export async function disconnectGoogle(){await rpc('review_tracker_connection_delete');return {ok:true};}
-async function googleGet(url){
+export async function googleGet(url){
  let token=await accessToken();let response=await fetch(url,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
  if(response.status===401){token=await accessToken(true);response=await fetch(url,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});}
  if(!response.ok){
