@@ -3,6 +3,10 @@ function n(value) {
   return Number.isFinite(num) ? num : 0;
 }
 
+function assertNoProviderErrors(response) {
+  if (response?.errors || response?.error) throw new Error('Blue Jay từ chối hoặc không xử lý được yêu cầu.');
+}
+
 export function isExcludedRoom(name) {
   return /^m(?:\s*[-_\u2010-\u2015]\s*|\s+)standard(?:$|[^a-z0-9])/i.test(String(name || '').trim());
 }
@@ -27,6 +31,7 @@ export function grandFrom(response) {
 }
 
 export function normalizeOccupancy(response) {
+  assertNoProviderErrors(response);
   const grand = grandFrom(response);
   if(!grand)throw new Error('Blue Jay chưa trả về báo cáo công suất hợp lệ.');
   const roomTypes = (grand.RoomTypes || []).map((room) => ({
@@ -82,6 +87,9 @@ export function reservationsFrom(response) {
 }
 
 export function normalizeReservations(response) {
+  assertNoProviderErrors(response);
+  const supplied = response?.data?.attributes?.reservations ?? response?.attributes?.reservations;
+  if (!Array.isArray(supplied)) throw new Error('Blue Jay chưa trả về danh sách đặt phòng hợp lệ.');
   const seen = new Set();
   const rows = reservationsFrom(response).filter(r => {
     if (isExcludedRoom(r.roomType)) return false;
@@ -126,6 +134,8 @@ export function normalizeReservations(response) {
 }
 
 export function normalizeServices(response) {
+  assertNoProviderErrors(response);
+  if (!Array.isArray(response?.data) && !Array.isArray(response)) throw new Error('Blue Jay chưa trả về báo cáo dịch vụ hợp lệ.');
   const list = Array.isArray(response?.data)
     ? response.data
     : Array.isArray(response)

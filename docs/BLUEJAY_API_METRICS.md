@@ -1,5 +1,7 @@
 # Bluejay API metrics
 
+Provider errors can arrive inside HTTP 200 as `errors.status=Unauthorized` (outside the allowed API window). All dataset responses must be validated before pagination and cache writes. Missing response collections are failures, not empty reports. Reads ignore invalid legacy cache. On each successful replacement, the previous valid exact-period report is retained under a separate hashed backup key and may be used as a fallback with its original timestamp. The 14 October 14:50 sync was invalid and its 12 success log entries were corrected to failures; those overwritten snapshots had no separate prior backups, so they require re-fetching during an allowed window.
+
 Occupancy is read from `report-room-occupancy`, reservations from `reservation` (all pages), service totals from `extraservice-sumary`. Reports retain the existing authenticated API, exact-date cache and manual refresh flow. Scheduled collection remains opt-in and is not enabled by this change.
 
 The reservation screen summarizes the currently filtered rows by source and provider status. Booking counts use distinct nonempty booking codes. Room rows are separate from booking counts; they are not daily occupied room nights. One booking may occur in multiple status/source groups, so grouped booking counts are not additive. Cancellation and no-show groups describe provider statuses within the selected report, not cancellation/no-show events occurring on the selected date. Missing codes are shown separately; missing monetary fields remain unavailable rather than zero.

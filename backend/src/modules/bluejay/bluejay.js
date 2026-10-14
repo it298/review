@@ -1,3 +1,4 @@
+import {normalizeOccupancy,normalizeReservations,normalizeServices} from './normalize.js';
 const DEFAULT_BASE = "https://api-pms.bluejaypms.com/api/v2/";
 
 function baseUrl() {
@@ -53,6 +54,9 @@ export async function blueJayGet(path, params = {}) {
     throw error;
   }
 
+  if (body && typeof body === 'object' && (body.errors || body.error)) {
+    throw Object.assign(new Error('Blue Jay từ chối yêu cầu API.'),{status:502});
+  }
   if (
     body &&
     typeof body === "object" &&
@@ -66,6 +70,11 @@ export async function blueJayGet(path, params = {}) {
     throw error;
   }
 
+  // HTTP 200 can still contain a provider error or an unexpected response.
+  // Validate before pagination can turn a missing collection into an empty one.
+  if(path==='report-room-occupancy') normalizeOccupancy(body);
+  if(path==='reservation') normalizeReservations(body);
+  if(path==='extraservice-sumary') normalizeServices(body);
   return body;
 }
 
