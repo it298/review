@@ -103,7 +103,7 @@ export async function syncMany({
         });
       } catch (error) {
         const hotel = findHotel(hotelId);
-        const detail = 'Không đọc được dữ liệu Blue Jay. Kiểm tra kết nối và khung giờ API.';
+        const detail = error.code==='BLUEJAY_RANGE'?'Blue Jay chỉ nhận báo cáo công suất tối đa một tháng mỗi lần.':error.code==='BLUEJAY_WINDOW'?'Blue Jay từ chối vì ngoài khung giờ API.':error.name==='TimeoutError'?'Blue Jay không phản hồi trong 30 giây. Thử đồng bộ lại.':'Không đọc được dữ liệu Blue Jay. Kiểm tra kết nối và khung giờ API.';
 
         await appendSyncLog({
           ok: false,
@@ -111,6 +111,7 @@ export async function syncMany({
           hotelName: hotel?.name,
           dataset,
           detail,
+          params:{from,to,dateType,reservationDateType,serviceType},
         });
 
         results.push({

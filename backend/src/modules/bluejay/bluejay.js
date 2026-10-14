@@ -55,7 +55,9 @@ export async function blueJayGet(path, params = {}) {
   }
 
   if (body && typeof body === 'object' && (body.errors || body.error)) {
-    throw Object.assign(new Error('Blue Jay từ chối yêu cầu API.'),{status:502});
+    const message=String(body.errors?.message||body.error?.message||'');
+    const code=message.includes('không được quá 1 tháng')?'BLUEJAY_RANGE':message.includes('khung giờ')?'BLUEJAY_WINDOW':'BLUEJAY_PROVIDER';
+    throw Object.assign(new Error('Blue Jay từ chối yêu cầu API.'),{status:502,code});
   }
   if (
     body &&
@@ -78,14 +80,32 @@ export async function blueJayGet(path, params = {}) {
   return body;
 }
 
-export function getRoomOccupancy({ hotelId, dateType = 1, from, to, roomtypeIds }) {
-  return blueJayGet("report-room-occupancy", {
-    hotelId,
-    dateType,
-    from,
-    to,
-    roomtypeIds,
-  });
+export function occupancyPeriods(from,to) {
+  const valid=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
+  if(!valid(from)||!valid(to)||from>to)throw Error('Khoảng ngày công suất chưa hợp lệ.');
+  const periods=[];let start=from;
+  while(start<=to){const next=new Date(start+'T00:00:00Z');next.setUTCDate(1);next.setUTCMonth(next.getUTCMonth()+1);const end=new Date(next.getTime()-86400000).toISOString().slice(0,10);periods.push({from:start,to:end<to?end:to});start=next.toISOString().slice(0,10);}
+  if(periods.length>120)throw Error('Khoảng ngày công suất quá dài.');
+  return periods;
+}
+
+export async function getRoomOccupancy({ hotelId, dateType = 1, from, to, roomtypeIds }) {
+  const periods=String(dateType)==='1'?occupancyPeriods(from,to):[{from,to}];
+  const reports=[];
+  for(const period of periods)reports.push(await blueJayGet('report-room-occupancy',{hotelId,dateType,...period,roomtypeIds}));
+  if(reports.length===1)return reports[0];
+  // Only return a complete range. Any failed month aborts before the cache write.
+  const summaries=reports.map(normalizeOccupancy),rooms=new Map();
+  const rate=(used,total,blocked)=>total>blocked?Number((used/(total-blocked)*100).toFixed(2)):null;
+  for(const report of summaries)for(const room of report.roomTypes){
+    const key=String(room.id??room.name);
+    if(!rooms.has(key))rooms.set(key,{RoomTypeId:room.id,RoomTypeName:room.name,RoomTypeTotalRoomOccupied:0,RoomTypeTotalBooked:0,RoomTypeBlocked:0,RoomTypeTotalRoom:0,RoomTypeTotalRoomEmpty:0,DailyDetails:[]});
+    const r=rooms.get(key);r.RoomTypeTotalRoomOccupied+=room.occupied;r.RoomTypeTotalBooked+=room.booked;r.RoomTypeBlocked+=room.blocked;r.RoomTypeTotalRoom+=room.total;r.RoomTypeTotalRoomEmpty+=room.empty;
+    r.DailyDetails.push(...room.daily.map(d=>({Date:d.date,RoomOccupied:d.occupied,Blocked:d.blocked,TotalRoom:d.total,EmptyRoom:d.empty,OccupancyRate:d.occupancyRate})));
+    r.RoomTypeTotalOccupancyRate=rate(r.RoomTypeTotalRoomOccupied,r.RoomTypeTotalRoom,r.RoomTypeBlocked);
+  }
+  const sum=field=>summaries.reduce((n,r)=>n+r.summary[field],0);
+  return {status:'success',meta:{from,to,periods,assembled:true},data:{GrandTotal:{GrandTotalRoomOccupied:sum('occupied'),GrandTotalBlocked:sum('blocked'),GrandTotalRoom:sum('total'),GrandTotalRoomEmpty:sum('empty'),GrandTotalOccupancyRate:rate(sum('occupied'),sum('total'),sum('blocked')),RoomTypes:[...rooms.values()]}}};
 }
 
 export function getReservations({
