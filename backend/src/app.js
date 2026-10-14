@@ -1,6 +1,7 @@
 import express from 'express';
 import {authMode,authenticateUser,installPublicAuth,installPrivateAuth} from './auth.js';
 import {createBluejayRouter} from './modules/bluejay/router.js';
+import {autoSyncBluejay} from './modules/bluejay/auto-sync.js';
 import { createHash,timingSafeEqual } from 'node:crypto';
 import { state,mutate,getValue,setValue,deleteValue,rpc } from './store.js';
 import { matrix,track,sync } from './service.js';
@@ -64,6 +65,7 @@ export function createApp(){
  app.get('/api/extranet/worker/targets',workerAuth,async(_req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_targets_read'));}catch(e){next(e);}});
  app.post('/api/extranet/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_summary_ingest',{p:validateExtranetSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/marketing/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});res.json(await marketingCron());}catch(e){next(e);}});
+ app.get('/api/bluejay/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await autoSyncBluejay();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  installPublicAuth(app);
  app.use('/api',async(req,res,next)=>{
   if(authMode()==='supabase'){try{await authenticateUser(req);return next();}catch(e){return next(e);}}

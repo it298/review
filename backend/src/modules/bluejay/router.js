@@ -120,7 +120,7 @@ app.get("/status", async (req, res) => {
     apiWindow: apiWindowStatus(),
     store: await storeStats(),
     syncLog: await getSyncLog(30),
-    autoSync: false,
+    autoSync: process.env.BLUEJAY_AUTO_SYNC==='true',
     configured: Boolean(process.env.BLUEJAY_API_KEY && process.env.BLUEJAY_API_KEY !== "YOUR_API_KEY"),
   });
 });
