@@ -414,6 +414,13 @@
     "relationship": "managed",
     "sources": [
       {
+        "source": "grab",
+        "url": "https://merchant.grab.com/feedback",
+        "property_id": null,
+        "warning": "manual_only",
+        "provenance": "User requested manual entry; merchant identity not connected"
+      },
+      {
         "source": "google",
         "url": "https://maps.app.goo.gl/YwpLViZy6iumLAcz5",
         "property_id": null,
