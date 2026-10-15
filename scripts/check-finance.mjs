@@ -15,6 +15,7 @@ try{
    if(p==='/api/session')body={ok:true,user:{id:'admin',role:'admin',email:'qa@example.com'},expiresAt:new Date(Date.now()+3600000).toISOString()};
    if(p==='/api/insights')body={alerts:[],daily:[],directory:[]};
    if(p==='/api/auth/users')body={users:[]};
+   if(p==='/api/finance/dashboard')body={units:[],dates:[],generatedAt:new Date().toISOString()};
    if(p==='/api/finance/units')body={units:[{key:'sontra-sea-hotel',name:'Sontra Sea Hotel',access:'admin'}]};
    if(p==='/api/finance/report')body={entries,summary:financeSummary(entries)};
    if(p==='/api/finance/operations')body={connected:true,occupancy:{savedAt:'2026-08-31T08:00:00Z',data:{occupancyRate:60}},reservations:{savedAt:'2026-08-31T08:00:00Z',data:{count:10,roomPrice:9000000}}};
@@ -25,7 +26,7 @@ try{
   if(url.hostname!=='bluejay-qa.local')return route.fulfill({body:''});
   const file=p==='/'?'index.html':p.slice(1);return route.fulfill({body:await readFile(resolve(build,file)),contentType:file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html'});
  });
- await page.goto('https://bluejay-qa.local/');await page.getByRole('button',{name:'Thu–chi & HĐKD',exact:true}).click();
+ await page.goto('https://bluejay-qa.local/');await page.getByRole('button',{name:'Thu–chi & HĐKD',exact:true}).click();await page.getByRole('button',{name:'Nhập liệu',exact:true}).click();
  await page.getByLabel('Từ ngày',{exact:true}).fill('2026-08-01');
  await page.getByLabel('Đến ngày',{exact:true}).fill('2026-08-31');
  await page.getByRole('button',{name:'Xem báo cáo',exact:true}).click();

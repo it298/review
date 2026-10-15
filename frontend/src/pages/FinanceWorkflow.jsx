@@ -3,9 +3,9 @@ import {api} from '../lib/api.js';
 import {financeMethods,reconcileDay} from '../../../shared/finance.js';
 const methods=['cash','bank','card','platform'];const cash=n=>n==null?'—':Number(n).toLocaleString('vi-VN')+' ₫';
 export const dayNames={draft:'Đang soạn',submitted:'Đã gửi duyệt',returned:'Trả lại',closed:'Đã chốt'};
-export default function FinanceWorkflow({unit,from,to,report,admin,canWrite,reload,onError,onBusy}){
+export default function FinanceWorkflow({unit,from,to,report,focusDate,admin,canWrite,reload,onError,onBusy}){
  const [date,setDate]=useState(to),[form,setForm]=useState(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[month,setMonth]=useState(from.slice(0,7));
- useEffect(()=>{setDate(to);},[unit,from,to]);
+ useEffect(()=>{setDate(focusDate&&focusDate>=from&&focusDate<=to?focusDate:to);},[unit,from,to,focusDate]);
  const saved=report.days?.find(d=>d.day===date),locked=['submitted','closed'].includes(saved?.status)||(report.months||[]).some(m=>m.month===date.slice(0,7)&&m.status==='locked');
  useEffect(()=>{const earlier=[...(report.days||[]),...(report.previousDay?[report.previousDay]:[])].filter(d=>d.day<date&&d.status==='closed').sort((a,b)=>b.day.localeCompare(a.day))[0];const opening=Object.fromEntries(methods.map(k=>[k,earlier?.report.counted[k]??0]));setForm(saved?.report||{date,shift:'',note:'',opening,counted:{cash:0,bank:0,card:0,platform:0}});},[date,saved?.updated_at,saved?.status,unit]);
  const dayEntries=report.entries.filter(e=>e.date===date),balances=form?reconcileDay(dayEntries,form.opening,form.counted):[];
