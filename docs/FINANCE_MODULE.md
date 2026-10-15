@@ -1,5 +1,7 @@
 # Thu–chi & HĐKD
 
+**Current workflow and role matrix:** see [FINANCE_OPERATIONS.md](FINANCE_OPERATIONS.md). The sections below record earlier milestones; the books upgrade supersedes their role/UI and missing-feature descriptions.
+
 ## Workflow
 Properties enter receipts and payments directly. They save as drafts. A workspace admin verifies documentary evidence and posts or voids each entry with a reason. Only posted entries affect financial summaries. Posted entries are immutable; cancel and create a documented correction rather than overwriting. Negative entries preserve signed corrections. Duplicate submission of the same request UUID is idempotent; conflicting payloads are rejected. Reusing a voucher number with a new request is not automatically blocked because split receipts may share a voucher.
 

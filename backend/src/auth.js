@@ -10,7 +10,7 @@ function role(user){
  if(!user?.id||!user.email_confirmed_at||user.banned_until&&Date.parse(user.banned_until)>Date.now())return null;
  if(user.app_metadata?.workspace_role==='disabled')return null;
  if(process.env.AUTH_ADMIN_EMAIL&&user.email?.toLowerCase()===process.env.AUTH_ADMIN_EMAIL.trim().toLowerCase())return 'admin';
- const value=user.app_metadata?.workspace_role;return ['admin','member','viewer'].includes(value)?value:null;
+ const value=user.app_metadata?.workspace_role;return ['admin','manager','member','viewer'].includes(value)?value:null;
 }
 function publicUser(user){return {id:user.id,email:user.email,name:String(user.user_metadata?.name||user.email).slice(0,100),role:role(user),mustChangePassword:user.app_metadata?.workspace_must_change_password===true};}
 async function authFetch(path,{method='GET',body,token}={}){
@@ -78,7 +78,7 @@ export function installPrivateAuth(app){
  }catch(e){next(e);}});
  app.post('/api/auth/users',async(req,res,next)=>{try{
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền tạo tài khoản.');
-  const body=req.body||{};if(!email(body.email)||!['admin','member','viewer'].includes(body.role)||typeof body.name!=='string'||!body.name.trim()||body.name.length>100)throw fail(400,'Nhập tên, email và quyền hợp lệ.');await throttle(req,'create');
+  const body=req.body||{};if(!email(body.email)||!['admin','manager','member','viewer'].includes(body.role)||typeof body.name!=='string'||!body.name.trim()||body.name.length>100)throw fail(400,'Nhập tên, email và quyền hợp lệ.');await throttle(req,'create');
   const data=await authFetch('admin/users',{method:'POST',body:{email:body.email.trim().toLowerCase(),password:'123456',email_confirm:true,user_metadata:{name:body.name.trim()},app_metadata:{workspace_role:body.role,workspace_must_change_password:false}}});res.status(201).json({user:publicUser(data.user||data)});
  }catch(e){next(e);}});
  app.post('/api/auth/users/:id/reset-password',async(req,res,next)=>{try{
@@ -93,7 +93,7 @@ export function installPrivateAuth(app){
  }catch(e){next(e);}});
  app.patch('/api/auth/users/:id',async(req,res,next)=>{try{
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền đổi quyền tài khoản.');
-  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!['admin','member','viewer','disabled'].includes(req.body?.role))throw fail(400,'Tài khoản hoặc quyền không hợp lệ.');if(req.params.id===req.user.id)throw fail(400,'Không thay đổi quyền của chính mình.');
+  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!['admin','manager','member','viewer','disabled'].includes(req.body?.role))throw fail(400,'Tài khoản hoặc quyền không hợp lệ.');if(req.params.id===req.user.id)throw fail(400,'Không thay đổi quyền của chính mình.');
   const result=await authFetch('admin/users/'+req.params.id),user=result.user||result;if(!role(user)&&user.app_metadata?.workspace_role!=='disabled')throw fail(403,'Tài khoản không thuộc workspace.');
   if(process.env.AUTH_ADMIN_EMAIL&&user.email?.toLowerCase()===process.env.AUTH_ADMIN_EMAIL.trim().toLowerCase())throw fail(400,'Không thay đổi quyền tài khoản quản trị chính.');
   await authFetch('admin/users/'+req.params.id,{method:'PUT',body:{app_metadata:{...user.app_metadata,workspace_role:req.body.role}}});await revokeAll(user.id);res.json({ok:true});
