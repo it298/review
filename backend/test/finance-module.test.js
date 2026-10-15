@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
 import {financeSummary,validateFinanceEntry} from '../../shared/finance.js';
-const fixture=()=>({requestId:'11111111-1111-4111-8111-111111111111',date:'2026-08-01',kind:'receipt',category:'deposit',method:'bank',amount:500000,description:'Nhận cọc'});
+const fixture=()=>({requestId:'11111111-1111-4111-8111-111111111111',date:'2026-08-01',kind:'receipt',category:'deposit',method:'bank',amount:500000,description:'Nhận cọc',depositRef:'BK001'});
 test('cash, revenue and expenses are separate; drafts/void do not affect results, signed adjustments preserved',()=>{
  const r=validateFinanceEntry(fixture());
  const s=financeSummary([{...r,status:'posted'},{...r,kind:'payment',category:'operations',amount:100000,recognizeExpense:true,status:'posted'},{...r,kind:'payment',category:'inventory',amount:200000,status:'posted'},{...r,kind:'revenue',category:'room',amount:900000,status:'posted'},{...r,kind:'expense',category:'rent',amount:150000,status:'posted'},{...r,kind:'receipt',amount:-50000,status:'posted'},{...r,amount:9999999,status:'draft'},{...r,amount:9999999,status:'void'}]);
