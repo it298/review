@@ -78,8 +78,8 @@ export function installPrivateAuth(app){
  }catch(e){next(e);}});
  app.post('/api/auth/users',async(req,res,next)=>{try{
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền tạo tài khoản.');
-  const body=req.body||{};if(!email(body.email)||!password(body.password)||!['admin','member','viewer'].includes(body.role)||typeof body.name!=='string'||!body.name.trim()||body.name.length>100)throw fail(400,'Nhập tên, email, quyền và mật khẩu từ 12–128 ký tự.');await throttle(req,'create');
-  const data=await authFetch('admin/users',{method:'POST',body:{email:body.email.trim().toLowerCase(),password:body.password,email_confirm:true,user_metadata:{name:body.name.trim()},app_metadata:{workspace_role:body.role}}});res.status(201).json({user:publicUser(data.user||data)});
+  const body=req.body||{};if(!email(body.email)||!['admin','member','viewer'].includes(body.role)||typeof body.name!=='string'||!body.name.trim()||body.name.length>100)throw fail(400,'Nhập tên, email và quyền hợp lệ.');await throttle(req,'create');
+  const data=await authFetch('admin/users',{method:'POST',body:{email:body.email.trim().toLowerCase(),password:'123456',email_confirm:true,user_metadata:{name:body.name.trim()},app_metadata:{workspace_role:body.role,workspace_must_change_password:false}}});res.status(201).json({user:publicUser(data.user||data)});
  }catch(e){next(e);}});
  app.post('/api/auth/users/:id/reset-password',async(req,res,next)=>{try{
   if(req.user?.role!=='admin'||authMode()!=='supabase')throw fail(403,'Chỉ quản trị viên có quyền reset mật khẩu.');
