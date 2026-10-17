@@ -1,3 +1,4 @@
+import {countComparison,ratingParts,prepareSlices} from './circular-chart.js';
 import {categories,platforms} from './directory.js';
 import {reportFontData} from './report-export.js';
 const num=v=>v==null?'—':Number(v).toLocaleString('vi-VN',{maximumFractionDigits:2});
@@ -63,27 +64,32 @@ export async function createTrendPdf(report,{fontBase64}={}){
  }
  function centered(value,x,y,size=7,color=ink){doc.setFontSize(size);doc.setTextColor(color);doc.text(String(value),x,y,{align:'center'});}
  function chart(x,top,w,h,items,data,metric){
-  const isCount=metric==='count',suffix=isCount?'Count':'Rating',values=data.flatMap(r=>items.map(s=>r[s.id+suffix])).filter(v=>v!=null);
-  const max=isCount?Math.max(1,...values):report.scale,pow=10**Math.floor(Math.log10(max)),ceiling=isCount?Math.ceil(max/pow)*pow:max;
-  const left=x+16,right=x+w-4,bottom=top+h-11,height=h-22;
-  [0,.5,1].forEach(t=>{const yy=bottom-t*height;doc.setDrawColor(line);doc.setLineWidth(.15);doc.line(left,yy,right,yy);text(num(ceiling*t),x+1,yy+1,6,muted);});
-  const step=(right-left)/Math.max(1,data.length),bar=Math.min(items.length===1?9:7,step*.8/items.length);
-  data.forEach((r,i)=>items.forEach((s,j)=>{const value=r[s.id+suffix];if(value==null)return;const bh=Math.max(0,value/ceiling*height),bx=left+i*step+(step-items.length*bar)/2+j*bar;doc.setFillColor(s.color);doc.rect(bx,bottom-bh,Math.max(.15,bar-.4),bh,'F');centered(num(value),bx+(bar-.4)/2,bottom-bh-2,items.length===1?7.5:6.5); }));
-  data.forEach((r,i)=>centered(r.day.slice(8)+'/'+r.day.slice(5,7),left+(i+.5)*step,bottom+5,7,muted));
-  if(!values.length)centered('Chưa có số liệu trong các mốc này',(left+right)/2,top+height/2,9,muted);
+  const suffix=metric==='count'?'Count':'Rating';
+  if(items.length>1&&metric==='rating'){const columns=2,rows=Math.ceil(items.length/columns);items.forEach((item,i)=>{const cx=x+(i%columns)*w/columns,cy=top+Math.floor(i/columns)*h/rows;text(doc.splitTextToSize(item.name,w/columns-8).join('\n'),cx+4,cy+3,7);chart(cx,cy+8,w/columns,h/rows-8,[item],data,metric);});return;}
+  const selected=data.filter(r=>items.some(item=>r[item.id+suffix]!=null));
+  const values=item=>selected.filter(r=>r[item.id+suffix]!=null).map(r=>r[item.id+suffix]);
+  const parts=items.length>1?items.map(item=>({label:item.name,value:values(item).at(-1)??null,color:item.color})):metric==='rating'?ratingParts(values(items[0]).at(-1),report.scale):countComparison(values(items[0]).length>1?values(items[0])[0]:null,values(items[0]).at(-1));
+  if(items.length===1&&parts.length&&items[0].color)parts[0].color=items[0].color;
+  const {sectors,total}=prepareSlices(parts,4),cx=x+w/2,cy=top+h/2,r=Math.min(h*.31,w*.18),inner=r*.53;
+  if(!total){centered('Chưa có số khác 0 để chia tỷ trọng',cx,cy,7,muted);return;}
+  sectors.forEach(part=>{const steps=Math.max(4,Math.ceil((part.end-part.start)*25)),points=[];for(let i=0;i<=steps;i++){const angle=part.start+(part.end-part.start)*i/steps;points.push([cx+Math.cos(angle)*r,cy+Math.sin(angle)*r]);}const vertices=[[cx,cy],...points,[cx,cy]],lines=vertices.slice(1).map((p,i)=>[p[0]-vertices[i][0],p[1]-vertices[i][1]]);doc.setFillColor(part.color);doc.lines(lines,cx,cy,[1,1],'F',true);});
+  doc.setFillColor('#ffffff');doc.circle(cx,cy,inner,'F');const latest=items.length===1?values(items[0]).at(-1):parts.reduce((n,p)=>n+(p.value??0),0);centered(num(latest),cx,cy,Math.min(10,inner*3/Math.max(1,String(num(latest)).length)));centered(metric==='rating'?'/ '+report.scale:'Tổng gần nhất',cx,cy+4,5.5,muted);
+  const labels=sectors.map(part=>({...part,right:Math.cos(part.mid)>=0,y:cy+Math.sin(part.mid)*(r+4)}));for(const right of [false,true]){const side=labels.filter(l=>l.right===right).sort((a,b)=>a.y-b.y);side.forEach((l,i)=>{l.y=Math.max(top+7,l.y,i?side[i-1].y+13:top+7);});if(side.length&&side.at(-1).y>top+h-8){const shift=side.at(-1).y-(top+h-8);side.forEach(l=>l.y-=shift);}}
+  labels.forEach(part=>{const sx=cx+Math.cos(part.mid)*(r+1),sy=cy+Math.sin(part.mid)*(r+1),end=part.right?cx+r+5:cx-r-5,tx=part.right?end+2:end-2;doc.setDrawColor(part.color);doc.setLineWidth(.3);doc.line(sx,sy,end,part.y);doc.line(end,part.y,end+(part.right?-1.5:1.5),part.y-1);doc.line(end,part.y,end+(part.right?-1.5:1.5),part.y+1);doc.setFontSize(6.5);doc.setTextColor(ink);const opts={align:part.right?'left':'right'};doc.text(doc.splitTextToSize(part.label,Math.max(18,w/2-r-10)).slice(0,2),tx,part.y-3,opts);doc.text(num(part.value)+' | '+num(Math.round(part.percent*10)/10)+'%',tx,part.y+4,opts);});
  }
+
  const unit=report.metric==='count'?'Tổng đánh giá':'Điểm /'+report.scale;
  const print=trendPrintDetails(report.rows,report.series,report.metric),intervalLabel={day:'Ngày',week:'Tuần bắt đầu',month:'Tháng'}[print.interval];
  if(report.view==='compare'){
-  for(let offset=0;offset<print.rows.length;offset+=6){const slice=print.rows.slice(offset,offset+6);doc.addPage();header('BIỂU ĐỒ CỘT SO SÁNH');text(unit+' | '+intervalLabel+' | '+day(slice[0].day)+' - '+day(slice.at(-1).day),12,34,10,ink);chart(12,42,273,120,report.series,slice,report.metric);
+  for(let offset=0;offset<print.rows.length;offset+=6){const slice=print.rows.slice(offset,offset+6);doc.addPage();header('BIỂU ĐỒ TRÒN SO SÁNH');text(unit+' | '+intervalLabel+' | '+day(slice[0].day)+' - '+day(slice.at(-1).day),12,34,10,ink);chart(12,42,273,120,report.series,slice,report.metric);
    report.series.forEach((s,i)=>{doc.setFillColor(s.color);doc.circle(15+i*67,169,1.5,'F');doc.setFontSize(7.5);text(doc.splitTextToSize(s.name,59).join('\n'),19+i*67,170,7.5,ink);});
-   text('Số trên cột là giá trị ghi nhận cuối trong mốc. Chi tiết cả tổng và điểm ở các trang tiếp theo.',12,188,7,muted);
+   text('Tổng: tỷ trọng mốc cuối từng địa điểm trong nhóm ngày. Điểm: vòng tròn trên thang gốc. Chi tiết ở các trang sau.',12,188,7,muted);
   }
  }
  for(const s of report.series){for(let offset=0;offset<print.rows.length;offset+=6){const slice=print.rows.slice(offset,offset+6);doc.addPage();header('CHI TIẾT XU HƯỚNG');text(s.name+' | '+intervalLabel+': '+day(slice[0].day)+' - '+day(slice.at(-1).day),12,34,10,ink);
   const stats=[['Tổng cuối kỳ',num(s.lastCount)+' đánh giá','Đầu kỳ: '+num(s.firstCount),'Ghi nhận: '+stamp(s.countAt)],['Điểm cuối kỳ',num(s.lastRating)+' / '+report.scale,'Đầu kỳ: '+num(s.firstRating),'Ghi nhận: '+stamp(s.ratingAt)],['Thay đổi tổng',signed(s.countChange)+' đánh giá',s.firstCount>0&&s.countChange!=null?'Tỷ lệ: '+signed(Math.round(s.countChange/s.firstCount*10000)/100)+'%':'Chưa đủ mốc tính tỷ lệ','So mốc đầu và cuối trong kỳ'],['Thay đổi điểm',signed(s.ratingChange)+' điểm','Thang điểm: '+report.scale,'So mốc đầu và cuối trong kỳ']];
   stats.forEach((stat,i)=>{const x=12+i*69;doc.setFillColor('#f8f4fb');doc.roundedRect(x,40,66,36,2,2,'F');text(stat[0],x+3,46,8,muted);text(stat[1],x+3,55,13);text(stat[2],x+3,64,7);text(stat[3],x+3,71,6.3,muted);});
-  text('TỔNG ĐÁNH GIÁ (đánh giá)',12,83,9);text('ĐIỂM SỐ (/'+report.scale+')',153,83,9);chart(12,85,132,57,[s],slice,'count');chart(153,85,132,57,[s],slice,'rating');
+  text('TỔNG: SO MỐC ĐẦU–CUỐI NHÓM NGÀY',12,83,8);text('ĐIỂM GẦN NHẤT (/'+report.scale+')',153,83,9);chart(12,85,132,57,[s],slice,'count');chart(153,85,132,57,[s],slice,'rating');
   const cols=[42,41,33,29,33,47,48],heads=[intervalLabel,'Tổng đánh giá','Tăng/giảm tổng','Điểm /'+report.scale,'Tăng/giảm điểm','Ngày ghi nhận tổng','Ngày ghi nhận điểm'];let ty=146,x=12;doc.setFillColor(ink);doc.rect(x,ty,273,8,'F');heads.forEach((label,i)=>{text(label,x+2,ty+5.3,6.5,'#ffffff');x+=cols[i];});ty+=8;
   slice.forEach((r,i)=>{if(i%2===0){doc.setFillColor('#f8f4fb');doc.rect(12,ty,273,6,'F');}const cells=[day(r.day),num(r[s.id+'Count']),signed(r[s.id+'CountChange']),num(r[s.id+'Rating']),signed(r[s.id+'RatingChange']),day(r[s.id+'CountDay']),day(r[s.id+'RatingDay'])];let cx=12;cells.forEach((v,j)=>{text(v,cx+2,ty+4,7);cx+=cols[j];});ty+=6;});
   text('Tăng/giảm từng mốc so với mốc có số liệu trước đó. Mốc tuần/tháng giữ lần ghi nhận cuối của từng chỉ số.',12,193,6,muted);
@@ -91,4 +97,4 @@ export async function createTrendPdf(report,{fontBase64}={}){
  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(gold);doc.line(12,196,285,196);text('Vista Journey | Mốc cuối trong kỳ; ngày thiếu không điền 0. Excel giữ đủ số liệu ngày.',12,202,6.5,muted);text(i+' / '+pages,274,202,7,muted);}
  return doc;
 }
-export async function exportTrendPdf(report){const doc=await createTrendPdf(report);doc.save(filename(report,'pdf'));}
+export async function exportTrendPdf(report){const doc=await createTrendPdf(report);download(doc.output('arraybuffer'),'application/pdf',filename(report,'pdf'));}

@@ -37,7 +37,8 @@ try {
   assert.equal(await metric('Số booking').innerText(),'2');
   assert.equal(await metric('Lượt phòng').innerText(),'3');
   assert.equal(await metric('Tiền phòng').innerText(),'—');
-  assert.equal(await page.locator('.bj-booking-donut svg').count(),2);
+  assert.equal(await page.locator('.bj-booking-donut-layout .circular-chart svg').count(),2);
+  assert.ok(await page.locator('.bj-booking-donut-layout .circular-arrow-label').count()>0);
   assert.match(await page.locator('.bj-donut-legend').first().innerText(),/66.67%/);
   await page.screenshot({path:resolve(build,'bluejay-reservations-qa.png'),fullPage:true});
   await page.getByPlaceholder('Tìm khách, mã booking, phòng...').fill('Ctrip');

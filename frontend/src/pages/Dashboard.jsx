@@ -1,3 +1,4 @@
+import {CountCircle} from '../components/CircularChart.jsx';
 import { useEffect,useMemo,useState } from 'react';
 import { api } from '../lib/api.js';
 import Icon from '../components/Icon.jsx';
@@ -7,12 +8,7 @@ import MultiLocationTrend from '../components/MultiLocationTrend.jsx';
 const number=value=>new Intl.NumberFormat('vi-VN').format(value);
 const rating=value=>value==null?'—':Number(value).toLocaleString('vi-VN',{maximumFractionDigits:2});
 function date(value){return value?value.split('-').reverse().join('/'):'—';}
-function Trend({points}){
- if(points.length<2)return <div className="chart-empty"><Icon name="trend" size={30}/><p>Cần ít nhất hai ngày ghi nhận để xem xu hướng.</p></div>;
- const w=680,h=180,pad=25;const values=points.map(p=>p.reviews);const min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min);const start=new Date(points[0].date).getTime(),end=new Date(points.at(-1).date).getTime();
- const coords=points.map(p=>[pad+(new Date(p.date).getTime()-start)/Math.max(1,end-start)*(w-pad*2),h-pad-(p.reviews-min)/range*(h-pad*2)]);const line=coords.map(c=>c.join(',')).join(' ');
- return <><svg className="trend-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Tổng review từ ${number(values[0])} đến ${number(values.at(-1))}`}><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#80609d" stopOpacity=".16"/><stop offset="1" stopColor="#80609d" stopOpacity="0"/></linearGradient></defs>{[0,1,2,3].map(i=><line key={i} x1={pad} x2={w-pad} y1={pad+i*(h-pad*2)/3} y2={pad+i*(h-pad*2)/3} stroke="#e9e1ee" strokeDasharray="4 5"/>)}<polygon points={`${pad},${h-pad} ${line} ${w-pad},${h-pad}`} fill="url(#chart-fill)"/><polyline points={line} fill="none" stroke="#80609d" strokeWidth="3" strokeLinejoin="round"/>{coords.map((c,i)=><circle key={points[i].date} cx={c[0]} cy={c[1]} r="4" fill="white" stroke="#80609d" strokeWidth="2"><title>{date(points[i].date)}: {number(points[i].reviews)} review</title></circle>)}</svg><div className="chart-axis"><span>{date(points[0].date)} · {number(values[0])}</span><span>{date(points.at(-1).date)} · {number(values.at(-1))}</span></div></>;
-}
+function Trend({points}){const known=points.filter(p=>p.reviews!=null);return known.length?<CountCircle first={known.length>1?known[0].reviews:null} last={known.at(-1).reviews} from={date(known[0].date)} to={date(known.at(-1).date)}/>:<p className="chart-empty">Chưa có tổng chính xác trong kỳ.</p>;}
 export default function Dashboard({onManage,onAttention}){
  const [data,setData]=useState({places:[],rows:[],dates:[]});const [loading,setLoading]=useState(false);const [fetching,setFetching]=useState(true);const [error,setError]=useState('');const [lastSync,setLastSync]=useState(null);const [query,setQuery]=useState('');const [period,setPeriod]=useState('all');const [selected,setSelected]=useState('');
  async function load(){try{setError('');setData(await api('/api/places/dashboard-matrix'));}catch(e){setError(e.message);}finally{setFetching(false);}}
