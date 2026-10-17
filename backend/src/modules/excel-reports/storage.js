@@ -10,7 +10,8 @@ async function request(path,options={}){
  const base=new URL(process.env.SUPABASE_URL);if(base.protocol!=='https:')throw fail('Cấu hình nơi lưu chưa hợp lệ.');
  return fetch(new URL('/storage/v1/'+path,base),{...options,headers:{apikey:secret,...(!secret.startsWith('sb_secret_')?{Authorization:'Bearer '+secret}:{}),...options.headers},signal:AbortSignal.timeout(25000),redirect:'error'});
 }
-async function ensureBucket(){
+async function ensureBucket(bucketName=bucket){
+ const bucket=bucketName;
  const existing=await request('bucket/'+bucket);
  if(existing.ok){const info=await existing.json();if(info.public!==false)throw fail('Kho báo cáo phải là riêng tư.');return;}
  if(existing.status!==404&&existing.status!==400)throw fail('Chưa truy cập được kho báo cáo.');
@@ -18,17 +19,21 @@ async function ensureBucket(){
  if(!created.ok){const again=await request('bucket/'+bucket);if(!again.ok||(await again.json()).public!==false)throw fail('Không tạo được kho báo cáo riêng tư.');}
 }
 const activePath=(unit,month,family)=>unit+'/active/'+month+'--'+family+'.json';
-async function read(path){const r=await request('object/'+bucket+'/'+path);if(r.status===404)return null;if(r.status===400){const body=await r.json().catch(()=>null);if(/(?:object|bucket|resource).*(?:not found|does not exist)|NoSuchKey|NoSuchBucket/i.test(body?.message||body?.error||body?.code||''))return null;throw fail('Không đọc được báo cáo đã lưu.');}if(!r.ok)throw fail('Không đọc được báo cáo đã lưu.');return r.json();}
-async function put(path,bytes,mime){const r=await request('object/'+bucket+'/'+path,{method:'POST',headers:{'Content-Type':mime,'x-upsert':'true'},body:bytes});if(!r.ok)throw fail('Chưa lưu được báo cáo; số đang xem chưa được cập nhật.');}
+async function read(path,bucketName=bucket){const r=await request('object/'+bucketName+'/'+path);if(r.status===404)return null;if(r.status===400){const body=await r.json().catch(()=>null);if(/(?:object|bucket|resource).*(?:not found|does not exist)|NoSuchKey|NoSuchBucket/i.test(body?.message||body?.error||body?.code||''))return null;throw fail('Không đọc được báo cáo đã lưu.');}if(!r.ok)throw fail('Không đọc được báo cáo đã lưu.');return r.json();}
+async function put(path,bytes,mime,bucketName=bucket){const r=await request('object/'+bucketName+'/'+path,{method:'POST',headers:{'Content-Type':mime,'x-upsert':'true'},body:bytes});if(!r.ok)throw fail('Chưa lưu được báo cáo; số đang xem chưa được cập nhật.');}
+const sourcesBucket='vjh-report-sources';
+export const readSheetSource=unit=>read(unit+'.json',sourcesBucket);
+export async function writeSheetSource(unit,source){await ensureBucket(sourcesBucket);await put(unit+'.json',Buffer.from(JSON.stringify(source)),'application/json',sourcesBucket);}
+export async function listSheetSources(units){const result=[];let cursor=0;await Promise.all(Array.from({length:Math.min(3,units.length)},async()=>{while(cursor<units.length){const unit=units[cursor++],source=await readSheetSource(unit.key);result.push({unit:unit.key,unitName:unit.name,...source});}}));return result;}
 export const readReport=async(unit,month,family)=>normalizeManagementReport(await read(activePath(unit,month,family)));
 export async function saveReport(report,bytes,actor){
  const release=await lock(writeLock,300);if(!release)throw fail('Báo cáo đang được cập nhật hoặc xóa; thử lại sau.',409);
  try{
   await ensureBucket();const path=activePath(report.unit,report.month,report.family);
-  const previous=await read(path),hash=createHash('sha256').update(bytes).digest('hex');
-  if(previous?.hash===hash)return {record:normalizeManagementReport(previous),unchanged:true};
+  const previous=await read(path),hash=createHash('sha256').update(bytes).digest('hex'),{fetchedAt,...content}=report,contentHash=report.sourceType==='google_sheets'?createHash('sha256').update(JSON.stringify(content)).digest('hex'):null;
+  if(previous&&(previous.hash===hash||contentHash&&previous.contentHash===contentHash)&&(previous.sourceUrl||null)===(report.sourceUrl||null))return {record:normalizeManagementReport(previous),unchanged:true};
   const id=randomUUID();
-  const record={...report,id,hash,uploadedAt:new Date().toISOString(),uploadedBy:actor};
+  const record={...report,id,hash,...(contentHash?{contentHash}:{}),uploadedAt:new Date().toISOString(),uploadedBy:actor};
   const json=Buffer.from(JSON.stringify(record));if(json.length>5*1024*1024)throw fail('Báo cáo phân tích vượt 5 MB; chia file nhỏ hơn.',400);
   // Publish only after both the original file and immutable analysis have been saved.
   await put(report.unit+'/original/'+hash+'.bin',bytes,'application/octet-stream');

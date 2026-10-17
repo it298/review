@@ -1,14 +1,20 @@
-# Báo cáo quản lý từ Excel
+# Báo cáo quản lý từ Google Sheets
 
-Luồng chính thay cho mục Thu–chi & HĐKD: **Báo cáo quản lý → chọn cơ sở/tháng → tải Excel → dashboard**. Không tạo nghiệp vụ hay yêu cầu duyệt/chốt sổ. Các module đánh giá, Blue Jay và marketing giữ hoạt động như cũ. Mã/API tài chính cũ và dữ liệu lịch sử giữ nguyên để tránh xóa dữ liệu; giao diện cũ không còn được nạp trong App.
+Luồng chính thay cho mục Thu–chi & HĐKD: **Báo cáo quản lý → Nguồn Google Sheets → lưu link từng địa điểm → chọn kỳ → Cập nhật → dashboard**. Không tạo nghiệp vụ hay yêu cầu duyệt/chốt sổ. Các module đánh giá, Blue Jay và marketing giữ hoạt động như cũ. Mã/API tài chính cũ và dữ liệu lịch sử giữ nguyên để tránh xóa dữ liệu; giao diện cũ không còn được nạp trong App.
 
 ## Thao tác
 
 1. Mở **Báo cáo quản lý** trên sidebar. Chọn **Lịch sử báo cáo → cơ sở/kỳ → Xem dashboard** để mở số đã lưu, không cần tải lại Excel. Lịch sử có lọc cơ sở/năm. Trang ghi nhớ tháng/phạm vi đã xem theo từng tài khoản trong phiên trình duyệt; nếu chưa chọn lần nào, tự mở tháng hiện tại có dữ liệu hoặc kỳ gần nhất đã lưu.
-2. Chọn đúng cơ sở nhận file, chọn tháng trong file. Tải một hoặc nhiều file .xlsx/.xls (mỗi file tối đa 10 MB) của cùng cơ sở/kỳ. Mỗi file được đọc và lưu ngay, không có bước nhập dòng/duyệt.
-3. Dashboard tự mở tháng vừa tải: số tiền thu, chi, chênh lệch, doanh thu/chi phí/lợi nhuận theo KQ HĐKD. Có lọc cơ sở và ngày, biểu đồ tròn với nhãn/mũi tên, bảng so sánh, chi tiết dịch vụ, xuất CSV theo kết quả tìm kiếm và In/PDF ngang bằng hộp thoại trình duyệt.
+2. Tab mặc định **Nguồn Google Sheets** liệt kê từng địa điểm. Quản trị viên/quản lý lưu một link Google Sheets cho mỗi cơ sở được phân quyền. Link phải có quyền [Bất kỳ ai có đường liên kết xem được](https://support.google.com/docs/answer/2494822?hl=en) và cho phép tải xuống. Chọn kỳ cần lấy rồi bấm **Cập nhật** tại cơ sở. Nhân viên editor có thể cập nhật cơ sở được giao nhưng không đổi link; chỉ xem không được cập nhật. Toàn bộ tab của bảng tính được đọc, không giới hạn theo gid. Giữ tên sheet/cột theo mẫu báo cáo hiện tại. Link có thể trỏ file QL HĐKD đầy đủ (gồm BK thu/chi và KQ) hoặc file thu–chi; chỉ tiêu chưa có nguồn vẫn để “—”.
+3. Dashboard tự mở đúng cơ sở/kỳ vừa cập nhật: số tiền thu, chi, chênh lệch, doanh thu/chi phí/lợi nhuận theo KQ HĐKD. Có lọc cơ sở và ngày, biểu đồ tròn với nhãn/mũi tên, bảng so sánh, chi tiết dịch vụ, xuất CSV theo kết quả tìm kiếm và In/PDF ngang bằng hộp thoại trình duyệt.
 4. Mở **Xem các sheet** để xem toàn bộ sheet nguồn theo từng trang 100 hàng. Sheet tham chiếu không tạo thêm tiền thu/chi. Dữ liệu gốc trống/công thức chưa có kết quả không được mặc định thành số 0.
-5. Kiểm tra ghi chú nguồn ở mục Kiểm tra dữ liệu. Thiếu nhóm/diễn giải không chặn dashboard nếu ngày/số tiền hợp lệ; thiếu ngày/số tiền không tính vào tổng và được cảnh báo. Sửa Excel và tải bản mới nếu cần điều chỉnh.
+5. Kiểm tra ghi chú nguồn ở mục Kiểm tra dữ liệu. Thiếu nhóm/diễn giải không chặn dashboard nếu ngày/số tiền hợp lệ; thiếu ngày/số tiền không tính vào tổng và được cảnh báo. Sửa trên Google Sheets rồi bấm Cập nhật nếu cần điều chỉnh. **Dashboard → Tải Excel thay thế (tùy chọn)** hỗ trợ file .xlsx/.xls khi chưa có nguồn Sheets.
+
+## Đồng bộ Google Sheets
+
+Nút Cập nhật tải bản XLSX hiện tại của Google Sheets ở thời điểm bấm (không có lịch tự chạy). Nguồn chuẩn hóa chỉ chấp nhận URL Google Sheets, không gửi cookie/token của người dùng hoặc secret backend sang Google; chỉ cho phép chuyển hướng HTTPS tới Google Docs/Googleusercontent, giới hạn 40 giây/10 MB và giữ nguyên giới hạn chống nén file. Google cho phép [xuất bảng tính thành Excel](https://developers.google.com/workspace/drive/api/guides/ref-export-formats). Công thức dùng kết quả đã lưu do Google xuất, không chạy mã/công thức trong backend. Nếu quyền bị thu hồi, lỗi tải, sai định dạng hoặc không nhận diện dữ liệu kỳ chọn, không ghi đè báo cáo tốt.
+
+Link cấu hình nằm trong bucket private riêng **vjh-report-sources**, tự tạo, không dùng KV có hạn 7 ngày. Xóa toàn bộ lịch sử báo cáo không xóa link nguồn; bấm Cập nhật để lấy lại dữ liệu sau xóa. Lần đọc thành công/kỳ hiển thị theo nguồn; bản dữ liệu không đổi giữ nguyên ID/không cộng trùng, vẫn cập nhật thời điểm kiểm tra. Đổi link chỉ thay cấu hình; phải Cập nhật mới thay số dashboard. File thủ công trước đó vẫn giữ theo quy tắc một cash + một business/kỳ; kiểm tra các tên nguồn khi dùng cả hai loại. Không cần cấu hình Google OAuth/API key cho link công khai. Không tự động đổi quyền chia sẻ file của người dùng.
 
 ## Nguồn và tránh cộng trùng
 

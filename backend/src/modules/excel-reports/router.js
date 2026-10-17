@@ -1,11 +1,12 @@
 import express from 'express';
 import * as XLSX from '@e965/xlsx';
 import {readFile} from 'node:fs/promises';
-import {rpc} from '../../store.js';
+import {rpc,lock} from '../../store.js';
 import {readFinanceExcel} from '../../../../shared/finance-excel-import.js';
 import {analyzeWorkbook,validMonth} from '../../../../shared/excel-dashboard.js';
 import {checkExcelArchive} from './archive.js';
-import {saveReport,listReports,readReport,summaryRecord,listSavedPeriods,deleteAllReports} from './storage.js';
+import {saveReport,listReports,readReport,summaryRecord,listSavedPeriods,deleteAllReports,readSheetSource,writeSheetSource,listSheetSources} from './storage.js';
+import {parseSheetLink,fetchSheetReport} from './google-sheets.js';
 const directory=JSON.parse(await readFile(new URL('../../../../data/company-directory.json',import.meta.url),'utf8')).filter(d=>d.relationship==='managed');
 const management=req=>['admin','manager'].includes(req.user.role);
 const publicRecord=(r,req)=>management(req)?summaryRecord(r):Object.fromEntries(['id','fileName','unit','unitName','month','family','uploadedAt'].map(k=>[k,r[k]]));
@@ -18,6 +19,17 @@ export function createExcelReportsRouter(){
   return directory.flatMap(d=>{const scope=scopes.find(s=>s.unit===d.key),access=scope?.access;if(!access||access==='none'||req.user.role==='manager'&&access!=='manager'||req.user.role!=='manager'&&access==='manager')return [];return [{...d,access}];});
  }
  app.get('/units',wrap(async(req,res)=>res.json({units:(await units(req)).map(({key,name,category,access})=>({key,name,category,access}))})));
+ app.get('/sheet-sources',wrap(async(req,res)=>res.json({sources:await listSheetSources(await units(req))})));
+ app.post('/sheet-sources',wrap(async(req,res)=>{
+  const unit=(await units(req)).find(u=>u.key===req.body?.unit);if(!management(req)||!unit||!['admin','manager'].includes(unit.access))throw fail('Chỉ quản lý có quyền tại cơ sở mới được lưu link nguồn.',403);
+  const link=parseSheetLink(req.body.url),release=await lock('management-sheet:'+unit.key,300);if(!release)throw fail('Nguồn đang được cập nhật; thử lại sau.',409);
+  try{const old=await readSheetSource(unit.key),source={unit:unit.key,...(old?.url===link.url?old:{}),...link,updatedAt:new Date().toISOString(),updatedBy:req.user.id};await writeSheetSource(unit.key,source);res.json({source});}finally{await release();}
+ }));
+ app.post('/sheet-sources/refresh',wrap(async(req,res)=>{
+  const unit=(await units(req)).find(u=>u.key===req.body?.unit);if(!unit||req.user.role==='viewer'||!['admin','manager','editor'].includes(unit.access))throw fail('Bạn chưa có quyền cập nhật báo cáo cơ sở này.',403);if(!validMonth(req.body.month))throw fail('Chọn kỳ cập nhật hợp lệ.');
+  const release=await lock('management-sheet:'+unit.key,300);if(!release)throw fail('Nguồn đang được cập nhật; thử lại sau.',409);
+  try{const source=await readSheetSource(unit.key);if(!source?.url)throw fail('Cơ sở chưa có link Google Sheets đã lưu.');const {report,bytes}=await fetchSheetReport(source,req.body.month),result=await saveReport({...report,unit:unit.key,unitName:unit.name},bytes,req.user.id),updated={...source,lastCheckedAt:new Date().toISOString(),lastMonth:req.body.month};let sourceStatusSaved=true;try{await writeSheetSource(unit.key,updated);}catch{sourceStatusSaved=false;}res.json({report:publicRecord(result.record,req),source:sourceStatusSaved?updated:source,sourceStatusSaved,unchanged:result.unchanged});}finally{await release();}
+ }));
  app.get('/history',wrap(async(req,res)=>{const allowed=await units(req),selected=req.query.unit&&req.query.unit!=='all'?allowed.filter(u=>u.key===req.query.unit):allowed;if(req.query.unit&&req.query.unit!=='all'&&!selected.length)throw fail('Bạn chưa có quyền xem cơ sở này.',403);res.json({periods:await listSavedPeriods(selected)});}));
  app.delete('/history',wrap(async(req,res)=>{if(req.user.role!=='admin')throw fail('Chỉ quản trị viên được xóa toàn bộ lịch sử báo cáo.',403);if(req.body?.confirmation!=='XOA TAT CA'||req.body?.scope!=='all')throw fail('Nhập XOA TAT CA để xác nhận xóa báo cáo của tất cả cơ sở, mọi kỳ.');res.json(await deleteAllReports());}));
  app.get('/',wrap(async(req,res)=>{if(!validMonth(req.query.month))throw fail('Chọn tháng báo cáo hợp lệ.');const allowed=await units(req);const selected=req.query.unit&&req.query.unit!=='all'?allowed.filter(u=>u.key===req.query.unit):allowed;if(req.query.unit&&req.query.unit!=='all'&&!selected.length)throw fail('Bạn chưa có quyền xem cơ sở này.',403);res.json({reports:(await listReports(selected,req.query.month)).map(r=>publicRecord(r,req)),month:req.query.month});}));
