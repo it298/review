@@ -4,7 +4,7 @@ Luồng chính thay cho mục Thu–chi & HĐKD: **Báo cáo quản lý → ch�
 
 ## Thao tác
 
-1. Mở **Báo cáo quản lý** trên sidebar.
+1. Mở **Báo cáo quản lý** trên sidebar. Chọn **Lịch sử báo cáo → cơ sở/kỳ → Xem dashboard** để mở số đã lưu, không cần tải lại Excel. Lịch sử có lọc cơ sở/năm. Trang ghi nhớ tháng/phạm vi đã xem theo từng tài khoản trong phiên trình duyệt; nếu chưa chọn lần nào, tự mở tháng hiện tại có dữ liệu hoặc kỳ gần nhất đã lưu.
 2. Chọn đúng cơ sở nhận file, chọn tháng trong file. Tải một hoặc nhiều file .xlsx/.xls (mỗi file tối đa 10 MB) của cùng cơ sở/kỳ. Mỗi file được đọc và lưu ngay, không có bước nhập dòng/duyệt.
 3. Dashboard tự mở tháng vừa tải: số tiền thu, chi, chênh lệch, doanh thu/chi phí/lợi nhuận theo KQ HĐKD. Có lọc cơ sở và ngày, biểu đồ tròn với nhãn/mũi tên, bảng so sánh, chi tiết dịch vụ, xuất CSV theo kết quả tìm kiếm và In/PDF ngang bằng hộp thoại trình duyệt.
 4. Mở **Xem các sheet** để xem toàn bộ sheet nguồn theo từng trang 100 hàng. Sheet tham chiếu không tạo thêm tiền thu/chi. Dữ liệu gốc trống/công thức chưa có kết quả không được mặc định thành số 0.
@@ -23,7 +23,7 @@ Luồng chính thay cho mục Thu–chi & HĐKD: **Báo cáo quản lý → ch�
 
 Backend tự đọc binary Excel, không tin số tổng do client gửi. Lưu riêng vào bucket **private `vjh-management-reports`** trong Supabase Storage bằng service key backend hiện có, không thay đổi ledger và không cần SQL mới. Bucket được tạo ở lần upload đầu; không cấp quyền đọc công khai. Cần SUPABASE_URL và service secret có quyền Storage. File gốc, bản phân tích lịch sử và bản đang dùng lưu riêng; công bố bản đang dùng sau khi hai bản đầu đã lưu thành công. Đọc lại sau tải trang vẫn có báo cáo.
 
-Tải cùng binary lên cơ sở/kỳ/loại đang dùng trả bản hiện tại, không cộng trùng kể cả người tải khác nhau. Bản cập nhật thay active snapshot, giữ nguồn và phiên bản trước trong Storage. Khóa theo cơ sở/kỳ/loại tránh hai lần tải ghi đè chồng; bản đang tải lỗi không thay active. Lịch sử được giữ ở Storage, giao diện hiện chỉ mở bản đang dùng.
+Tải cùng binary lên cơ sở/kỳ/loại đang dùng trả bản hiện tại, không cộng trùng kể cả người tải khác nhau. Bản cập nhật thay active snapshot, giữ nguồn và phiên bản trước trong Storage. Khóa theo cơ sở/kỳ/loại tránh hai lần tải ghi đè chồng; bản đang tải lỗi không thay active. Lịch sử trên giao diện liệt kê các cơ sở/kỳ có bản đang dùng; mỗi kỳ mở bộ báo cáo mới nhất của kỳ đó. Phiên bản thay thế cũ vẫn giữ trong Storage, chưa có giao diện chọn từng phiên bản. Danh mục kỳ được tìm từ tên bản đang dùng qua [Storage list API](https://supabase.com/docs/reference/self-hosting-storage/search-for-objects-under-a-prefix), có phân trang, không tải toàn bộ nội dung các kỳ để lập danh sách. Không cần SQL mới, tạo lại danh mục hoặc tải lại file cũ.
 
 Quản trị viên xem mọi cơ sở. Quản lý chỉ xem cơ sở có quyền manager; nhân viên editor chỉ tải lên cơ sở được giao và thấy metadata file đã tải, không đọc số tổng/chi tiết HĐKD qua API. Tài khoản chỉ xem không được tải. Quyền dùng cùng bảng phân quyền tài chính đã có, không tự mở rộng quyền.
 

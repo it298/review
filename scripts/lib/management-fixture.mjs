@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {createExcelReportsRouter} from '../../backend/src/modules/excel-reports/router.js';
 import {once} from 'node:events';
 export async function managementFixture(){
- const originalFetch=globalThis.fetch,env={...process.env},db=new PGlite(),objects=new Map(),locks=new Set();let bucket=false,failActive=false;
+ const originalFetch=globalThis.fetch,env={...process.env},db=new PGlite(),objects=new Map(),locks=new Set();let bucket=false,failActive=false,failListing=false;
  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');for(const f of ['finance-module.sql','finance-workflow.sql','finance-books.sql'])await db.exec(await readFile(new URL('../../supabase/'+f,import.meta.url),'utf8'));await db.exec('set role service_role');
  const rpc=async p=>(await db.query('select public.review_tracker_finance($1::jsonb) result',[JSON.stringify(p)])).rows[0].result;
  for(const [actor,access] of [['member','editor'],['manager','manager'],['viewer','viewer']])await rpc({action:'scope',actor:'admin',admin:true,userId:actor,unit:'sontra-sea-hotel',access});
@@ -21,6 +21,9 @@ export async function managementFixture(){
   }
   if(u.pathname==='/storage/v1/bucket'&&options.method==='POST'){bucket=true;return Response.json({name:'vjh-management-reports'});}
   if(u.pathname==='/storage/v1/bucket/vjh-management-reports')return bucket?Response.json({public:false}):Response.json({message:'Bucket not found'},{status:404});
+  if(u.pathname==='/storage/v1/object/list/vjh-management-reports'&&options.method==='POST'){
+   if(failListing)return Response.json({message:'Listing unavailable'},{status:503});if(!bucket&&!objects.size)return Response.json({message:'Bucket not found'},{status:400});const {prefix,limit,offset}=JSON.parse(options.body),start=prefix.replace(/\/$/,'')+'/';const rows=[...objects.keys()].filter(k=>k.startsWith(start)&&!k.slice(start.length).includes('/')).sort().map((k,i)=>({name:i%2?k:k.slice(start.length),updated_at:JSON.parse(objects.get(k)).uploadedAt||'2026-10-17T00:00:00Z'}));return Response.json(rows.slice(offset,offset+limit));
+  }
   const prefix='/storage/v1/object/vjh-management-reports/';if(u.pathname.startsWith(prefix)){const key=u.pathname.slice(prefix.length);
    if(options.method==='POST'){if(failActive&&key.includes('/active/'))return Response.json({error:'fixture unavailable'},{status:503});objects.set(key,Buffer.from(options.body));return Response.json({Key:key});}
    const value=objects.get(key);return value?new Response(value,{headers:{'Content-Type':'application/json'}}):Response.json({message:'Object not found'},{status:404});
@@ -29,5 +32,5 @@ export async function managementFixture(){
  const app=express();app.use(express.json());app.use((req,_res,next)=>{const id=String(req.headers.authorization||'Bearer admin').replace('Bearer ','');req.user={id,role:['admin','manager','viewer'].includes(id)?id:'member'};next();});
  app.get('/api/auth/config',(_req,res)=>res.json({mode:'supabase'}));app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:new Date(Date.now()+3600000).toISOString()}));app.get('/api/insights',(_req,res)=>res.json({alerts:[],daily:[],directory:[]}));
  app.use('/api/management-reports',createExcelReportsRouter());app.use((e,_req,res,_next)=>res.status(e.status||500).json({error:e.message}));
- const server=app.listen(0,'127.0.0.1');await once(server,'listening');return {app,origin:'http://127.0.0.1:'+server.address().port,fetch:originalFetch,objects,rpc,db,setFailActive:v=>{failActive=v;},close:async()=>{await new Promise(r=>server.close(r));globalThis.fetch=originalFetch;process.env=env;await db.close();}};
+ const server=app.listen(0,'127.0.0.1');await once(server,'listening');return {app,origin:'http://127.0.0.1:'+server.address().port,fetch:originalFetch,objects,rpc,db,setFailActive:v=>{failActive=v;},setFailListing:v=>{failListing=v;},close:async()=>{await new Promise(r=>server.close(r));globalThis.fetch=originalFetch;process.env=env;await db.close();}};
 }

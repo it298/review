@@ -1,6 +1,6 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {lock} from '../../store.js';
-import {normalizeManagementReport} from '../../../../shared/excel-dashboard.js';
+import {normalizeManagementReport,validMonth} from '../../../../shared/excel-dashboard.js';
 const bucket='vjh-management-reports';
 const fail=(message,status=503)=>Object.assign(new Error(message),{status});
 async function request(path,options={}){
@@ -40,4 +40,18 @@ export async function listReports(units,month){
  // Reading non-existent snapshots yields an empty state, never a fabricated zero.
  const result=[];let cursor=0;const jobs=units.flatMap(u=>['cash','business'].map(family=>({unit:u.key,family})));
  await Promise.all(Array.from({length:3},async()=>{while(cursor<jobs.length){const j=jobs[cursor++];const r=await readReport(j.unit,month,j.family);if(r)result.push(summaryRecord(r));}}));return result;
+}
+// Discover published periods only; listing metadata avoids downloading every workbook snapshot.
+export async function listSavedPeriods(units){
+ const groups=new Map();let cursor=0;
+ await Promise.all(Array.from({length:Math.min(3,units.length)},async()=>{while(cursor<units.length){const unit=units[cursor++];let offset=0;
+  for(;;){const response=await request('object/list/'+bucket,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix:unit.key+'/active',limit:1000,offset,sortBy:{column:'name',order:'asc'}})});
+   if(!response.ok){const error=await response.json().catch(()=>null);if(response.status===404||response.status===400&&/(?:bucket|resource).*(?:not found|does not exist)/i.test(error?.message||error?.error||''))break;throw fail('Chưa đọc được lịch sử báo cáo. Thử làm mới lịch sử.');}
+   const objects=await response.json();if(!Array.isArray(objects))throw fail('Lịch sử báo cáo chưa có phản hồi hợp lệ.');
+   for(const object of objects){const prefix=unit.key+'/active/',name=typeof object.name==='string'?(object.name.startsWith(prefix)?object.name.slice(prefix.length):object.name):'',match=name.match(/^(\d{4}-\d{2})--(cash|business)\.json$/);if(!match||!validMonth(match[1]))continue;const [,month,family]=match,key=unit.key+'|'+month,stamp=object.updated_at||object.created_at,updatedAt=stamp&&Number.isFinite(Date.parse(stamp))?new Date(stamp).toISOString():null;
+    if(!groups.has(key))groups.set(key,{unit:unit.key,unitName:unit.name,month,families:[],updatedAt:null});const group=groups.get(key);if(!group.families.includes(family))group.families.push(family);if(updatedAt&&(!group.updatedAt||updatedAt>group.updatedAt))group.updatedAt=updatedAt;
+   }
+   if(objects.length<1000)break;offset+=objects.length;if(offset>=10000)throw fail('Lịch sử cơ sở quá lớn; cần thu hẹp danh mục báo cáo.');
+  }
+ }}));return [...groups.values()].map(g=>({...g,families:g.families.sort()})).sort((a,b)=>b.month.localeCompare(a.month)||(b.updatedAt||'').localeCompare(a.updatedAt||'')||a.unitName.localeCompare(b.unitName));
 }
