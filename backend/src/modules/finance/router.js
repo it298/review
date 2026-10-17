@@ -9,22 +9,24 @@ import {getRecord} from '../bluejay/store.js';
 import {normalizeOccupancy,normalizeReservations} from '../bluejay/normalize.js';
 import {storeFinanceFile,readFinanceFile} from './files.js';
 import {HOTELS} from '../bluejay/hotels.js';
+import {validateFinanceBatch} from '../../../../shared/finance-batch.js';
 const directory=JSON.parse(await readFile(new URL('../../../../data/company-directory.json',import.meta.url),'utf8')).filter(d=>d.relationship==='managed');
 export function createFinanceRouter(){
  const app=express.Router();
  const management=req=>['admin','manager'].includes(req.user.role);
  const scopesFor=req=>rpc('review_tracker_finance',{p:{action:'scopes',actor:req.user.id,admin:req.user.role==='admin'}});
- const call=async(req,action,fields={})=>{
+ const authorize=async(req,action,fields={})=>{
   if(req.user.role==='viewer'&&!['read','scopes','books_read','file_read'].includes(action))throw Object.assign(new Error('Tài khoản chỉ xem không được sửa dữ liệu.'),{status:403});
   let unitManager=req.user.role==='admin';
   if(req.user.role!=='admin'&&action!=='scopes'){
-   const scopes=await scopesFor(req),scope=scopes.find(s=>s.unit===fields.unit);
+   const scopes=req.financeScopes??(req.financeScopes=await scopesFor(req)),scope=scopes.find(s=>s.unit===fields.unit);
    unitManager=req.user.role==='manager'&&scope?.access==='manager';
    if(!scope||scope.access==='none'||!unitManager&&scope.access==='manager'||action==='save'&&!['editor','manager'].includes(scope.access))throw Object.assign(new Error('Bạn chưa có quyền tại cơ sở này.'),{status:403});
    if(req.user.role==='manager'&&!unitManager)throw Object.assign(new Error('Quản lý chưa được giao cơ sở này.'),{status:403});
   }
-  return rpc('review_tracker_finance',{p:{...fields,action,actor:req.user.id,admin:unitManager,actorName:req.user.email||req.user.name}});
+  return unitManager;
  };
+ const call=async(req,action,fields={})=>rpc('review_tracker_finance',{p:{...fields,action,actor:req.user.id,admin:await authorize(req,action,fields),actorName:req.user.email||req.user.name}});
  const unit=req=>directory.find(d=>d.key===(req.body?.unit||req.query.unit));
  const wrap=fn=>async(req,res,next)=>{try{await fn(req,res);}catch(e){if(!e.status){e=Object.assign(new Error('Chưa truy cập được sổ thu–chi. Kiểm tra quyền cơ sở và chạy SQL khởi tạo module tài chính.'),{status:503});}next(e);}};
  app.get('/units',wrap(async(req,res)=>{const scopes=await call(req,'scopes');res.json({units:directory.filter(d=>req.user.role==='admin'||scopes.some(s=>s.unit===d.key&&(req.user.role==='manager'?s.access==='manager':s.access!=='manager'))).map(d=>({key:d.key,name:d.name,category:d.category,access:req.user.role==='admin'?'admin':scopes.find(s=>s.unit===d.key)?.access})),scopes:req.user.role==='admin'?scopes:[]});}));
@@ -37,6 +39,19 @@ export function createFinanceRouter(){
  }));
  app.get('/report',wrap(async(req,res)=>{if(!unit(req)||!isDay(req.query.from)||!isDay(req.query.to)||req.query.from>req.query.to)throw Object.assign(new Error('Chọn cơ sở và khoảng ngày hợp lệ.'),{status:400});const data=await call(req,'read',{unit:unit(req).key,from:req.query.from,to:req.query.to});if(!management(req)){const entries=data.entries.filter(e=>!['revenue','expense'].includes(e.kind));return res.json({entries,days:data.days||[],previousDay:data.previousDay,months:data.months||[],files:(data.files||[]).filter(f=>entries.some(e=>Number(e.id)===Number(f.entry_id))),inventory:{items:financeReport(data,req.query.from,req.query.to).inventory.items.map(({sku,name,unit,quantity})=>({sku,name,unit,quantity}))},deposits:financeReport(data,req.query.from,req.query.to).deposits,access:data.access,unit:unit(req)});}res.json({...financeReport(data,req.query.from,req.query.to),unit:unit(req)});}));
  app.post('/entries',wrap(async(req,res)=>{if(!unit(req))throw Object.assign(new Error('Cơ sở chưa hợp lệ.'),{status:400});const entry=validateFinanceEntry(req.body);if(!management(req)&&['revenue','expense'].includes(entry.kind))throw Object.assign(new Error('Chỉ quản lý ghi nhận doanh thu hoặc chi phí phân bổ.'),{status:403});res.json(await call(req,'save',{unit:unit(req).key,entry}));}));
+ app.post('/entries/batch',wrap(async(req,res)=>{
+  const selected=unit(req);if(!selected)throw Object.assign(new Error('Cơ sở chưa hợp lệ.'),{status:400});
+  await authorize(req,'save',{unit:selected.key});const entries=validateFinanceBatch(req.body,{management:management(req)}),results=[];
+  // Each row uses the existing SQL transaction, locks, audit trail and requestId.
+  // A partial result is explicit: a failed row never rolls back earlier rows.
+  for(let i=0;i<entries.length;i++){
+   const entry=entries[i];try{const saved=await call(req,'save',{unit:selected.key,entry});results.push({requestId:entry.requestId,ok:true,id:saved.id,status:saved.status||'draft'});}
+   catch(e){const uncertain=!e.status;results.push({requestId:entry.requestId,ok:false,status:e.status||503,uncertain,error:uncertain?'Chưa xác nhận được kết quả lưu. Thử lại cùng dòng để tránh gửi trùng.':e.message});
+    if(uncertain||[401,403].includes(e.status)){for(const pending of entries.slice(i+1))results.push({requestId:pending.requestId,ok:false,notAttempted:true,error:'Chưa gửi do kết nối / quyền bị gián đoạn.'});break;}
+   }
+  }
+  res.json({results,saved:results.filter(r=>r.ok).length});
+ }));
  app.get('/operations',wrap(async(req,res)=>{if(!unit(req)||!isDay(req.query.from)||!isDay(req.query.to)||req.query.from>req.query.to)throw Object.assign(new Error('Chọn cơ sở và khoảng ngày hợp lệ.'),{status:400});await call(req,'read',{unit:unit(req).key,from:req.query.from,to:req.query.to});const hotel=HOTELS.find(h=>h.entityKey===unit(req).key);if(!hotel)return res.json({connected:false});const params={from:req.query.from,to:req.query.to};const [occupancy,reservations]=await Promise.all([getRecord('occupancy',hotel.id,{...params,dateType:'1'}),getRecord('reservations',hotel.id,{...params,dateType:'3'})]);res.json({connected:true,hotel,occupancy:occupancy?{savedAt:occupancy.savedAt,data:normalizeOccupancy(occupancy.value).summary}:null,reservations:reservations?{savedAt:reservations.savedAt,data:normalizeReservations(reservations.value).totals,bookings:normalizeReservations(reservations.value).rows.map(r=>({bookingCode:r.bookingCode,room:r.roomName,source:r.source}))}:null});}));
  app.post('/review',wrap(async(req,res)=>{if(!management(req))throw Object.assign(new Error('Chỉ quản lý duyệt hoặc hủy ghi nhận.'),{status:403});if(!unit(req)||!/^\d+$/.test(String(req.body.id))||!['posted','returned','void'].includes(req.body.status)||typeof req.body.reason!=='string'||!req.body.reason.trim()||req.body.reason.length>500)throw Object.assign(new Error('Nhập nghiệp vụ và lý do xử lý hợp lệ.'),{status:400});res.json(await call(req,'review',{unit:unit(req).key,id:req.body.id,status:req.body.status,reason:req.body.reason.trim()}));}));
  app.post('/scope',wrap(async(req,res)=>{if(req.user.role!=='admin')throw Object.assign(new Error('Chỉ quản trị viên phân quyền.'),{status:403});if(!unit(req)||!/^[0-9a-f-]{36}$/i.test(req.body.userId||'')||!['editor','viewer','manager','none'].includes(req.body.access))throw Object.assign(new Error('Chọn cơ sở, UUID tài khoản và quyền hợp lệ.'),{status:400});res.json(await call(req,'scope',{unit:unit(req).key,userId:req.body.userId,access:req.body.access}));}));

@@ -13,6 +13,8 @@ Quản lý cần **cả vai trò tài khoản lẫn quyền quản lý tại t�
 
 ## Luồng mỗi ngày
 
+Nhập nhiều nghiệp vụ cùng lúc bằng **Nhập bảng (Excel)**, tối đa 500 dòng; xem [hướng dẫn nhập hàng loạt](FINANCE_GRID.md). Chế độ **Nhập chi tiết** vẫn dùng cho chứng từ và nghiệp vụ có thông tin mở rộng.
+
 1. Nhân viên nhập thu/chi thực tế, tách phương thức nếu cần, đính chứng từ. Có thể gỡ chứng từ đính nhầm khi phiếu còn chờ duyệt; lý do và metadata cũ lưu trong nhật ký, tệp gốc vẫn riêng tư.
 2. Bán hàng: lập **một hóa đơn nhiều dòng**, chọn hàng cần xuất kho, điền tiền đã thu, giảm giá và VAT đã gồm trong giá. Không nhập lại phiếu thu/doanh thu/xuất kho cho cùng hóa đơn. Duyệt hóa đơn tạo các dòng liên kết trong cùng transaction; lỗi một dòng hủy cả lần ghi sổ.
 3. Quản lý duyệt nghiệp vụ/hóa đơn trước. Nhân viên chọn các nghiệp vụ của từng ca và nhập tồn đầu, bàn giao thực tế từng quỹ. Một nghiệp vụ chỉ bàn giao một ca; các ca đã duyệt nối số dư theo thứ tự. Chênh lệch cần giải trình. Bàn giao không tạo tiền lần hai.

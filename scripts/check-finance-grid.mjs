@@ -1,0 +1,58 @@
+// Isolated browser + Express + real SQL acceptance checks. No production writes.
+import {chromium} from '../worker/node_modules/playwright/index.mjs';
+import {PGlite} from '../backend/node_modules/@electric-sql/pglite/dist/index.js';
+import express from '../backend/node_modules/express/index.js';
+import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {once} from 'node:events';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createFinanceRouter} from '../backend/src/modules/finance/router.js';
+const unit='sontra-sea-hotel',date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),db=new PGlite(),originalFetch=globalThis.fetch,env={...process.env},errors=[],batches=[];
+let server,browser,dropBatch=false,blockRead=false;
+try{
+ await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');
+ for(const f of ['finance-module.sql','finance-workflow.sql','finance-books.sql'])await db.exec(await readFile(resolve('supabase',f),'utf8'));
+ await db.exec('set role service_role');
+ const rpc=async p=>(await db.query('select public.review_tracker_finance($1::jsonb) result',[JSON.stringify(p)])).rows[0].result;
+ const admin={actor:'admin',admin:true,unit};
+ for(const [userId,access] of [['member','editor'],['manager','manager'],['viewer','viewer']])await rpc({...admin,action:'scope',userId,access});
+ const count=async()=>(await db.query('select count(*)::int n from public.review_tracker_finance_entries')).rows[0].n;
+ process.env.SUPABASE_URL='https://grid-fixture.local';process.env.SUPABASE_SECRET_KEY='fixture';
+ globalThis.fetch=async(url,options)=>{if(new URL(url).hostname!=='grid-fixture.local')return originalFetch(url,options);try{return Response.json(await rpc(JSON.parse(options.body).p));}catch(e){return Response.json({code:'P0001',message:e.message},{status:400});}};
+ const app=express();app.use(express.json());app.use((req,_res,next)=>{const role=String(req.headers.authorization||'').replace('Bearer ','')||'member';req.user={id:role,role,name:'QA '+role,email:role+'@example.com'};next();});
+ app.get('/api/auth/config',(_req,res)=>res.json({mode:'supabase'}));app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:new Date(Date.now()+3600000).toISOString()}));app.get('/api/insights',(_req,res)=>res.json({alerts:[],daily:[],directory:[]}));app.get('/api/auth/users',(_req,res)=>res.json({users:[]}));app.use('/api/finance',createFinanceRouter());app.use('/api',(_req,res)=>res.json([]));app.use(express.static(resolve('frontend/dist')));app.use((e,_req,res,_next)=>res.status(e.status||500).json({error:e.message}));server=app.listen(0,'127.0.0.1');await once(server,'listening');const origin='http://127.0.0.1:'+server.address().port;
+ browser=await chromium.launch({executablePath:'C:/Users/PC/AppData/Local/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-win64/chrome-headless-shell.exe',headless:true});
+ async function pageFor(role){const context=await browser.newContext({viewport:{width:1600,height:1050}});await context.addInitScript(role=>sessionStorage.setItem('vjh-session',role),role);await context.route('**/*',async route=>{const url=new URL(route.request().url());if(url.hostname!=='bluejay-qa.local')return route.fulfill({body:''});if(blockRead&&url.pathname==='/api/finance/report')return route.fulfill({status:503,json:{error:'QA read temporarily unavailable'}});const body=route.request().postData();if(url.pathname.endsWith('/entries/batch'))batches.push(JSON.parse(body));const response=await originalFetch(origin+url.pathname+url.search,{method:route.request().method(),headers:{'Content-Type':route.request().headers()['content-type']||'application/json',Authorization:'Bearer '+role},body:['GET','HEAD'].includes(route.request().method())?undefined:body});if(dropBatch&&url.pathname.endsWith('/entries/batch')){dropBatch=false;return route.abort();}return route.fulfill({status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'text/plain'},body:Buffer.from(await response.arrayBuffer())});});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());await page.goto('https://bluejay-qa.local/');await page.getByRole('button',{name:'Thu–chi & HĐKD',exact:true}).click();return page;}
+ async function paste(page,text,label='Ngày dòng 1'){const cell=page.getByLabel(label,{exact:true});await cell.focus();await cell.evaluate((el,text)=>{const data=new DataTransfer();data.setData('text/plain',text);el.dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));},text);}
+ const tsv=(n,prefix)=>'Ngày\tLoại nghiệp vụ\tHạng mục\tPhương thức\tSố tiền VND\tNội dung\tSố chứng từ\n'+Array.from({length:n},(_,i)=>[date,'Thu tiền','Tiền phòng','Tiền mặt','125.000','Thu phòng QA '+prefix+' '+i,prefix+'-'+i].join('\t')).join('\n');
+ const staff=await pageFor('member'),grid=staff.getByRole('region',{name:'Bảng nhập thu chi nhiều dòng'});
+ await grid.waitFor();await staff.getByRole('button',{name:'Xem báo cáo',exact:true}).click();
+ assert.equal(await staff.getByRole('button',{name:'Dashboard quản lý',exact:true}).count(),0);
+ await paste(staff,tsv(3,'INVALID').replace('125.000','=100+25'));
+ await grid.getByRole('button',{name:'Lưu 3 dòng chờ duyệt',exact:true}).click();await grid.getByRole('alert').waitFor();assert.equal(await count(),0);assert.equal(batches.length,0);
+ await paste(staff,tsv(30,'MULTI'));await grid.getByRole('button',{name:'Lưu 30 dòng chờ duyệt',exact:true}).click();await staff.waitForFunction(()=>document.querySelectorAll('.fg-saved').length===30);
+ assert.deepEqual(batches.map(b=>b.entries.length),[25,5]);assert.equal(await count(),30);assert.ok((await rpc({...admin,action:'read',from:date,to:date})).entries.every(e=>e.status==='draft'));
+ assert.equal(await staff.getByLabel('Số tiền VND dòng 1',{exact:true}).isDisabled(),true);
+ await grid.getByRole('button',{name:'Dọn dòng đã lưu',exact:true}).click();
+ // The existing record is created after the browser report was read: server-only duplicate.
+ await rpc({...admin,action:'save',actor:'member',actorName:'member@example.com',entry:{requestId:randomUUID(),date,kind:'receipt',category:'room',method:'cash',amount:125000,description:'Server duplicate fixture',reference:'PARTIAL-1'}});
+ await paste(staff,tsv(3,'PARTIAL'));await grid.getByRole('button',{name:'Lưu 3 dòng chờ duyệt',exact:true}).click();await staff.waitForFunction(()=>document.querySelectorAll('.fg-error').length===1&&document.querySelectorAll('.fg-saved').length===2);
+ assert.equal(await count(),33);await staff.getByLabel('Số chứng từ dòng 2',{exact:true}).fill('PARTIAL-fixed');await grid.getByRole('button',{name:'Lưu 1 dòng chờ duyệt',exact:true}).click();await staff.waitForFunction(()=>document.querySelectorAll('.fg-saved').length===3);assert.equal(await count(),34);
+ await grid.getByRole('button',{name:'Dọn dòng đã lưu',exact:true}).click();
+ // Commit succeeds but the browser never receives the HTTP response. Retry same UUIDs.
+ await paste(staff,tsv(2,'LOST'));dropBatch=true;blockRead=true;await grid.getByRole('button',{name:'Lưu 2 dòng chờ duyệt',exact:true}).click();await staff.waitForFunction(()=>document.querySelectorAll('.fg-uncertain').length===2);assert.equal(await count(),36);assert.equal(await staff.getByLabel('Số tiền VND dòng 1',{exact:true}).isDisabled(),true);
+ const requestIds=batches.at(-1).entries.map(e=>e.requestId);blockRead=false;await grid.getByRole('button',{name:'Lưu 2 dòng chờ duyệt',exact:true}).click();await staff.waitForFunction(()=>document.querySelectorAll('.fg-saved').length===2);assert.deepEqual(batches.at(-1).entries.map(e=>e.requestId),requestIds);assert.equal(await count(),36);
+ await grid.getByRole('button',{name:'Dọn dòng đã lưu',exact:true}).click();
+ await paste(staff,tsv(2,'NAV'));await staff.getByLabel('Nội dung dòng 1',{exact:true}).press('Enter');await staff.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='Nội dung dòng 2');
+ await staff.getByLabel('Nội dung dòng 2',{exact:true}).press('Tab');await staff.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='Số chứng từ dòng 2');
+ await grid.getByRole('button',{name:'Hoàn tác',exact:true}).click();assert.equal(await staff.getByLabel('Nội dung dòng 1',{exact:true}).inputValue(),'');await grid.getByRole('button',{name:'Làm lại',exact:true}).click();assert.match(await staff.getByLabel('Nội dung dòng 1',{exact:true}).inputValue(),/NAV/);
+ await staff.getByRole('button',{name:'Nhập chi tiết',exact:true}).click();await staff.locator('#finance-entry-form').waitFor();await staff.getByRole('button',{name:'Nhập bảng (Excel)',exact:true}).click();assert.match(await staff.getByLabel('Nội dung dòng 1',{exact:true}).inputValue(),/NAV/);
+ await paste(staff,tsv(500,'CAPACITY'));assert.equal(await grid.locator('tbody tr').count(),500);await grid.getByRole('button',{name:'Kiểm tra bảng',exact:true}).click();assert.equal(await grid.getByRole('alert').count(),0);
+ await grid.locator('.fg-scroll').evaluate(el=>{el.scrollLeft=0;});
+ await staff.screenshot({path:resolve('frontend/dist/finance-grid-desktop-qa.png'),fullPage:true});
+ await staff.setViewportSize({width:390,height:844});await staff.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth);await staff.screenshot({path:resolve('frontend/dist/finance-grid-mobile-qa.png'),fullPage:true});
+ const manager=await pageFor('manager');await manager.getByRole('button',{name:'Điều chỉnh',exact:true}).click();await manager.getByRole('region',{name:'Bảng nhập thu chi nhiều dòng'}).waitFor();assert.ok(await manager.getByLabel('Loại nghiệp vụ dòng 1',{exact:true}).locator('option[value="revenue"]').count());assert.equal(await staff.getByLabel('Loại nghiệp vụ dòng 1',{exact:true}).locator('option[value="revenue"]').count(),0);
+ const viewer=await pageFor('viewer');assert.equal(await viewer.getByRole('region',{name:'Bảng nhập thu chi nhiều dòng'}).count(),0);assert.deepEqual(errors,[]);
+ console.log('Grid UI + real SQL passed: 500-row paste, 25-row batching, partial failures, lost acknowledgements without duplicates, keyboard, undo, role separation and mobile containment.');
+}finally{await browser?.close();if(server)await new Promise(r=>server.close(r));globalThis.fetch=originalFetch;process.env=env;await db.close();}
