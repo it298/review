@@ -39,7 +39,6 @@ export function validateGridRows(rows,{from,to,management=false,locked=()=>false
  rows.forEach((row,index)=>{
   if(row._state==='saved'||!hasGridInput(row))return;
   const errors={};const date=parseGridDay(row.date),amount=parseGridMoney(row.amount);
-  for(const c of gridColumns)if(/^#(?:CÔNG THỨC|LỖI EXCEL):/.test(String(row[c.key]??'')))errors[c.key]='Ô Excel chưa có giá trị dùng được. Nhập lại hoặc xác nhận kết quả công thức đã lưu.';
   if(!isDay(date))errors.date='Ngày chưa hợp lệ; dùng dd/mm/yyyy hoặc yyyy-mm-dd.';
   else if(date<from||date>to)errors.date='Ngày nằm ngoài khoảng báo cáo.';
   else if(locked(date))errors.date='Ngày / tháng đã gửi hoặc khóa; cần quản lý mở lại.';
@@ -51,6 +50,7 @@ export function validateGridRows(rows,{from,to,management=false,locked=()=>false
   for(const key of ['reference','bookingCode','room','source','counterparty','shift','depositRef','duplicateReason'])if(String(row[key]??'').length>200)errors[key]='Tối đa 200 ký tự; rút gọn trước khi lưu để không mất dữ liệu.';
   if(typeof row.recognizeExpense!=='boolean')errors.recognizeExpense='Chọn Có hoặc Không.';
   let payload;try{payload=row._submitted||rowPayload(row);}catch(e){errors.rule=e.message;}
+  let sourceIssue=false;for(const c of gridColumns)if(/^#(?:CÔNG THỨC|LỖI EXCEL):/.test(String(row[c.key]??''))){errors[c.key]=String(row[c.key]).replace(/^#(?:CÔNG THỨC|LỖI EXCEL):\s*/,'');sourceIssue=true;}if(sourceIssue)delete errors.rule;
   if(payload&&!row.duplicateReason&&!row._submitted){
    const key=duplicateKey(payload);
    if(keys.has(key)){errors.reference='Giống dòng '+(keys.get(key)+1)+'. Kiểm tra hoặc nhập lý do trùng.';const previous=results.get(rows[keys.get(key)].requestId);if(previous)previous.errors.reference='Giống dòng '+(index+1)+'. Kiểm tra hoặc nhập lý do trùng.';}

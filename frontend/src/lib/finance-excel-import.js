@@ -1,4 +1,4 @@
-import {financeKinds,financeCategories,financeMethods,isDay} from '../../../shared/finance.js';
+import {financeKinds,financeCategories,financeMethods} from '../../../shared/finance.js';
 import {blankGridRow,gridColumns,normalizeGridCell,parseGridMoney,parseGridDay,validateGridRows} from './finance-grid.js';
 
 export const EXCEL_FILE_LIMIT=10*1024*1024;
@@ -24,18 +24,18 @@ function headerTarget(label,context,kind){
  return {target:'',reason:'Chưa nhận diện; chọn trường tương ứng nếu cần'};
 }
 
-// Reading source cells is inert. Formulas are never executed; cached results require consent.
+// Read Excel's stored results like ordinary values; never execute workbook formulas.
 export async function readFinanceExcel(file){
  if(!file||!file.size||file.size>EXCEL_FILE_LIMIT||!/[.](xlsx|xls)$/i.test(file.name))throw Error('Chọn file .xlsx hoặc .xls, tối đa 10 MB.');
  const XLSX=await import('@e965/xlsx');
- let book;try{book=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false,cellFormula:true,cellText:true,sheetRows:10002});}catch{throw Error('Không mở được Excel. Kiểm tra file có bị lỗi hoặc đặt mật khẩu không.');}
+ let book;try{book=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false,cellFormula:true,cellText:true,sheetStubs:true,sheetRows:10002});}catch{throw Error('Không mở được Excel. Kiểm tra file có bị lỗi hoặc đặt mật khẩu không.');}
  if(!book.SheetNames.length||book.SheetNames.length>60)throw Error('File cần từ 1 đến 60 sheet.');
  const date1904=book.Workbook?.WBProps?.date1904===true||book.Workbook?.WBProps?.date1904===1;
  const sheets=book.SheetNames.map(name=>{
   const ws=book.Sheets[name],range=XLSX.utils.decode_range(ws['!ref']||'A1');
   if(ws['!fullref']&&XLSX.utils.decode_range(ws['!fullref']).e.r>=10000||range.e.r>=10000||range.e.c>159) return {name,error:'Sheet vượt 10.000 dòng hoặc 160 cột; tách file trước khi nhập.',rows:[]};
   const rows=[];
-  for(let r=0;r<=range.e.r;r++){const cells=[];for(let c=0;c<=range.e.c;c++){const cell=ws[XLSX.utils.encode_cell({r,c})];cells.push(cell?{v:cell.v??'',f:cell.f||'',text:cell.w??String(cell.v??''),type:cell.t}:null);}rows.push(cells);}
+  for(let r=0;r<=range.e.r;r++){const cells=[];for(let c=0;c<=range.e.c;c++){const cell=ws[XLSX.utils.encode_cell({r,c})],cacheAvailable=Boolean(cell&&cell.t!=='z'&&cell.v!==undefined&&cell.v!==null);cells.push(cell?{v:cacheAvailable?cell.v:'',f:cell.f||'',text:cacheAvailable?(cell.w??String(cell.v)):'',type:cell.t,cacheAvailable}:null);}rows.push(cells);}
   // Only explicit vertical merges inherit the original date. Blank dates are not filled down.
   const merges=(ws['!merges']||[]).filter(m=>m.s.c===m.e.c&&m.e.r>m.s.r);
   for(const m of merges)for(let r=m.s.r+1;r<=Math.min(m.e.r,range.e.r);r++)if(!rows[r][m.s.c])rows[r][m.s.c]=rows[m.s.r][m.s.c];
@@ -84,16 +84,18 @@ export function guessCategory(value){
 }
 export function guessMethod(value){const v=normalizeGridCell('method',value);if(Object.hasOwn(financeMethods,v))return v;const s=fold(value);return /^(tm|tienmat|cash)$/.test(s)?'cash':/^(tk|ck|chuyenkhoan|taikhoan|banktransfer|nganhang)$/.test(s)?'bank':/^(visa|mastercard|quetthe|tienthe|card)$/.test(s)?'card':/^(ota|grab|shopee|nentang)$/.test(s)?'platform':'';}
 function guessKind(value){const v=normalizeGridCell('kind',value);if(Object.hasOwn(financeKinds,v))return v;const s=fold(value);return /^(thu|income|credit)$/.test(s)?'receipt':/^(chi|expense|debit)$/.test(s)?'payment':v;}
+const missingFormulaResult=cell=>Boolean(cell?.f&&(cell.cacheAvailable===false||cell.v===undefined||cell.v===null));
 function valueOf(cell,key,date1904,allowCached){
  if(!cell)return '';
  if(cell.f&&!allowCached)return '#CÔNG THỨC: cần xác nhận dùng kết quả đã lưu';
+ if(missingFormulaResult(cell))return '#LỖI EXCEL: Công thức chưa có kết quả đã lưu; mở Excel, tính và lưu lại file hoặc nhập giá trị thủ công.';
  if(cell.type==='e')return '#LỖI EXCEL: '+cell.text;
  if(key==='date'&&typeof cell.v==='number'){if(!Number.isFinite(cell.v)||cell.v<1||cell.v>2957000)return clean(cell.v);return date1904?new Date(Date.UTC(1904,0,1)+Math.floor(cell.v)*86400000).toISOString().slice(0,10):parseGridDay(String(Math.floor(cell.v)));}
  if(['bookingCode','reference','room','depositRef'].includes(key)&&typeof cell.v==='number'&&/^[0-9]+$/.test(cell.text))return cell.text;
  return cell.v;
 }
 const totalLabel=v=>/^(tong|tongcong|tongthu|tongchi|cong|sodudauky|soducuoiky|tondau|toncuoi|tonghop)([0-9]*)$/.test(fold(v));
-export function previewFinanceImport(sheet,blocks,{management=false,defaultKind='',defaultMethod='',defaultDate='',allowCached=false,from,to}={}){
+export function previewFinanceImport(sheet,blocks,{management=false,defaultKind='',defaultMethod='',defaultDate='',allowCached=true,from,to}={}){
  const entries=[],skipped=[],warnings=[];
  for(const block of blocks){
   const mapped=block.columns.filter(c=>c.target),fields=mapped.filter(c=>!c.target.startsWith('money|')),monies=mapped.filter(c=>c.target.startsWith('money|')||c.target==='amount');
@@ -119,12 +121,12 @@ export function previewFinanceImport(sheet,blocks,{management=false,defaultKind=
     for(const c of gridColumns)if(!['recognizeExpense','amount'].includes(c.key))row[c.key]=clean(row[c.key]);
     row._importSource={sheet:sheet.name,row:r+1,column:col.index+1,label:col.label};
     const validation=validateGridRows([row],{from:from||'1900-01-01',to:to||'2100-12-31',management}).get(row.requestId);
-    entries.push({row,errors:validation?.errors||{},cached:Boolean(cell.f||fields.some(c=>source[c.index]?.f))});
+    entries.push({row,errors:validation?.errors||{},cached:Boolean(cell.f||fields.some(c=>source[c.index]?.f)),missingFormula:missingFormulaResult(cell)||fields.some(c=>missingFormulaResult(source[c.index]))});
    }
   }
  }
  const invalid=entries.filter(e=>Object.keys(e.errors).length).length;
- return {entries,skipped,warnings,invalid,cached:entries.filter(e=>e.cached).length,receipts:entries.filter(e=>e.row.kind==='receipt'&&Number.isSafeInteger(e.row.amount)).reduce((s,e)=>s+e.row.amount,0),payments:entries.filter(e=>e.row.kind==='payment'&&Number.isSafeInteger(e.row.amount)).reduce((s,e)=>s+e.row.amount,0)};
+ return {entries,skipped,warnings,invalid,cached:entries.filter(e=>e.cached).length,missingFormula:entries.filter(e=>e.missingFormula).length,receipts:entries.filter(e=>e.row.kind==='receipt'&&Number.isSafeInteger(e.row.amount)).reduce((s,e)=>s+e.row.amount,0),payments:entries.filter(e=>e.row.kind==='payment'&&Number.isSafeInteger(e.row.amount)).reduce((s,e)=>s+e.row.amount,0)};
 }
 
 export async function identifyImportedRows(entries,unit){

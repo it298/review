@@ -26,8 +26,8 @@ test('two-row hotel headers exclude previously collected deposits and do not tur
  ['2026-08-01','009698','Booking','TT trực tiếp','Tiền phòng','','102',1500,600,400,200,700,300,100,50,40]
  ]),b=detectFinanceBlocks(s),p=previewFinanceImport(s,b,opts);assert.equal(b[0].depth,2);assert.equal(p.entries.length,6);assert.equal(p.receipts,1750);assert.equal(p.entries.filter(e=>e.row.category==='deposit').length,2);assert.ok(p.entries.every(e=>e.row.bookingCode==='009698'));assert.equal(p.invalid,0);
 });
-test('cached formulas require opt-in, errors remain visible and numeric 1904 dates keep calendar day',()=>{
- const s=sheet('Thu',[['Ngày','Nội dung','Thu tiền mặt'],[44774,{v:'Thu phòng',f:'"Thu phòng"'},{v:100,f:'50+50'}]],true),blocks=detectFinanceBlocks(s),p=previewFinanceImport(s,blocks,{...opts,from:'2026-01-01',to:'2026-12-31'});assert.equal(p.entries[0].row.date,'2026-08-02');assert.equal(p.invalid,1);assert.ok(validateGridRows([p.entries[0].row],opts).get(p.entries[0].row.requestId).errors.description);const cached=previewFinanceImport(s,blocks,{...opts,allowCached:true});assert.equal(cached.entries[0].row.amount,100);assert.equal(cached.cached,1);assert.equal(cached.invalid,0);
+test('stored formula values load by default; explicit opt-out remains reversible and 1904 dates keep calendar day',()=>{
+ const s=sheet('Thu',[['Ngày','Nội dung','Thu tiền mặt'],[44774,{v:'Thu phòng',f:'"Thu phòng"'},{v:100,f:'50+50'}]],true),blocks=detectFinanceBlocks(s),p=previewFinanceImport(s,blocks,{...opts,from:'2026-01-01',to:'2026-12-31',allowCached:false});assert.equal(p.entries[0].row.date,'2026-08-02');assert.equal(p.invalid,1);assert.ok(validateGridRows([p.entries[0].row],opts).get(p.entries[0].row.requestId).errors.description);const cached=previewFinanceImport(s,blocks,opts);assert.equal(cached.entries[0].row.amount,100);assert.equal(cached.cached,1);assert.equal(cached.invalid,0);
 });
 test('inference keeps unknown fields and blank dates for correction; repeated imports have stable IDs scoped to unit',async()=>{
  assert.equal(guessCategory('Chi tiền điện nước'),'operations');assert.equal(guessCategory('Mua hàng hóa NK'),'inventory');assert.equal(guessCategory('Không rõ chi gì'),'');assert.equal(guessMethod('TT trực tiếp'),'');
@@ -51,4 +51,21 @@ test('repeated merged headers, right-side reconciliation and daily summaries nev
 
 test('explicit default day fills an incomplete transaction while a number-only total is still excluded',()=>{
  const s=sheet('Thu',[['Ngày','Hạng mục','Thu tiền mặt'],['','Tiền phòng',100],['','',9999]]),b=detectFinanceBlocks(s),p=previewFinanceImport(s,b,{...opts,defaultDate:'2026-08-03'});assert.equal(p.entries.length,1);assert.equal(p.entries[0].row.date,'2026-08-03');assert.equal(p.entries[0].row.description,'Tiền phòng');assert.equal(p.receipts,100);assert.equal(p.invalid,0);
+});
+
+test('formula-driven dates, descriptions and money all load automatically, zero is skipped and old balances stay excluded',()=>{
+ const f=v=>({v,f:'external_or_local_formula()'}),s=sheet('THU MINI MART',[
+ ['Ngày','Nội dung','Thu tiền mặt','Shopee Food'],
+ [f(''),f(''),null,f(1182)],
+ [f(46235),f('Thu tiền bán hàng'),f(100),null],
+ [f(46235),f('Thu tiền bán hàng'),f(0),f(-50)]
+ ]),p=previewFinanceImport(s,detectFinanceBlocks(s),opts);assert.equal(p.entries.length,2);assert.equal(p.invalid,0);assert.equal(p.receipts,50);assert.equal(p.entries[0].row.date,'2026-08-01');assert.equal(p.missingFormula,0);assert.ok(p.skipped.some(e=>e.row===2));assert.ok(!JSON.stringify(p.entries).includes('#CÔNG THỨC:'));
+});
+
+test('missing formula cache is distinct from zero and has a single actionable error per field',()=>{
+ const s=sheet('Thu',[['Ngày','Nội dung','Thu tiền mặt'],['2026-08-01','Thu phòng',{f:'50+50'}],['2026-08-02',{f:'LOOKUP(A1)'},100]]),p=previewFinanceImport(s,detectFinanceBlocks(s),opts);assert.equal(p.entries.length,2);assert.equal(p.invalid,2);assert.equal(p.missingFormula,2);assert.match(p.entries[0].errors.amount,/chưa có kết quả/);assert.equal(p.entries[0].errors.rule,undefined);assert.match(p.entries[1].errors.description,/chưa có kết quả/);
+});
+
+test('binary XLSX keeps formula cache availability for actual cached dates, blank optional fields and missing results',async()=>{
+ const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Thu');ws.addRow(['Ngày','Nội dung','Thu tiền mặt']);ws.addRow([{formula:'DATE(2026,8,1)',result:46235},{formula:'"Thu phòng"',result:'Thu phòng'},{formula:'50+50',result:100}]);ws.addRow(['2026-08-02','Thu phòng chưa lưu',{formula:'1+2'}]);const bytes=await wb.xlsx.writeBuffer(),book=await readFinanceExcel({name:'formula.xlsx',size:bytes.length,arrayBuffer:async()=>bytes});const s=book.sheets[0],p=previewFinanceImport(s,detectFinanceBlocks(s),opts);assert.equal(p.entries[0].row.date,'2026-08-01');assert.equal(p.entries[0].row.amount,100);assert.equal(Object.keys(p.entries[0].errors).length,0);assert.equal(p.missingFormula,1);assert.match(p.entries[1].errors.amount,/chưa có kết quả/);
 });
