@@ -1,5 +1,6 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {lock} from '../../store.js';
+import {normalizeManagementReport} from '../../../../shared/excel-dashboard.js';
 const bucket='vjh-management-reports';
 const fail=(message,status=503)=>Object.assign(new Error(message),{status});
 async function request(path,options={}){
@@ -18,13 +19,13 @@ async function ensureBucket(){
 const activePath=(unit,month,family)=>unit+'/active/'+month+'--'+family+'.json';
 async function read(path){const r=await request('object/'+bucket+'/'+path);if(r.status===404)return null;if(r.status===400){const body=await r.json().catch(()=>null);if(/(?:object|bucket|resource).*(?:not found|does not exist)|NoSuchKey|NoSuchBucket/i.test(body?.message||body?.error||body?.code||''))return null;throw fail('Không đọc được báo cáo đã lưu.');}if(!r.ok)throw fail('Không đọc được báo cáo đã lưu.');return r.json();}
 async function put(path,bytes,mime){const r=await request('object/'+bucket+'/'+path,{method:'POST',headers:{'Content-Type':mime,'x-upsert':'true'},body:bytes});if(!r.ok)throw fail('Chưa lưu được báo cáo; số đang xem chưa được cập nhật.');}
-export const readReport=(unit,month,family)=>read(activePath(unit,month,family));
+export const readReport=async(unit,month,family)=>normalizeManagementReport(await read(activePath(unit,month,family)));
 export async function saveReport(report,bytes,actor){
  await ensureBucket();const path=activePath(report.unit,report.month,report.family),release=await lock('management-report:'+path,180);
  if(!release)throw fail('Cơ sở này đang tải báo cáo, thử lại sau.',409);
  try{
   const previous=await read(path),hash=createHash('sha256').update(bytes).digest('hex');
-  if(previous?.hash===hash)return {record:previous,unchanged:true};
+  if(previous?.hash===hash)return {record:normalizeManagementReport(previous),unchanged:true};
   const id=randomUUID();
   const record={...report,id,hash,uploadedAt:new Date().toISOString(),uploadedBy:actor};
   const json=Buffer.from(JSON.stringify(record));if(json.length>5*1024*1024)throw fail('Báo cáo phân tích vượt 5 MB; chia file nhỏ hơn.',400);

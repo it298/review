@@ -1,7 +1,7 @@
 import {fold,detectFinanceBlocks,previewFinanceImport} from './finance-excel-import.js';
 import {parseGridDay,parseGridMoney} from './finance-grid.js';
 import {isDay} from './finance.js';
-export const REPORT_VERSION=1;
+export const REPORT_VERSION=2;
 export function validMonth(month){return typeof month==='string'&&/^\d{4}-\d{2}$/.test(month)&&isDay(month+'-01');}
 export function monthFromFilename(name){const m=String(name).match(/(?:tháng|thang|[_\s]t)\s*(\d{1,2})[_\s/-]*(20\d{2})/i);return m?m[2]+'-'+m[1].padStart(2,'0'):null;}
 const value=c=>!c||c.type==='e'||c.f&&c.cacheAvailable===false?null:c.v??null;
@@ -9,6 +9,20 @@ const text=c=>String(value(c)??'').trim();
 const money=c=>{const v=value(c);if(v==null||v==='')return null;const n=typeof v==='number'?v:parseGridMoney(v);return Number.isFinite(n)&&Math.abs(n)<=1e12?Math.round(n*100)/100:null;};
 const date=(c,s)=>{const v=value(c);return typeof v==='number'&&s.date1904?new Date(Date.UTC(1904,0,1)+Math.floor(v)*86400000).toISOString().slice(0,10):parseGridDay(v);};
 const sum=(rows,key)=>{const known=rows.filter(r=>r[key]!=null);return known.length?Math.round(known.reduce((s,r)=>s+r[key],0)*100)/100:null;};
+const dashboardNote=message=>message.replaceAll('Chọn hạng mục hợp lệ.','Chưa có hạng mục nhận diện được; số tiền vẫn tính vào tổng, ở nhóm Chưa phân loại.').replaceAll('Nội dung cần từ 1 đến 1.000 ký tự.','Diễn giải trống hoặc vượt giới hạn; không ảnh hưởng tổng thu–chi.').replaceAll('Chọn phương thức hợp lệ.','Chưa nhận diện phương thức thanh toán; số tiền vẫn tính vào tổng.');
+const serviceNote=r=>`Ô ${r.cost==null&&r.sale==null?'giá thuê và giá bán':r.cost==null?'giá thuê':'giá bán'} chưa có số trong file; ${r.reportedProfit!=null?'lợi nhuận được lấy từ cột Lợi nhuận đã lưu trong file.':'chưa có đủ số để tính chênh lệch giá bán − thuê.'}`;
+// Upgrade stored v1 snapshots on read using their preserved source cells. Never rewrite originals.
+export function normalizeManagementReport(report){
+ if(!report||report.version>=REPORT_VERSION)return report;
+ const sources=new Map((report.sheets||[]).map(s=>{const rows=s.sourceRows||[],header=rows.find(r=>r.cells.some(c=>fold(c)==='giadvthue')&&r.cells.some(c=>fold(c)==='giabandv'));return [s.name,{column:header?.cells.findIndex(c=>fold(c)==='loinhuan')??-1,rows:new Map(rows.map(r=>[r.row,r.cells]))}];}));
+ const services=(report.services||[]).map(r=>{const s=sources.get(r.origin.sheet),cells=s?.rows.get(r.origin.row);return {...r,reportedProfit:money({v:s?.column>=0?cells?.[s.column]:null})};});
+ const issues=(report.issues||[]).map(i=>{const service=services.find(r=>r.origin.sheet===i.sheet&&r.origin.row===i.row);return {...i,message:service&&i.message==='Dịch vụ thiếu giá thuê hoặc giá bán; chưa tính đủ lợi nhuận.'?serviceNote(service):dashboardNote(i.message)};});
+ return {...report,version:REPORT_VERSION,services,issues,entries:(report.entries||[]).map(r=>({...r,notes:(r.notes||[]).map(dashboardNote)}))};
+}
+export function groupReportIssues(reports){
+ const groups=new Map();for(const report of reports)for(const issue of report.issues||[]){const key=JSON.stringify([report.unit,report.fileName,issue.sheet,issue.message]);if(!groups.has(key))groups.set(key,{file:report.fileName,sheet:issue.sheet,message:issue.message,rows:new Set(),count:0});const group=groups.get(key);group.count++;if(issue.row)group.rows.add(issue.row);}
+ return [...groups.values()].map(g=>({...g,rows:[...g.rows].sort((a,b)=>a-b)}));
+}
 export function analyzeWorkbook(book,month){
  if(!validMonth(month))throw Error('Chọn tháng báo cáo hợp lệ.');
  const family=book.sheets.some(s=>/^kq/.test(fold(s.name)))?'business':'cash',entries=[],services=[],statements=[],sheetInfo=[],issues=[];
@@ -25,17 +39,17 @@ export function analyzeWorkbook(book,month){
      missingAmounts++;issues.push({...origin,message:'Không tính vào tổng: thiếu ngày, số tiền hoặc loại thu/chi hợp lệ.'});continue;
     }
     if(r.date.slice(0,7)!==month){outsidePeriod++;continue;}
-    const notes=[...new Set(Object.entries(e.errors).filter(([k])=>!['reference','rule','depositRef'].includes(k)).map(([,v])=>v))];
+    const notes=[...new Set(Object.entries(e.errors).filter(([k])=>!['reference','rule','depositRef'].includes(k)).map(([,v])=>dashboardNote(v)))];
     if(e.errors.reference)notes.push('Thông tin giống dòng khác trong file; giữ nguyên từng ô nguồn.');
     if(notes.length)issues.push({...origin,message:notes.join(' ')});
     entries.push({date:r.date,kind:r.kind,category:r.category||'unclassified',description:/^#/.test(r.description)?'':r.description,amount:r.amount,method:r.method,bookingCode:r.bookingCode,room:r.room,source:r.source,origin,notes});count++;
    }
   }else if(/^(dvngoai|dichvungoai)$/.test(name)){
    type='services';const header=sheet.rows.findIndex(r=>r.some(c=>fold(text(c))==='giadvthue')&&r.some(c=>fold(text(c))==='giabandv'));
-   if(header>=0){const h=sheet.rows[header],at=pattern=>h.findIndex(c=>pattern.test(fold(text(c)))),d=at(/^date|^ngay/),booking=at(/^idphong$/),service=at(/^dichvu$/),description=at(/^diengiai$/),cost=at(/^giadvthue$/),sale=at(/^giabandv$/),commission=at(/^chietkhau20/),staff=at(/^nhanvien$/);
+   if(header>=0){const h=sheet.rows[header],at=pattern=>h.findIndex(c=>pattern.test(fold(text(c)))),d=at(/^date|^ngay/),booking=at(/^idphong$/),service=at(/^dichvu$/),description=at(/^diengiai$/),cost=at(/^giadvthue$/),sale=at(/^giabandv$/),profit=at(/^loinhuan$/),commission=at(/^chietkhau20/),staff=at(/^nhanvien$/);
     for(let i=header+1;i<sheet.rows.length;i++){const r=sheet.rows[i],day=date(r[d],sheet);if(!isDay(day))continue;if(day.slice(0,7)!==month){outsidePeriod++;continue;}const selling=money(r[sale]),buying=money(r[cost]),commissionValue=money(r[commission]);if(!text(r[service])&&!text(r[booking]))continue;
-     const origin={sheet:sheet.name,row:i+1};services.push({date:day,bookingCode:cleanId(r[booking]),service:text(r[service]),description:text(r[description]),staff:text(r[staff]),cost:buying,sale:selling,margin:buying!=null&&selling!=null?Math.round((selling-buying)*100)/100:null,commission:commissionValue,origin});count++;
-     if(buying==null||selling==null)issues.push({...origin,message:'Dịch vụ thiếu giá thuê hoặc giá bán; chưa tính đủ lợi nhuận.'});
+     const origin={sheet:sheet.name,row:i+1},entry={date:day,bookingCode:cleanId(r[booking]),service:text(r[service]),description:text(r[description]),staff:text(r[staff]),cost:buying,sale:selling,reportedProfit:money(r[profit]),margin:buying!=null&&selling!=null?Math.round((selling-buying)*100)/100:null,commission:commissionValue,origin};services.push(entry);count++;
+     if(buying==null||selling==null)issues.push({...origin,message:serviceNote(entry)});
     }
    }
   }else if(/^kq/.test(name)){
@@ -78,6 +92,6 @@ export function dashboardFromReports(records,{from,to}={}){
   if(!days.has(r.date))days.set(r.date,{date:r.date,receipts:0,payments:0});days.get(r.date)[r.kind==='receipt'?'receipts':'payments']+=r.amount;
  }
  const comparable=statements.filter(s=>s.sourceMonth===s.month&&(!from||from<=s.month+'-01')&&(!to||to>=monthEnd(s.month)));
- return {entries:filtered,services:serviceRows,statements,coverage,totals:cashTotals(filtered),categories:[...categories.values()],methods:[...methods.values()],daily:[...days.values()].sort((a,b)=>a.date.localeCompare(b.date)),business:{revenue:sum(comparable,'revenue'),expenses:sum(comparable,'expenses'),profit:sum(comparable,'profit'),reports:comparable.length},serviceTotals:{sale:sum(serviceRows,'sale'),knownCost:sum(serviceRows.filter(r=>r.cost!=null),'cost'),margin:serviceRows.length&&serviceRows.every(r=>r.margin!=null)?sum(serviceRows,'margin'):null,commission:serviceRows.length&&serviceRows.every(r=>r.commission!=null)?sum(serviceRows,'commission'):null,missingCost:serviceRows.filter(r=>r.cost==null).length}};
+ return {entries:filtered,services:serviceRows,statements,coverage,totals:cashTotals(filtered),categories:[...categories.values()],methods:[...methods.values()],daily:[...days.values()].sort((a,b)=>a.date.localeCompare(b.date)),business:{revenue:sum(comparable,'revenue'),expenses:sum(comparable,'expenses'),profit:sum(comparable,'profit'),reports:comparable.length},serviceTotals:{reportedProfit:serviceRows.length&&serviceRows.every(r=>r.reportedProfit!=null)?sum(serviceRows,'reportedProfit'):null,missingReportedProfit:serviceRows.filter(r=>r.reportedProfit==null).length,sale:sum(serviceRows,'sale'),knownCost:sum(serviceRows.filter(r=>r.cost!=null),'cost'),margin:serviceRows.length&&serviceRows.every(r=>r.margin!=null)?sum(serviceRows,'margin'):null,commission:serviceRows.length&&serviceRows.every(r=>r.commission!=null)?sum(serviceRows,'commission'):null,missingCost:serviceRows.filter(r=>r.cost==null).length}};
 }
 export function monthEnd(month){return new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10);}

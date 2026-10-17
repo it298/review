@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as XLSX from '@e965/xlsx';
 import {readFinanceExcel} from '../../shared/finance-excel-import.js';
-import {analyzeWorkbook,dashboardFromReports,monthFromFilename} from '../../shared/excel-dashboard.js';
+import {analyzeWorkbook,dashboardFromReports,monthFromFilename,normalizeManagementReport,groupReportIssues} from '../../shared/excel-dashboard.js';
 import {checkExcelArchive} from '../src/modules/excel-reports/archive.js';
 import {managementFixture} from '../../scripts/lib/management-fixture.mjs';
 const sheet=(name,rows)=>({name,rows:rows.map(r=>r.map(v=>v&&typeof v==='object'?v:{v}))});
 const cashBook=()=>({name:'KT THU CHI T8_2026.xlsx',sheets:[sheet('BK THU KS',[['Ngày','Dịch vụ','Ghi chú','Tiền TK','Mã booking'],['2026-08-01','Tiền phòng','',100000,'BK1'],['2026-08-02','','Phí chuyển khoản expedia',-2200,''],['2026-08-03','','',7650000,'BK2'],['2026-07-31','Tiền phòng','',999999,'OTHER']]),sheet('BK CHI KS',[['Ngày','Hạng mục','Nội dung chi','Chi tiền mặt'],['2026-08-02','Casual HK','Casual HK',300000]]),sheet('DV Ngoài',[['DATE (ngày đặt)','Nhân viên','ID PHÒNG','Dịch vụ','Diễn giải','Giá DV thuê','Giá bán DV','Lợi nhuận','Chiết khấu 20%'],['2026-08-01','Linh','BK1','DV Xe máy','Thuê xe',90000,160000,70000,14000],['2026-08-02','','BK2','Giặt ủi','',null,50000,50000,10000]]),sheet('Tổng hợp tham chiếu',[['Tổng',999999999999]])]});
 test('workbook dashboard preserves cash signs, original duplicate cells and incomplete descriptions without duplicate detail totals',()=>{
- const b=cashBook();b.sheets[0].rows.push(b.sheets[0].rows[1]);const r=analyzeWorkbook(b,'2026-08');assert.equal(r.entries.length,5);assert.equal(r.totals.receipts,7847800);assert.equal(r.totals.payments,300000);assert.equal(r.services.length,2);assert.equal(r.services[1].cost,null);assert.equal(r.services[1].margin,null);assert.equal(r.quality.outsidePeriod,1);assert.ok(r.issues.some(i=>i.message.includes('Nội dung')));assert.ok(r.issues.some(i=>i.message.includes('giống')));assert.equal(r.sheets.find(s=>s.type==='reference').sourceRows.length,1);assert.equal(monthFromFilename(b.name),'2026-08');assert.throws(()=>analyzeWorkbook(b,'2026-13'));
- const dashboard=dashboardFromReports([{...r,unit:'a',unitName:'A'}],{from:'2026-08-01',to:'2026-08-31'});assert.equal(dashboard.serviceTotals.sale,210000);assert.equal(dashboard.serviceTotals.margin,null);assert.equal(dashboard.totals.receipts,r.totals.receipts);assert.equal(dashboard.business.revenue,null);
+ const b=cashBook();b.sheets[0].rows.push(b.sheets[0].rows[1]);const r=analyzeWorkbook(b,'2026-08');assert.equal(r.entries.length,5);assert.equal(r.totals.receipts,7847800);assert.equal(r.totals.payments,300000);assert.equal(r.services.length,2);assert.equal(r.services[1].cost,null);assert.equal(r.services[1].margin,null);assert.equal(r.quality.outsidePeriod,1);assert.ok(r.issues.some(i=>i.message.includes('Diễn giải')));assert.ok(r.issues.some(i=>i.message.includes('giống')));assert.equal(r.sheets.find(s=>s.type==='reference').sourceRows.length,1);assert.equal(monthFromFilename(b.name),'2026-08');assert.throws(()=>analyzeWorkbook(b,'2026-13'));
+ const dashboard=dashboardFromReports([{...r,unit:'a',unitName:'A'}],{from:'2026-08-01',to:'2026-08-31'});assert.equal(dashboard.serviceTotals.sale,210000);assert.equal(dashboard.serviceTotals.margin,null);assert.equal(dashboard.serviceTotals.reportedProfit,120000);assert.equal(dashboard.totals.receipts,r.totals.receipts);assert.equal(dashboard.business.revenue,null);
 });
 test('cash file wins over copied ledgers in HĐKD; subtotal rows and wrong-month statements never inflate results',()=>{
  const cash={...analyzeWorkbook(cashBook(),'2026-08'),unit:'a',unitName:'A'};
@@ -27,7 +27,7 @@ test('actual HTTP uploads are durable snapshots, idempotent across users, scope 
   assert.equal((await upload('viewer')).status,403);assert.equal((await upload('member',binary(),'yzistel-hoi-an')).status,403);assert.equal(f.objects.size,0);
   const first=await upload('member');assert.equal(first.status,200);const saved=await first.json();assert.ok(saved.report.id);assert.equal(saved.report.entries,undefined);assert.equal(saved.report.totals,undefined);assert.equal(f.objects.size,3);
   let reports=(await (await read('admin')).json()).reports;assert.equal(reports.length,1);assert.equal(reports[0].totals.receipts,100000);assert.equal(reports[0].sheets[0].sourceRows,undefined);
-  const bytes=binary(),same=await (await upload('admin',bytes)).json();assert.equal(same.unchanged,true);assert.equal(same.report.id,saved.report.id);assert.equal(f.objects.size,3);
+  const activeKey=[...f.objects.keys()].find(k=>k.includes('/active/')),old=JSON.parse(f.objects.get(activeKey));old.version=1;old.entries[0].notes=['Chọn hạng mục hợp lệ.'];f.objects.set(activeKey,Buffer.from(JSON.stringify(old)));reports=(await (await read('admin')).json()).reports;assert.equal(reports[0].version,2);assert.ok(reports[0].entries[0].notes[0].includes('Chưa phân loại'));assert.equal(JSON.parse(f.objects.get(activeKey)).version,1);const bytes=binary(),same=await (await upload('admin',bytes)).json();assert.equal(same.report.version,2);assert.equal(same.unchanged,true);assert.equal(same.report.id,saved.report.id);assert.equal(f.objects.size,3);
   const metadata=await (await read('member')).json();assert.equal(metadata.reports[0].entries,undefined);assert.equal((await f.fetch(url+'/source?unit=sontra-sea-hotel&month=2026-08&family=cash',{headers:{Authorization:'Bearer member'}})).status,403);assert.equal((await read('manager','yzistel-hoi-an')).status,403);
   const source=await (await f.fetch(url+'/source?unit=sontra-sea-hotel&month=2026-08&family=cash',{headers:{Authorization:'Bearer admin'}})).json();assert.equal(source.sheets[0].sourceRows.length,2);
   book.Sheets['BK THU KS'].D2.v=200000;f.setFailActive(true);assert.equal((await upload('admin')).status,503);reports=(await (await read('admin')).json()).reports;assert.equal(reports[0].totals.receipts,100000);f.setFailActive(false);
@@ -39,4 +39,17 @@ test('actual HTTP uploads are durable snapshots, idempotent across users, scope 
 
 test('XLSX expansion guard rejects unsupported, encrypted/zip64 and oversized archives before parsing',()=>{
  assert.throws(()=>checkExcelArchive(Buffer.from('not excel')),/File Excel/);const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['test',1]]),'Sheet1');const bytes=Buffer.from(XLSX.write(book,{type:'buffer',bookType:'xlsx'}));assert.doesNotThrow(()=>checkExcelArchive(bytes));const offset=bytes.indexOf(Buffer.from([80,75,1,2]));bytes.writeUInt32LE(101*1024*1024,offset+24);assert.throws(()=>checkExcelArchive(bytes),/100 MB/);
+});
+
+
+test('source profit is independent of missing cost; cached values, zero and negative profit survive while missing formulas stay unavailable',()=>{
+ const b=cashBook(),s=b.sheets[2];s.rows[1][7]={v:-1.25};s.rows[2][7]={v:0};let report=analyzeWorkbook(b,'2026-08'),d=dashboardFromReports([{...report,unit:'a'}]);assert.equal(d.serviceTotals.reportedProfit,-1.25);assert.equal(d.serviceTotals.margin,null);assert.equal(d.services[1].cost,null);assert.equal(d.services[1].reportedProfit,0);
+ s.rows[2][7]={f:'G3-F3',cacheAvailable:false};report=analyzeWorkbook(b,'2026-08');d=dashboardFromReports([{...report,unit:'a'}]);assert.equal(d.serviceTotals.reportedProfit,null);assert.equal(d.serviceTotals.missingReportedProfit,1);assert.equal(report.services[1].reportedProfit,null);
+ s.rows[2][7]={f:'G3-F3',v:50000,cacheAvailable:true};assert.equal(analyzeWorkbook(b,'2026-08').services[1].reportedProfit,50000);
+});
+
+test('legacy snapshots recover explicit profit from source cells without altering original objects; identical notes group with all row positions',()=>{
+ const legacy={...analyzeWorkbook(cashBook(),'2026-08'),version:1,unit:'a'};for(const service of legacy.services)delete service.reportedProfit;legacy.issues=legacy.issues.map(i=>i.sheet==='DV Ngoài'?{...i,message:'Dịch vụ thiếu giá thuê hoặc giá bán; chưa tính đủ lợi nhuận.'}:i);const original=JSON.stringify(legacy),upgraded=normalizeManagementReport(legacy);assert.equal(upgraded.services[1].reportedProfit,50000);assert.equal(upgraded.services[1].cost,null);assert.equal(upgraded.services[1].margin,null);assert.ok(upgraded.issues.some(i=>i.message.includes('cột Lợi nhuận')));assert.equal(JSON.stringify(legacy),original);
+ const groups=groupReportIssues([{...upgraded,issues:[{sheet:'DV Ngoài',row:10,message:'Blank cost'},{sheet:'DV Ngoài',row:11,message:'Blank cost'},{sheet:'BK THU KS',row:303,message:'Missing description'}]}]);assert.equal(groups.length,2);assert.deepEqual(groups[0].rows,[10,11]);assert.equal(groups[0].count,2);
+ const noSource=normalizeManagementReport({...legacy,sheets:[]});assert.equal(noSource.services[1].reportedProfit,null);
 });
