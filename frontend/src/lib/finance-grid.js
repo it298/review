@@ -39,6 +39,7 @@ export function validateGridRows(rows,{from,to,management=false,locked=()=>false
  rows.forEach((row,index)=>{
   if(row._state==='saved'||!hasGridInput(row))return;
   const errors={};const date=parseGridDay(row.date),amount=parseGridMoney(row.amount);
+  for(const c of gridColumns)if(/^#(?:CÔNG THỨC|LỖI EXCEL):/.test(String(row[c.key]??'')))errors[c.key]='Ô Excel chưa có giá trị dùng được. Nhập lại hoặc xác nhận kết quả công thức đã lưu.';
   if(!isDay(date))errors.date='Ngày chưa hợp lệ; dùng dd/mm/yyyy hoặc yyyy-mm-dd.';
   else if(date<from||date>to)errors.date='Ngày nằm ngoài khoảng báo cáo.';
   else if(locked(date))errors.date='Ngày / tháng đã gửi hoặc khóa; cần quản lý mở lại.';

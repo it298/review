@@ -8,8 +8,22 @@
 
 ## Nhập nhanh
 
+### Tải file Excel và tự ghép cột
+
+Bấm **Tải Excel lên**, chọn file `.xlsx` / `.xls` tối đa 10 MB. File được đọc ngay trong trình duyệt; file gốc không được gửi lên máy chủ. Chọn sheet và cơ sở/kỳ nhận đúng với file. Hệ thống tự tìm hàng tiêu đề, ghép tên cột tiếng Việt/tiếng Anh thông dụng, nhận diện bảng thu/chi đặt cạnh nhau và tiêu đề hai hàng của mẫu khách sạn. Một hàng có tiền mặt, chuyển khoản hoặc thu/chi ở nhiều cột sẽ tách thành các nghiệp vụ riêng. Các bảng số tổng/đối chiếu bên phải và khoản cọc đã thu trước đó được loại khỏi phần nhập tự động để tránh tính trùng.
+
+Mở **Xem / sửa ghép cột tự động** để đổi trường tương ứng hoặc bỏ qua cột. Có thể đổi hàng tiêu đề và chọn ngày, loại, phương thức mặc định cho ô trống. Các hạng mục/phương thức chưa rõ được giữ lại để sửa, không tự áp vào một hạng mục tùy ý. Hệ thống không tự tạo doanh thu hoặc chi phí đã ghi sổ từ tổng tiền thu/chi.
+
+Xem trước tối đa 30 dòng và tổng Thu/Chi của các vùng đang chọn trong sheet. Bấm xem các dòng/ô bỏ qua để kiểm tra dòng tổng, dòng không có thông tin và tiền bằng 0. Công thức Excel không được thực thi: chỉ khi tích **Dùng kết quả công thức đã lưu** mới dùng giá trị đã lưu trong file; cần bảo đảm file đã tính và lưu đúng trước khi tải. Ô lỗi/không có kết quả vẫn bị đánh dấu.
+
+Chọn **Từ nghiệp vụ số**, **Số nghiệp vụ đưa vào bảng** để nhập từng đợt tối đa 500 dòng, tùy số chỗ còn trống trong bảng. Xác nhận đúng cơ sở/vùng/cột, bấm **Đưa N dòng vào bảng**. Dữ liệu lúc này mới có ở bảng nhập; kiểm tra ô đỏ, sửa và bấm **Lưu N dòng chờ duyệt**. Với file lớn, giữ phần nhập file mở, lưu và dọn các dòng thành công rồi nhập tiếp đợt sau. Chọn sheet khác để nhập các phần còn lại.
+
+Các dòng cùng nguồn sheet/dòng/cột, cùng dữ liệu chuẩn bị và cùng cơ sở có mã chống lặp ổn định khi nhập lại. Những dòng đã có trong bảng không được thêm lại; lưu lại đúng mã qua cùng tài khoản không tạo thêm bản ghi. Đây không phải bảo đảm gộp mọi bản sao đã sửa nội dung, đổi vị trí nguồn hoặc nhập bằng các tài khoản khác nhau; vẫn đối chiếu chứng từ như khi nhập trực tiếp.
+
+### Gõ hoặc dán vùng ô
+
 1. Mỗi dòng là một nghiệp vụ. Có sẵn 20 dòng trống; thêm 20 hoặc 100 dòng, tối đa 500 dòng trong một bảng.
-2. Nhập trực tiếp hoặc sao chép vùng ô Excel rồi Ctrl+V vào ô bắt đầu. Dán được cả hàng tiêu đề theo mẫu; cột theo tên sẽ được nhận diện dù đổi thứ tự. **Mẫu cột để dán** tải hàng tiêu đề TSV để mở trong Excel. Chức năng này dán dữ liệu ô, chưa tải lên nguyên workbook XLSX.
+2. Nhập trực tiếp hoặc sao chép vùng ô Excel rồi Ctrl+V vào ô bắt đầu. Dán được cả hàng tiêu đề theo mẫu; cột theo tên sẽ được nhận diện dù đổi thứ tự. **Mẫu cột để dán** tải hàng tiêu đề TSV để mở trong Excel; hoặc dùng chức năng tải file ở trên.
 3. Cột cơ bản: ngày, loại nghiệp vụ, hạng mục, phương thức, tiền VND, nội dung, số chứng từ, mã booking và phòng. Bật **Thông tin bổ sung** để nhập nguồn/đối tác, người nộp/nhận, ca, mã cọc, tính chi phí và lý do trùng.
 4. Ngày dùng `dd/mm/yyyy` hoặc `yyyy-mm-dd`. Tiền dùng số nguyên VND như `1250000` hoặc `1.250.000`. Công thức tiền, số thập phân và giá trị không hợp lệ bị chặn; không thực thi công thức Excel.
 5. **Tab** chuyển ô tiếp; **Enter** xuống dòng cùng cột; **Shift+bấm chuột** chọn vùng; **Ctrl+C** sao chép vùng; **Ctrl+D** điền xuống; **Ctrl+Z** hoàn tác và **Ctrl+Shift+Z** làm lại. Chọn ô vuông đầu dòng để nhân đôi hoặc xóa dòng trong bảng.
