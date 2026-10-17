@@ -1,10 +1,12 @@
 import {financeKinds,financeCategories,financeMethods,isDay,validateFinanceEntry} from '../../../shared/finance.js';
 import {FINANCE_BATCH_LIMIT} from '../../../shared/finance-batch.js';
 export const GRID_LIMIT=500,BATCH_SIZE=FINANCE_BATCH_LIMIT;
-export const gridColumns=[
+// Keep legacy payload order for retry/reconciliation and existing import identifiers.
+export const entryColumns=[
  {key:'date',label:'Ngày',width:126},{key:'kind',label:'Loại nghiệp vụ',width:160},{key:'category',label:'Hạng mục',width:172},{key:'method',label:'Phương thức',width:152},{key:'amount',label:'Số tiền VND',width:160},{key:'description',label:'Nội dung',width:280},{key:'reference',label:'Số chứng từ',width:154},{key:'bookingCode',label:'Mã booking',width:140},{key:'room',label:'Phòng',width:100},
  {key:'source',label:'Nguồn / đối tác',width:170,extra:true},{key:'counterparty',label:'Người nộp / nhận',width:180,extra:true},{key:'shift',label:'Ca / nhân viên',width:150,extra:true},{key:'depositRef',label:'Mã cọc',width:140,extra:true},{key:'recognizeExpense',label:'Tính chi phí',width:135,extra:true},{key:'duplicateReason',label:'Lý do trùng',width:220,extra:true}
 ];
+export const gridColumns=entryColumns.filter(c=>c.key!=='reference');
 const fold=v=>String(v??'').trim().toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]/g,'');
 export function enumValue(value,dict){return Object.entries(dict).find(([key,label])=>fold(value)===fold(key)||fold(value)===fold(label))?.[0]??String(value).trim();}
 export function parseGridMoney(value){
@@ -31,7 +33,7 @@ export function normalizeGridCell(key,value){
  if(key==='recognizeExpense'){if(typeof value==='boolean')return value;const v=fold(value);return ['true','1','co','yes','x'].includes(v)?true:['false','0','khong','no',''].includes(v)?false:String(value);}
  return String(value??'');
 }
-export function rowPayload(row){return validateFinanceEntry({...Object.fromEntries(gridColumns.map(c=>[c.key,row[c.key]])),requestId:row.requestId,date:parseGridDay(row.date),amount:parseGridMoney(row.amount)});}
+export function rowPayload(row){return validateFinanceEntry({...Object.fromEntries(entryColumns.map(c=>[c.key,row[c.key]])),requestId:row.requestId,date:parseGridDay(row.date),amount:parseGridMoney(row.amount)});}
 const duplicateKey=p=>JSON.stringify([p.date,p.kind,p.amount,p.reference,...(p.reference?[]:[p.category,p.method,p.description,p.bookingCode,p.room,p.source,p.counterparty,p.shift,p.depositRef])]);
 export function validateGridRows(rows,{from,to,management=false,locked=()=>false,existing=[]}){
  const results=new Map(),keys=new Map();
@@ -74,14 +76,15 @@ export function pasteGrid(rows,text,startRow,startColumn,defaults){
  if(text.length>1e6)throw Error('Vùng dán quá lớn, tối đa 1 MB / 500 dòng.');
  let matrix=parseGridTsv(text),columns=null;
  const headers=new Map(gridColumns.flatMap(c=>[[fold(c.label),c.key],[fold(c.key),c.key]]));
- for(const [label,key] of [['Ngày phát sinh','date'],['Loại','kind'],['Số tiền','amount'],['Chứng từ','reference'],['Nguồn','source'],['Ca','shift'],['Người nộp/nhận','counterparty']])headers.set(fold(label),key);
+ for(const [label,key] of [['Ngày phát sinh','date'],['Loại','kind'],['Số tiền','amount'],['Nguồn','source'],['Ca','shift'],['Người nộp/nhận','counterparty']])headers.set(fold(label),key);
+ for(const label of ['reference','Số chứng từ','Chứng từ','Số hóa đơn'])headers.set(fold(label),'_ignoreReference');
  const matched=matrix[0]?.map(v=>headers.get(fold(v)))||[];
  if(matched.filter(Boolean).length>=2){if(matched.some(v=>!v))throw Error('Tiêu đề chưa khớp cột trong bảng. Dùng mẫu cột để tránh bỏ sót dữ liệu.');if(new Set(matched).size!==matched.length)throw Error('Tiêu đề có cột bị lặp.');columns=matched;matrix=matrix.slice(1);}
  if(startRow+matrix.length>GRID_LIMIT)throw Error('Tối đa 500 dòng. Vùng dán chưa được áp dụng; chia thành nhiều đợt.');
  if(matrix.some(r=>r.length>(columns?.length??gridColumns.length-startColumn)))throw Error('Vùng dán vượt số cột. Chọn ô bắt đầu hoặc dùng đúng mẫu cột.');
  const next=rows.slice();while(next.length<startRow+matrix.length)next.push(blankGridRow(defaults));
- matrix.forEach((cells,i)=>{if(gridFrozen(next[startRow+i]))throw Error('Vùng dán chạm dòng đã gửi / đã lưu. Chọn các dòng mới bên dưới.');const row={...next[startRow+i],_error:'',_state:'new'};delete row._submitted;cells.forEach((value,j)=>{const key=columns?columns[j]:gridColumns[startColumn+j].key;row[key]=normalizeGridCell(key,value);});next[startRow+i]=row;});
- return {rows:next,extra:columns?columns.some(k=>gridColumns.find(c=>c.key===k)?.extra):matrix.some(r=>r.length+startColumn>9),count:matrix.length};
+ matrix.forEach((cells,i)=>{if(gridFrozen(next[startRow+i]))throw Error('Vùng dán chạm dòng đã gửi / đã lưu. Chọn các dòng mới bên dưới.');const row={...next[startRow+i],_error:'',_state:'new'};delete row._submitted;cells.forEach((value,j)=>{const key=columns?columns[j]:gridColumns[startColumn+j].key;if(key!=='_ignoreReference')row[key]=normalizeGridCell(key,value);});next[startRow+i]=row;});
+ return {rows:next,extra:columns?columns.some(k=>gridColumns.find(c=>c.key===k)?.extra):matrix.some(r=>gridColumns.slice(startColumn,startColumn+r.length).some(c=>c.extra)),ignoredReference:Boolean(columns?.includes('_ignoreReference')),count:matrix.length};
 }
 export function gridDisplay(row,key){const value=row[key];return key==='kind'?financeKinds[value]||value:key==='category'?financeCategories[value]||value:key==='method'?financeMethods[value]||value:key==='recognizeExpense'?value===true?'Có':value===false?'Không':value:value;}
 export function copyGrid(rows,range){const escape=v=>/[\t\r\n"]/.test(String(v??''))?'"'+String(v??'').replaceAll('"','""')+'"':String(v??'');return rows.slice(range.top,range.bottom+1).map(row=>gridColumns.slice(range.left,range.right+1).map(c=>escape(gridDisplay(row,c.key))).join('\t')).join('\r\n');}

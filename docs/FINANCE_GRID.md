@@ -24,7 +24,7 @@ Các dòng cùng nguồn sheet/dòng/cột, cùng dữ liệu chuẩn bị và c
 
 1. Mỗi dòng là một nghiệp vụ. Có sẵn 20 dòng trống; thêm 20 hoặc 100 dòng, tối đa 500 dòng trong một bảng.
 2. Nhập trực tiếp hoặc sao chép vùng ô Excel rồi Ctrl+V vào ô bắt đầu. Dán được cả hàng tiêu đề theo mẫu; cột theo tên sẽ được nhận diện dù đổi thứ tự. **Mẫu cột để dán** tải hàng tiêu đề TSV để mở trong Excel; hoặc dùng chức năng tải file ở trên.
-3. Cột cơ bản: ngày, loại nghiệp vụ, hạng mục, phương thức, tiền VND, nội dung, số chứng từ, mã booking và phòng. Bật **Thông tin bổ sung** để nhập nguồn/đối tác, người nộp/nhận, ca, mã cọc, tính chi phí và lý do trùng.
+3. Cột cơ bản: ngày, loại nghiệp vụ, hạng mục, phương thức, tiền VND, nội dung, mã booking và phòng. Bật **Thông tin bổ sung** để nhập nguồn/đối tác, người nộp/nhận, ca, mã cọc, tính chi phí và lý do trùng.
 4. Ngày dùng `dd/mm/yyyy` hoặc `yyyy-mm-dd`. Tiền dùng số nguyên VND như `1250000` hoặc `1.250.000`. Công thức tiền, số thập phân và giá trị không hợp lệ bị chặn; không thực thi công thức Excel.
 5. **Tab** chuyển ô tiếp; **Enter** xuống dòng cùng cột; **Shift+bấm chuột** chọn vùng; **Ctrl+C** sao chép vùng; **Ctrl+D** điền xuống; **Ctrl+Z** hoàn tác và **Ctrl+Shift+Z** làm lại. Chọn ô vuông đầu dòng để nhân đôi hoặc xóa dòng trong bảng.
 6. Bấm **Kiểm tra bảng**, sửa ô đỏ/cột kết quả rồi **Lưu N dòng chờ duyệt**. Các dòng mẫu chưa nhập được bỏ qua. Tổng Thu/Chi phía trên chỉ cộng các dòng trong bảng, chưa phải tổng đã ghi sổ.
@@ -52,3 +52,5 @@ node scripts/check-finance-grid.mjs
 ```
 
 Script trình duyệt kiểm tra dán 500 dòng, chia đợt 25 dòng, lưu một phần, thử lại khi mất phản hồi không tạo trùng, nhập bàn phím, hoàn tác, phân quyền và cuộn bảng trên điện thoại. Dữ liệu QA không được gửi lên hệ thống đang chạy thật.
+
+Bảng nhập và phần ghép cột Excel không có trường Số chứng từ vì các mẫu thu–chi hiện tại không dùng cột này. Mã booking được giữ riêng. Cột số chứng từ trong file/mẫu dán cũ sẽ bỏ qua, các cột sau vẫn ghép đúng vị trí; dữ liệu và liên kết chứng từ đã lưu trước đây vẫn giữ nguyên.

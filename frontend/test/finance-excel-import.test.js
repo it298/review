@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFinanceExcel,detectFinanceBlocks,previewFinanceImport,identifyImportedRows,guessCategory,guessMethod} from '../src/lib/finance-excel-import.js';
+import {readFinanceExcel,detectFinanceBlocks,previewFinanceImport,identifyImportedRows,guessCategory,guessMethod,importTargets} from '../src/lib/finance-excel-import.js';
 import {validateGridRows} from '../src/lib/finance-grid.js';
 import ExcelJS from 'exceljs';
 const sheet=(name,rows,date1904=false)=>({name,date1904,rows:rows.map(r=>r.map(v=>v!=null&&typeof v==='object'?v:{v}))});
@@ -68,4 +68,9 @@ test('missing formula cache is distinct from zero and has a single actionable er
 
 test('binary XLSX keeps formula cache availability for actual cached dates, blank optional fields and missing results',async()=>{
  const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Thu');ws.addRow(['Ngày','Nội dung','Thu tiền mặt']);ws.addRow([{formula:'DATE(2026,8,1)',result:46235},{formula:'"Thu phòng"',result:'Thu phòng'},{formula:'50+50',result:100}]);ws.addRow(['2026-08-02','Thu phòng chưa lưu',{formula:'1+2'}]);const bytes=await wb.xlsx.writeBuffer(),book=await readFinanceExcel({name:'formula.xlsx',size:bytes.length,arrayBuffer:async()=>bytes});const s=book.sheets[0],p=previewFinanceImport(s,detectFinanceBlocks(s),opts);assert.equal(p.entries[0].row.date,'2026-08-01');assert.equal(p.entries[0].row.amount,100);assert.equal(Object.keys(p.entries[0].errors).length,0);assert.equal(p.missingFormula,1);assert.match(p.entries[1].errors.amount,/chưa có kết quả/);
+});
+
+test('reference is removed from mapping options, ignored in older files and does not replace booking IDs',()=>{
+ assert.ok(!importTargets.some(t=>t.key==='reference'));
+ const s=sheet('Thu',[['Ngày','Nội dung','Thu tiền mặt','Số chứng từ','ID HỆ THỐNG','Phòng'],['2026-08-01','Thu phòng',100,'CT-OLD','BOOK-123','201']]),blocks=detectFinanceBlocks(s),p=previewFinanceImport(s,blocks,opts);assert.equal(blocks[0].columns.find(c=>c.index===3).target,'');assert.equal(p.entries[0].row.reference,'');assert.equal(p.entries[0].row.bookingCode,'BOOK-123');assert.equal(p.entries[0].row.room,'201');assert.equal(p.invalid,0);
 });

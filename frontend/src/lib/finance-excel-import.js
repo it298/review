@@ -1,5 +1,5 @@
 import {financeKinds,financeCategories,financeMethods} from '../../../shared/finance.js';
-import {blankGridRow,gridColumns,normalizeGridCell,parseGridMoney,parseGridDay,validateGridRows} from './finance-grid.js';
+import {blankGridRow,gridColumns,entryColumns,normalizeGridCell,parseGridMoney,parseGridDay,validateGridRows} from './finance-grid.js';
 
 export const EXCEL_FILE_LIMIT=10*1024*1024;
 export const fold=v=>String(v??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]/g,'');
@@ -16,6 +16,7 @@ function headerTarget(label,context,kind){
  if(!s)return {target:'',reason:'Không có tiêu đề'};
  if(/^(tong|tondau|toncuoi|sodu|hoahong|phiquetthe|giamgia|tonghanghuy)/.test(s))return {target:'',reason:'Tổng hợp / khấu trừ, không tự tạo thêm tiền thu–chi'};
  if(/coc/.test(s)&&(/da[oơ]|danhan/.test(all))&&!/chuao/.test(s))return {target:'',reason:'Cọc đã nhận trước đó, tránh tính thu lần hai'};
+ if(exact.get(s)==='reference')return {target:'',reason:'Không dùng cột số chứng từ trong bảng thu–chi'};
  if(exact.has(s))return {target:exact.get(s)};
  if(/^date/.test(s))return {target:'date'};
  let method=/shopee|grab/.test(s)?'platform':/taikhoan|tientk|tienck|coctk/.test(s)?'bank':/visa|quetthe|tienthe|thevisa/.test(s)?'card':/tienmat|tientm|thutm|chitm|coctm/.test(s)?'cash':'';
@@ -131,7 +132,7 @@ export function previewFinanceImport(sheet,blocks,{management=false,defaultKind=
 
 export async function identifyImportedRows(entries,unit){
  return Promise.all(entries.map(async entry=>{
-  const row=entry.row||entry,origin=row._importSource,canonical=gridColumns.map(c=>row[c.key]);
+  const row=entry.row||entry,origin=row._importSource,canonical=entryColumns.map(c=>row[c.key]);
   const bytes=new TextEncoder().encode(JSON.stringify(['vjh-finance-import-v1',unit,origin,canonical]));
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).slice(0,16);digest[6]=(digest[6]&15)|80;digest[8]=(digest[8]&63)|128;
   const h=digest.map(v=>v.toString(16).padStart(2,'0')).join(''),requestId=h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
