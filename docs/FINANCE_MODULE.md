@@ -1,3 +1,5 @@
+> Tài liệu luồng tài chính cũ. Luồng chính hiện tại là [Báo cáo quản lý từ Excel](MANAGEMENT_REPORTS.md); các bước nhập/duyệt/chốt dưới đây không còn hiển thị ở sidebar. Dữ liệu/API cũ vẫn được giữ.
+
 # Thu–chi & HĐKD
 
 **Current workflow and role matrix:** see [FINANCE_OPERATIONS.md](FINANCE_OPERATIONS.md). The sections below record earlier milestones; the books upgrade supersedes their role/UI and missing-feature descriptions.

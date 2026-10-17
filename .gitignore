@@ -16,3 +16,5 @@ worker/ycs-profile/
 worker/extranet-profiles/
 worker/evidence/*.lock
 worker/*.traineddata*
+
+.npm-cache/

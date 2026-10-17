@@ -1,3 +1,4 @@
+import {createExcelReportsRouter} from './modules/excel-reports/router.js';
 import express from 'express';
 import {authMode,authenticateUser,installPublicAuth,installPrivateAuth} from './auth.js';
 import {createBluejayRouter} from './modules/bluejay/router.js';
@@ -84,6 +85,7 @@ export function createApp(){
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/bluejay',createBluejayRouter());
  app.use('/api/finance',createFinanceRouter());
+ app.use('/api/management-reports',createExcelReportsRouter());
  app.get('/api/marketing/status',async(_req,res,next)=>{try{res.json(await marketingStatus());}catch(e){next(e);}});
  app.get('/api/marketing/report',async(req,res,next)=>{try{res.json(await readPerformance(req.query.placeId,req.query.from,req.query.to));}catch(e){next(e);}});
  app.post('/api/marketing/sync',async(req,res,next)=>{try{res.json(await syncPerformance(req.body?.from,req.body?.to));}catch(e){next(e);}});

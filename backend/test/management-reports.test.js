@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as XLSX from '@e965/xlsx';
+import {readFinanceExcel} from '../../shared/finance-excel-import.js';
+import {analyzeWorkbook,dashboardFromReports,monthFromFilename} from '../../shared/excel-dashboard.js';
+import {checkExcelArchive} from '../src/modules/excel-reports/archive.js';
+import {managementFixture} from '../../scripts/lib/management-fixture.mjs';
+const sheet=(name,rows)=>({name,rows:rows.map(r=>r.map(v=>v&&typeof v==='object'?v:{v}))});
+const cashBook=()=>({name:'KT THU CHI T8_2026.xlsx',sheets:[sheet('BK THU KS',[['Ngày','Dịch vụ','Ghi chú','Tiền TK','Mã booking'],['2026-08-01','Tiền phòng','',100000,'BK1'],['2026-08-02','','Phí chuyển khoản expedia',-2200,''],['2026-08-03','','',7650000,'BK2'],['2026-07-31','Tiền phòng','',999999,'OTHER']]),sheet('BK CHI KS',[['Ngày','Hạng mục','Nội dung chi','Chi tiền mặt'],['2026-08-02','Casual HK','Casual HK',300000]]),sheet('DV Ngoài',[['DATE (ngày đặt)','Nhân viên','ID PHÒNG','Dịch vụ','Diễn giải','Giá DV thuê','Giá bán DV','Lợi nhuận','Chiết khấu 20%'],['2026-08-01','Linh','BK1','DV Xe máy','Thuê xe',90000,160000,70000,14000],['2026-08-02','','BK2','Giặt ủi','',null,50000,50000,10000]]),sheet('Tổng hợp tham chiếu',[['Tổng',999999999999]])]});
+test('workbook dashboard preserves cash signs, original duplicate cells and incomplete descriptions without duplicate detail totals',()=>{
+ const b=cashBook();b.sheets[0].rows.push(b.sheets[0].rows[1]);const r=analyzeWorkbook(b,'2026-08');assert.equal(r.entries.length,5);assert.equal(r.totals.receipts,7847800);assert.equal(r.totals.payments,300000);assert.equal(r.services.length,2);assert.equal(r.services[1].cost,null);assert.equal(r.services[1].margin,null);assert.equal(r.quality.outsidePeriod,1);assert.ok(r.issues.some(i=>i.message.includes('Nội dung')));assert.ok(r.issues.some(i=>i.message.includes('giống')));assert.equal(r.sheets.find(s=>s.type==='reference').sourceRows.length,1);assert.equal(monthFromFilename(b.name),'2026-08');assert.throws(()=>analyzeWorkbook(b,'2026-13'));
+ const dashboard=dashboardFromReports([{...r,unit:'a',unitName:'A'}],{from:'2026-08-01',to:'2026-08-31'});assert.equal(dashboard.serviceTotals.sale,210000);assert.equal(dashboard.serviceTotals.margin,null);assert.equal(dashboard.totals.receipts,r.totals.receipts);assert.equal(dashboard.business.revenue,null);
+});
+test('cash file wins over copied ledgers in HĐKD; subtotal rows and wrong-month statements never inflate results',()=>{
+ const cash={...analyzeWorkbook(cashBook(),'2026-08'),unit:'a',unitName:'A'};
+ const book=cashBook();book.sheets.push(sheet('KQ HĐKD',[['Kết quả'],['STT','Chỉ tiêu','Mã số',46235],['','I, TỔNG DOANH THU (I=1-2)','',500],['','Tiền phòng','',400],['','II, TỔNG CHI PHÍ HĐKD','',250.25],['','III, Lợi nhuận thuần từ HĐKD','',249.75]]));
+ const business={...analyzeWorkbook(book,'2026-08'),unit:'a',unitName:'A'},range={from:'2026-08-01',to:'2026-08-31'},d=dashboardFromReports([cash,business],range);assert.equal(d.totals.receipts,cash.totals.receipts);assert.equal(d.services.length,2);assert.equal(d.business.revenue,500);assert.equal(d.business.profit,249.75);assert.equal(dashboardFromReports([cash,business],{...range,to:'2026-08-15'}).business.revenue,null);
+ book.sheets.at(-1).rows[1][3].v=46204;const wrong={...analyzeWorkbook(book,'2026-08'),unit:'a'};assert.equal(wrong.statements[0].sourceMonth,'2026-07');assert.ok(wrong.issues.some(i=>i.message.includes('khác tháng')));assert.equal(dashboardFromReports([cash,wrong],range).business.revenue,null);
+});
+test('missing cached formulas do not become zero, and unsupported/error sheets fail without changing a prior snapshot',()=>{
+ const b=cashBook();b.sheets[0].rows[1][3]={f:'SUM(A1:A2)',cacheAvailable:false};const r=analyzeWorkbook(b,'2026-08');assert.equal(r.quality.missingAmounts,1);assert.equal(r.entries.some(e=>e.bookingCode==='BK1'),false);assert.throws(()=>analyzeWorkbook({name:'x.xlsx',sheets:[sheet('Unknown',[['X',123]])]},'2026-08'),/Chưa nhận diện/);assert.throws(()=>analyzeWorkbook({name:'x.xlsx',sheets:[{name:'too big',error:'Vượt giới hạn'}]},'2026-08'),/Vượt/);
+});
+test('actual HTTP uploads are durable snapshots, idempotent across users, scope protected, replacement atomic and leave legacy ledger untouched',async()=>{
+ const f=await managementFixture();const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Ngày','Dịch vụ','Ghi chú','Tiền TK'],['2026-08-01','Tiền phòng','Thu phòng',100000]]),'BK THU KS');const binary=()=>Buffer.from(XLSX.write(book,{type:'buffer',bookType:'xlsx'}));
+ const url=f.origin+'/api/management-reports',upload=(role,bytes=binary(),unit='sontra-sea-hotel')=>f.fetch(url+'?'+new URLSearchParams({unit,month:'2026-08',name:'KT THU CHI T8_2026.xlsx'}),{method:'POST',headers:{Authorization:'Bearer '+role,'Content-Type':'application/octet-stream'},body:bytes}),read=(role,unit='all')=>f.fetch(url+'?'+new URLSearchParams({unit,month:'2026-08'}),{headers:{Authorization:'Bearer '+role}});
+ try{
+  assert.equal((await upload('viewer')).status,403);assert.equal((await upload('member',binary(),'yzistel-hoi-an')).status,403);assert.equal(f.objects.size,0);
+  const first=await upload('member');assert.equal(first.status,200);const saved=await first.json();assert.ok(saved.report.id);assert.equal(saved.report.entries,undefined);assert.equal(saved.report.totals,undefined);assert.equal(f.objects.size,3);
+  let reports=(await (await read('admin')).json()).reports;assert.equal(reports.length,1);assert.equal(reports[0].totals.receipts,100000);assert.equal(reports[0].sheets[0].sourceRows,undefined);
+  const bytes=binary(),same=await (await upload('admin',bytes)).json();assert.equal(same.unchanged,true);assert.equal(same.report.id,saved.report.id);assert.equal(f.objects.size,3);
+  const metadata=await (await read('member')).json();assert.equal(metadata.reports[0].entries,undefined);assert.equal((await f.fetch(url+'/source?unit=sontra-sea-hotel&month=2026-08&family=cash',{headers:{Authorization:'Bearer member'}})).status,403);assert.equal((await read('manager','yzistel-hoi-an')).status,403);
+  const source=await (await f.fetch(url+'/source?unit=sontra-sea-hotel&month=2026-08&family=cash',{headers:{Authorization:'Bearer admin'}})).json();assert.equal(source.sheets[0].sourceRows.length,2);
+  book.Sheets['BK THU KS'].D2.v=200000;f.setFailActive(true);assert.equal((await upload('admin')).status,503);reports=(await (await read('admin')).json()).reports;assert.equal(reports[0].totals.receipts,100000);f.setFailActive(false);
+  const updated=await (await upload('admin')).json();assert.equal(updated.replaced,true);assert.notEqual(updated.report.id,saved.report.id);assert.equal(updated.report.totals.receipts,200000);assert.equal((await (await read('admin')).json()).reports.length,1);
+  assert.equal((await upload('admin',Buffer.from('not excel'))).status,400);assert.equal((await (await read('admin')).json()).reports[0].totals.receipts,200000);
+  assert.equal((await f.db.query('select count(*)::int n from public.review_tracker_finance_entries')).rows[0].n,0);
+ }finally{await f.close();}
+});
+
+test('XLSX expansion guard rejects unsupported, encrypted/zip64 and oversized archives before parsing',()=>{
+ assert.throws(()=>checkExcelArchive(Buffer.from('not excel')),/File Excel/);const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['test',1]]),'Sheet1');const bytes=Buffer.from(XLSX.write(book,{type:'buffer',bookType:'xlsx'}));assert.doesNotThrow(()=>checkExcelArchive(bytes));const offset=bytes.indexOf(Buffer.from([80,75,1,2]));bytes.writeUInt32LE(101*1024*1024,offset+24);assert.throws(()=>checkExcelArchive(bytes),/100 MB/);
+});

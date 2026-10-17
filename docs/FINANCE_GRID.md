@@ -1,3 +1,5 @@
+> Tài liệu luồng tài chính cũ. Luồng chính hiện tại là [Báo cáo quản lý từ Excel](MANAGEMENT_REPORTS.md); các bước nhập/duyệt/chốt dưới đây không còn hiển thị ở sidebar. Dữ liệu/API cũ vẫn được giữ.
+
 # Nhập thu–chi nhiều dòng như Excel
 
 ## Mở màn hình
