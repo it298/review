@@ -72,3 +72,10 @@ Xác nhận qua phần xem trước hoặc bảng giữ cùng mã chống gửi 
 Nhãn “DỊCH VỤ KS”, “DV KS”, “Dịch vụ khách sạn”, kê đệm/giường phụ và phụ thu trẻ em được nhận diện là **Dịch vụ khách sạn**. Nếu cột dịch vụ ghi nhãn chung này nhưng nội dung rõ là tiền phòng/nâng hạng phòng, phần mềm ưu tiên **Tiền phòng**; khoản không rõ hạng mục vẫn cần sửa. Nội dung, mã booking, phương thức, số tiền và dấu âm được giữ nguyên. Thu dịch vụ vẫn là tiền thu chờ duyệt, không tự ghi nhận thêm doanh thu HĐKD.
 
 Hạng mục mới dùng chung cho frontend và backend, cần triển khai cả hai. Không cần thay đổi bảng Supabase. Với bảng nháp đã nhập trước bản sửa, chọn hạng mục mới trong ô đang đỏ hoặc tải lại file vào bảng mới; không thêm lần hai các dòng đã lưu bằng cách đổi vị trí/cấu trúc file.
+
+
+### Phí ngân hàng và lãi tiền gửi
+
+“Phí chuyển khoản expedia”, phí chuyển tiền/ngân hàng/duy trì tài khoản được nhận diện là **Phí ngân hàng / chuyển khoản**. “Lãi tiền gửi”, lãi ngân hàng/tài khoản là **Lãi tiền gửi**. Có thể sửa hạng mục này trong bảng nháp sau khi bản mới được triển khai.
+
+Giữ loại và dấu theo file: khoản phí -2.200đ trong cột thu chuyển khoản vẫn là điều chỉnh giảm tiền thu; khoản lãi 19.487đ là tiền thu. Hai khoản làm tăng tiền thu ròng 17.287đ, không tự tạo khoản chi 2.200đ khác hoặc ghi doanh thu/chi phí HĐKD lần nữa. Khi cần ghi nhận kết quả kinh doanh, quản lý ghi nghiệp vụ doanh thu lãi hoặc chi phí ngân hàng riêng theo luồng hiện có. Hạng mục mới cần cả frontend/backend cùng phiên bản; không cần SQL mới. Ô thiếu nội dung/hạng mục vẫn cần người nhập xác nhận, không tự điền thông tin không có trong file.

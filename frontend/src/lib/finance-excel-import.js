@@ -82,6 +82,8 @@ export function guessCategory(value){
  const s=fold(value),direct=normalizeGridCell('category',clean(value));if(Object.hasOwn(financeCategories,direct))return direct;
  if(/^(tienquetthe(?:thangnay|thangtruoc)?|doisoat(?:tien)?the|quyettoan(?:tien)?the|chuyentienthe(?:venganhang|vetaikhoan)?)$/.test(s))return 'card_settlement';
  if(/^(dichvuks|dvks|dichvukhachsan)$/.test(s)||/^(?:ke)?(?:dem|giuong)phu|^extrabed|^phuthutreem/.test(s))return 'hotel_service';
+ if(/^(phichuyenkhoan|phinganhang|phichuyentien|phiduytritaikhoan)/.test(s))return 'bank_fee';
+ if(/^(laitiengui|lainganhang|laitaikhoan)/.test(s))return 'interest_income';
  const rules=[['deposit',/tiencoc|cocphong|datcoc/],['minibar',/minibar/],['laundry',/giatui|giatla/],['outside_service',/dichvungoai|dvthuexe|dvxemay|dvx[e]?oto/],['room',/tienphong|thuphong|doanhthuphong|nanghangphong|langhangphong/],['sales',/banhang|thuminimart/],['commission',/hoahong/],['card_fee',/phiquetthe|phithe/],['inventory',/muahanghoa|nhaphang|hanghoank/],['assets',/tscd|taisan|ccdc|congcudungcu/],['repair',/suachua|baoduong/],['payroll',/luong|nhansu|baohiem|bhxh|thuongnv|thuongnhanvien/],['rent',/thuenha|thuematbang/],['tax',/thue(gtgt|tn|monbai)|nopthue/],['marketing',/marketing|maketing|quangcao/],['refund',/hoantien/],['funding',/nhapquy|gopvon/],['withdrawal',/rutquy|trachudautu/],['operations',/diennuoc|tienmang|vesinh|vattu|vanhanh|dvketoan/],['other',/^(khac|chikhac|thukhac|chiphikhac)$/]];
  return rules.find(([,re])=>re.test(s))?.[0]||'';
 }

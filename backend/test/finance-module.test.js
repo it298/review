@@ -5,6 +5,13 @@ import {readFile} from 'node:fs/promises';
 import {financeSummary,validateFinanceEntry,reconcileDay} from '../../shared/finance.js';
 const fixture=()=>({requestId:'11111111-1111-4111-8111-111111111111',date:'2026-08-01',kind:'receipt',category:'deposit',method:'bank',amount:500000,description:'Nhận cọc',depositRef:'BK001'});
 
+test('signed bank fees and interest reconcile as received cash without implicit profit-and-loss entries',()=>{
+ const entry=extra=>({...validateFinanceEntry({...fixture(),...extra}),status:'posted'}),fee=entry({category:'bank_fee',description:'Phí chuyển khoản expedia',amount:-2200}),interest=entry({category:'interest_income',description:'Lãi tiền gửi',amount:19487}),cash=[fee,interest],summary=financeSummary(cash);
+ assert.equal(summary.receipts,17287);assert.equal(summary.payments,0);assert.equal(summary.revenue,null);assert.equal(summary.expenses,0);assert.equal(reconcileDay(cash).find(r=>r.method==='bank').expected,17287);
+ const cost=entry({kind:'expense',method:'none',category:'bank_fee',description:'Ghi nhận phí ngân hàng',amount:2200}),income=entry({kind:'revenue',method:'none',category:'interest_income',description:'Ghi nhận lãi tiền gửi',amount:19487}),recognized=financeSummary([...cash,cost,income]);assert.equal(recognized.receipts,17287);assert.equal(recognized.revenue,19487);assert.equal(recognized.expenses,2200);assert.equal(recognized.provisionalResult,17287);
+ assert.throws(()=>entry({kind:'expense',method:'none',category:'interest_income',amount:100}),/hạng mục chi phí/);
+});
+
 test('hotel services preserve receipts, corrections and method balances without automatic revenue recognition',()=>{
  const service=extra=>({...validateFinanceEntry({...fixture(),category:'hotel_service',description:'Kê đệm phụ',amount:240000,bookingCode:'1738668686',...extra}),status:'posted'}),entries=[service(),service({amount:-40000})],summary=financeSummary(entries);
  assert.equal(summary.receipts,200000);assert.equal(summary.revenue,null);assert.equal(summary.expenses,0);assert.equal(reconcileDay(entries).find(r=>r.method==='bank').expected,200000);assert.equal(entries[0].bookingCode,'1738668686');
