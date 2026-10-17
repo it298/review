@@ -4,6 +4,12 @@ import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
 import {financeSummary,validateFinanceEntry,reconcileDay} from '../../shared/finance.js';
 const fixture=()=>({requestId:'11111111-1111-4111-8111-111111111111',date:'2026-08-01',kind:'receipt',category:'deposit',method:'bank',amount:500000,description:'Nhận cọc',depositRef:'BK001'});
+
+test('hotel services preserve receipts, corrections and method balances without automatic revenue recognition',()=>{
+ const service=extra=>({...validateFinanceEntry({...fixture(),category:'hotel_service',description:'Kê đệm phụ',amount:240000,bookingCode:'1738668686',...extra}),status:'posted'}),entries=[service(),service({amount:-40000})],summary=financeSummary(entries);
+ assert.equal(summary.receipts,200000);assert.equal(summary.revenue,null);assert.equal(summary.expenses,0);assert.equal(reconcileDay(entries).find(r=>r.method==='bank').expected,200000);assert.equal(entries[0].bookingCode,'1738668686');
+ const recognized=service({kind:'revenue',method:'none',amount:200000});assert.equal(financeSummary([...entries,recognized]).revenue,200000);assert.equal(financeSummary([...entries,recognized]).receipts,200000);
+});
 test('card settlement preserves method balances and cannot become another revenue or expense',()=>{
  const entry=extra=>({...validateFinanceEntry({...fixture(),category:'card_settlement',description:'Đối soát tiền thẻ',...extra}),status:'posted'}),entries=[entry({category:'minibar',method:'card',amount:100000}),entry({method:'bank',amount:97000}),entry({method:'card',amount:-100000})],summary=financeSummary(entries),balances=reconcileDay(entries);
  assert.equal(summary.receipts,97000);assert.equal(summary.cashChange,97000);assert.equal(summary.revenue,null);assert.equal(summary.expenses,0);assert.equal(balances.find(r=>r.method==='card').expected,0);assert.equal(balances.find(r=>r.method==='bank').expected,97000);

@@ -65,3 +65,10 @@ Phần xem trước kiểm tra trùng trên toàn bộ vùng đã chọn, kể c
 Khi các ô gốc khác nhau có cùng thông tin, người nhập cần đối chiếu file. Nếu là các nghiệp vụ riêng, chọn “Tôi đã đối chiếu…” trong phần nhập Excel hoặc “Đã đối chiếu, giữ … dòng theo Excel” trên bảng. Phần mềm ghi lý do vào từng nghiệp vụ, không tự xóa, gộp hoặc bỏ qua dòng. Nếu là lặp thực sự, xóa dòng thừa trong bảng. Nút xác nhận không áp dụng cho bản sao nhập tay, cùng ô Excel, chứng từ trùng hoặc dòng đã gửi/lưu. Sửa nội dung sau khi xác nhận sẽ bỏ xác nhận tự động để kiểm tra lại. Nhân đôi dòng không sao chép lý do trùng.
 
 Xác nhận qua phần xem trước hoặc bảng giữ cùng mã chống gửi lại theo cơ sở/ô gốc/dữ liệu; không tạo mã mới chỉ vì xác nhận trùng. Chỉ dữ liệu được lưu chờ duyệt sau khi bấm Lưu; quản lý tiếp tục duyệt như các khoản khác.
+
+
+### Dịch vụ khách sạn
+
+Nhãn “DỊCH VỤ KS”, “DV KS”, “Dịch vụ khách sạn”, kê đệm/giường phụ và phụ thu trẻ em được nhận diện là **Dịch vụ khách sạn**. Nếu cột dịch vụ ghi nhãn chung này nhưng nội dung rõ là tiền phòng/nâng hạng phòng, phần mềm ưu tiên **Tiền phòng**; khoản không rõ hạng mục vẫn cần sửa. Nội dung, mã booking, phương thức, số tiền và dấu âm được giữ nguyên. Thu dịch vụ vẫn là tiền thu chờ duyệt, không tự ghi nhận thêm doanh thu HĐKD.
+
+Hạng mục mới dùng chung cho frontend và backend, cần triển khai cả hai. Không cần thay đổi bảng Supabase. Với bảng nháp đã nhập trước bản sửa, chọn hạng mục mới trong ô đang đỏ hoặc tải lại file vào bảng mới; không thêm lần hai các dòng đã lưu bằng cách đổi vị trí/cấu trúc file.

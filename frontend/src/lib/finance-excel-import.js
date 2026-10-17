@@ -81,6 +81,7 @@ export function detectFinanceBlocks(sheet,headerOverride){
 export function guessCategory(value){
  const s=fold(value),direct=normalizeGridCell('category',clean(value));if(Object.hasOwn(financeCategories,direct))return direct;
  if(/^(tienquetthe(?:thangnay|thangtruoc)?|doisoat(?:tien)?the|quyettoan(?:tien)?the|chuyentienthe(?:venganhang|vetaikhoan)?)$/.test(s))return 'card_settlement';
+ if(/^(dichvuks|dvks|dichvukhachsan)$/.test(s)||/^(?:ke)?(?:dem|giuong)phu|^extrabed|^phuthutreem/.test(s))return 'hotel_service';
  const rules=[['deposit',/tiencoc|cocphong|datcoc/],['minibar',/minibar/],['laundry',/giatui|giatla/],['outside_service',/dichvungoai|dvthuexe|dvxemay|dvx[e]?oto/],['room',/tienphong|thuphong|doanhthuphong|nanghangphong|langhangphong/],['sales',/banhang|thuminimart/],['commission',/hoahong/],['card_fee',/phiquetthe|phithe/],['inventory',/muahanghoa|nhaphang|hanghoank/],['assets',/tscd|taisan|ccdc|congcudungcu/],['repair',/suachua|baoduong/],['payroll',/luong|nhansu|baohiem|bhxh|thuongnv|thuongnhanvien/],['rent',/thuenha|thuematbang/],['tax',/thue(gtgt|tn|monbai)|nopthue/],['marketing',/marketing|maketing|quangcao/],['refund',/hoantien/],['funding',/nhapquy|gopvon/],['withdrawal',/rutquy|trachudautu/],['operations',/diennuoc|tienmang|vesinh|vattu|vanhanh|dvketoan/],['other',/^(khac|chikhac|thukhac|chiphikhac)$/]];
  return rules.find(([,re])=>re.test(s))?.[0]||'';
 }
@@ -116,7 +117,7 @@ export function previewFinanceImport(sheet,blocks,{management=false,defaultKind=
     const [,fixedKind,fixedMethod,fixedCategory,fixedSource]=col.target.split('|');
     const kind=fixedKind||guessKind(rawFields.kind||'')||block.kind||defaultKind;
     const mappedCategory=rawCategory?(guessCategory(rawCategory)||rawCategory):'';
-    const category=fixedCategory||mappedCategory||guessCategory(rawFields.description||'');
+    const category=fixedCategory||(mappedCategory==='hotel_service'?(guessCategory(rawFields.description||'')||mappedCategory):mappedCategory)||guessCategory(rawFields.description||'');
     const method=fixedMethod||(clean(rawFields.method)?guessMethod(rawFields.method)||clean(rawFields.method):(['revenue','expense','deposit_use'].includes(kind)?'none':defaultMethod));
     const row={...blankGridRow({date,kind,category,method}),...rawFields,date,kind,category,method,amount:Number.isSafeInteger(amount)?amount:clean(raw),description:clean(rawFields.description),source:fixedSource||clean(rawFields.source),recognizeExpense:rawFields.recognizeExpense==null?false:normalizeGridCell('recognizeExpense',rawFields.recognizeExpense)};
     if(!row.description&&rawCategory)row.description=rawCategory;
