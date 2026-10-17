@@ -5,6 +5,11 @@ import {readFile} from 'node:fs/promises';
 import {financeSummary,validateFinanceEntry,reconcileDay} from '../../shared/finance.js';
 const fixture=()=>({requestId:'11111111-1111-4111-8111-111111111111',date:'2026-08-01',kind:'receipt',category:'deposit',method:'bank',amount:500000,description:'Nhận cọc',depositRef:'BK001'});
 
+test('customer compensation stays a separate payment category and counts costs only when explicitly recognized',()=>{
+ const paid={...validateFinanceEntry({...fixture(),kind:'payment',category:'compensation',method:'cash',amount:850000,description:'Bồi thường áo bị giặt hỏng phòng 301'}),status:'posted'},summary=financeSummary([paid]);assert.equal(summary.payments,850000);assert.equal(summary.receipts,0);assert.equal(summary.expenses,0);assert.equal(reconcileDay([paid]).find(r=>r.method==='cash').expected,-850000);
+ const recognized=validateFinanceEntry({...paid,recognizeExpense:true});assert.equal(financeSummary([{...recognized,status:'posted'}]).expenses,850000);assert.equal(financeSummary([{...recognized,status:'posted'}]).payments,850000);assert.equal(validateFinanceEntry({...paid,kind:'expense',method:'none'}).category,'compensation');
+});
+
 test('signed bank fees and interest reconcile as received cash without implicit profit-and-loss entries',()=>{
  const entry=extra=>({...validateFinanceEntry({...fixture(),...extra}),status:'posted'}),fee=entry({category:'bank_fee',description:'Phí chuyển khoản expedia',amount:-2200}),interest=entry({category:'interest_income',description:'Lãi tiền gửi',amount:19487}),cash=[fee,interest],summary=financeSummary(cash);
  assert.equal(summary.receipts,17287);assert.equal(summary.payments,0);assert.equal(summary.revenue,null);assert.equal(summary.expenses,0);assert.equal(reconcileDay(cash).find(r=>r.method==='bank').expected,17287);

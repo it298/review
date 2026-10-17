@@ -79,3 +79,8 @@ Hạng mục mới dùng chung cho frontend và backend, cần triển khai cả
 “Phí chuyển khoản expedia”, phí chuyển tiền/ngân hàng/duy trì tài khoản được nhận diện là **Phí ngân hàng / chuyển khoản**. “Lãi tiền gửi”, lãi ngân hàng/tài khoản là **Lãi tiền gửi**. Có thể sửa hạng mục này trong bảng nháp sau khi bản mới được triển khai.
 
 Giữ loại và dấu theo file: khoản phí -2.200đ trong cột thu chuyển khoản vẫn là điều chỉnh giảm tiền thu; khoản lãi 19.487đ là tiền thu. Hai khoản làm tăng tiền thu ròng 17.287đ, không tự tạo khoản chi 2.200đ khác hoặc ghi doanh thu/chi phí HĐKD lần nữa. Khi cần ghi nhận kết quả kinh doanh, quản lý ghi nghiệp vụ doanh thu lãi hoặc chi phí ngân hàng riêng theo luồng hiện có. Hạng mục mới cần cả frontend/backend cùng phiên bản; không cần SQL mới. Ô thiếu nội dung/hạng mục vẫn cần người nhập xác nhận, không tự điền thông tin không có trong file.
+
+
+### Bồi thường, nhân sự casual và thuê cơ sở
+
+“Chi bồi thường KH” được nhập thành **Bồi thường khách hàng**, tách khỏi hoàn tiền và giặt ủi. “Casual HK”/“Casual Housekeeping” là **Nhân sự**. Nhãn “Chi thuê khách sạn” và cách viết “Chi thuê khác sạn” trong file Sơn Trà được ghép vào **Thuê mặt bằng**. Chỉ nhận diện các nhãn rõ nghĩa này, không tự gán mọi nội dung có từ bồi thường/thuê vào một nhóm. Ngày, diễn giải, dấu, số tiền và phương thức gốc được giữ nguyên. Cờ ghi chi phí không tự bật khi nhập file; các nghiệp vụ tiếp tục chờ quản lý duyệt như trước. Cần triển khai frontend/backend cùng phiên bản; không cần SQL mới.

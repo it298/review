@@ -80,6 +80,10 @@ export function detectFinanceBlocks(sheet,headerOverride){
 
 export function guessCategory(value){
  const s=fold(value),direct=normalizeGridCell('category',clean(value));if(Object.hasOwn(financeCategories,direct))return direct;
+ if(/^(?:chi)?boithuong(?:kh|khach|khachhang)$/.test(s))return 'compensation';
+ if(/^(?:casual(?:hk|housekeeping)?|(?:chi)?tiencasual(?:hk)?)$/.test(s))return 'payroll';
+ // These exact source labels include the spelling used in the Sontra rent ledger.
+ if(/^(?:chi)?thue(?:khachsan|khacsan)$/.test(s))return 'rent';
  if(/^(tienquetthe(?:thangnay|thangtruoc)?|doisoat(?:tien)?the|quyettoan(?:tien)?the|chuyentienthe(?:venganhang|vetaikhoan)?)$/.test(s))return 'card_settlement';
  if(/^(dichvuks|dvks|dichvukhachsan)$/.test(s)||/^(?:ke)?(?:dem|giuong)phu|^extrabed|^phuthutreem/.test(s))return 'hotel_service';
  if(/^(phichuyenkhoan|phinganhang|phichuyentien|phiduytritaikhoan)/.test(s))return 'bank_fee';
