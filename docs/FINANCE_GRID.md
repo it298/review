@@ -54,3 +54,5 @@ node scripts/check-finance-grid.mjs
 Script trình duyệt kiểm tra dán 500 dòng, chia đợt 25 dòng, lưu một phần, thử lại khi mất phản hồi không tạo trùng, nhập bàn phím, hoàn tác, phân quyền và cuộn bảng trên điện thoại. Dữ liệu QA không được gửi lên hệ thống đang chạy thật.
 
 Bảng nhập và phần ghép cột Excel không có trường Số chứng từ vì các mẫu thu–chi hiện tại không dùng cột này. Mã booking được giữ riêng. Cột số chứng từ trong file/mẫu dán cũ sẽ bỏ qua, các cột sau vẫn ghép đúng vị trí; dữ liệu và liên kết chứng từ đã lưu trước đây vẫn giữ nguyên.
+
+Các hạng mục “Tiền quẹt thẻ tháng này/tháng trước” được nhận diện là **Đối soát tiền thẻ**. Giữ riêng dòng ngân hàng nhận tiền và dòng điều chỉnh âm ở phương thức thẻ; không đổi dấu hoặc nhập thêm cột phí khấu trừ thành một khoản tiền thứ ba. Nhóm này không được dùng để ghi nhận doanh thu, chi phí phân bổ hay đồng thời tính chi phí. Các dòng đã đưa vào bảng trước bản cập nhật cần chọn lại hạng mục tương ứng hoặc tải lại file; phần mềm không sửa các bản ghi đã lưu.

@@ -2,8 +2,13 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
-import {financeSummary,validateFinanceEntry} from '../../shared/finance.js';
+import {financeSummary,validateFinanceEntry,reconcileDay} from '../../shared/finance.js';
 const fixture=()=>({requestId:'11111111-1111-4111-8111-111111111111',date:'2026-08-01',kind:'receipt',category:'deposit',method:'bank',amount:500000,description:'Nhận cọc',depositRef:'BK001'});
+test('card settlement preserves method balances and cannot become another revenue or expense',()=>{
+ const entry=extra=>({...validateFinanceEntry({...fixture(),category:'card_settlement',description:'Đối soát tiền thẻ',...extra}),status:'posted'}),entries=[entry({category:'minibar',method:'card',amount:100000}),entry({method:'bank',amount:97000}),entry({method:'card',amount:-100000})],summary=financeSummary(entries),balances=reconcileDay(entries);
+ assert.equal(summary.receipts,97000);assert.equal(summary.cashChange,97000);assert.equal(summary.revenue,null);assert.equal(summary.expenses,0);assert.equal(balances.find(r=>r.method==='card').expected,0);assert.equal(balances.find(r=>r.method==='bank').expected,97000);
+ for(const kind of ['revenue','expense'])assert.throws(()=>entry({kind,method:'none',amount:100}),/chỉ điều chỉnh dòng tiền/);assert.throws(()=>entry({kind:'payment',method:'bank',amount:100,recognizeExpense:true}),/xử lý riêng/);
+});
 test('cash, revenue and expenses are separate; drafts/void do not affect results, signed adjustments preserved',()=>{
  const r=validateFinanceEntry(fixture());
  const s=financeSummary([{...r,status:'posted'},{...r,kind:'payment',category:'operations',amount:100000,recognizeExpense:true,status:'posted'},{...r,kind:'payment',category:'inventory',amount:200000,status:'posted'},{...r,kind:'revenue',category:'room',amount:900000,status:'posted'},{...r,kind:'expense',category:'rent',amount:150000,status:'posted'},{...r,kind:'receipt',amount:-50000,status:'posted'},{...r,amount:9999999,status:'draft'},{...r,amount:9999999,status:'void'}]);

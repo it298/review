@@ -74,3 +74,8 @@ test('reference is removed from mapping options, ignored in older files and does
  assert.ok(!importTargets.some(t=>t.key==='reference'));
  const s=sheet('Thu',[['Ngày','Nội dung','Thu tiền mặt','Số chứng từ','ID HỆ THỐNG','Phòng'],['2026-08-01','Thu phòng',100,'CT-OLD','BOOK-123','201']]),blocks=detectFinanceBlocks(s),p=previewFinanceImport(s,blocks,opts);assert.equal(blocks[0].columns.find(c=>c.index===3).target,'');assert.equal(p.entries[0].row.reference,'');assert.equal(p.entries[0].row.bookingCode,'BOOK-123');assert.equal(p.entries[0].row.room,'201');assert.equal(p.invalid,0);
 });
+
+test('card settlements have a valid dedicated category and preserve signed bank/card legs without generating a second fee',()=>{
+ assert.equal(guessCategory('Tiền quẹt thẻ tháng này'),'card_settlement');assert.equal(guessCategory('Tiền quẹt thẻ tháng trước'),'card_settlement');assert.equal(guessCategory('Phí quẹt thẻ'),'card_fee');assert.equal(guessCategory('Tiền phòng'),'room');assert.equal(guessCategory('Quẹt thẻ chưa rõ'),'');
+ const s=sheet('BK THU KS',[['BẢNG KÊ THU TIỀN KHÁCH SẠN'],['Ngày','Dịch vụ','Ghi chú','Tiền TK','Tiền quẹt thẻ','Phí quẹt thẻ'],['2026-08-01','Tiền quẹt thẻ tháng này','',97000,-100000,3000]]),p=previewFinanceImport(s,detectFinanceBlocks(s),opts);assert.equal(p.entries.length,2);assert.equal(p.invalid,0);assert.deepEqual(p.entries.map(e=>[e.row.kind,e.row.category,e.row.method,e.row.amount]),[['receipt','card_settlement','bank',97000],['receipt','card_settlement','card',-100000]]);assert.equal(p.receipts,-3000);assert.ok(p.entries.every(e=>e.row.description==='Tiền quẹt thẻ tháng này'&&!e.row.recognizeExpense));
+});
