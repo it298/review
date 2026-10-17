@@ -19,6 +19,12 @@ Luồng chính thay cho mục Thu–chi & HĐKD: **Báo cáo quản lý → ch�
 - Các sheet khác (kho, kiểm kê, đồ vải, công suất, OTA/OTP, phân bổ…) giữ để đối chiếu nguồn, chưa tự suy diễn thành tiền/tỷ lệ tổng hợp. Không coi ô trống là 0 hoặc cộng các sheet tổng hợp trùng chi tiết.
 - Cơ sở/tháng dùng tối đa một bản `cash` và một bản `business`. Bản cash ưu tiên cho thu–chi, tránh cộng thêm BK THU/BK CHI sao chép trong file QL HĐKD. Nếu chưa có cash riêng thì dùng bản sao trong business. File chỉ có thêm phần chi tiết không phải dữ liệu bổ sung để cộng với bản cùng loại; hãy tải bản đầy đủ cho kỳ đó.
 
+## Xóa toàn bộ lịch sử
+
+Quản trị viên mở **Lịch sử báo cáo → Xóa toàn bộ lịch sử báo cáo**, nhập đúng `XOA TAT CA`, rồi bấm **Xác nhận xóa vĩnh viễn**. Phạm vi là mọi cơ sở và mọi kỳ (kể cả cơ sở đã bỏ khỏi danh mục), không phụ thuộc bộ lọc. Xóa file gốc, các bản phân tích lịch sử và bản dashboard đang dùng trong bucket riêng `vjh-management-reports`; không có hoàn tác trong phần mềm. Sau xóa, lịch sử/dashboard được làm mới và có thể tải Excel lại từ đầu. Nhân viên, quản lý và chỉ xem không có quyền gọi API xóa.
+
+Backend khóa dùng chung với upload, liệt kê đầy đủ trước khi xóa, xóa theo lô tối đa 1.000 tệp qua [Storage remove API](https://supabase.com/docs/reference/javascript/storage-from-remove) và kiểm tra lại kho trống trước khi báo thành công. Không đụng bucket khác, dữ liệu review, Blue Jay hay sổ tài chính cũ. Lỗi giữa chừng hiển thị chưa hoàn tất; làm mới rồi thử xóa lại để xử lý phần còn lại. Giới hạn một lượt: 10.000 tệp/500 trang danh sách và thời gian dưới thời hạn khóa; kho lớn hơn cần xử lý riêng. Kiểm thử xóa chỉ dùng kho giả lập, không chạy xóa dữ liệu môi trường thật.
+
 ## Lưu trữ và quyền
 
 Backend tự đọc binary Excel, không tin số tổng do client gửi. Lưu riêng vào bucket **private `vjh-management-reports`** trong Supabase Storage bằng service key backend hiện có, không thay đổi ledger và không cần SQL mới. Bucket được tạo ở lần upload đầu; không cấp quyền đọc công khai. Cần SUPABASE_URL và service secret có quyền Storage. File gốc, bản phân tích lịch sử và bản đang dùng lưu riêng; công bố bản đang dùng sau khi hai bản đầu đã lưu thành công. Đọc lại sau tải trang vẫn có báo cáo.

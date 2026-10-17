@@ -85,3 +85,19 @@ test('saved-period history survives reload, groups families, paginates and confi
   f.setFailListing(true);assert.equal((await history('admin')).status,503);f.setFailListing(false);assert.equal((await history('admin')).status,200);
  }finally{await f.close();}
 });
+
+
+test('delete all history requires admin and explicit confirmation; removes all report files, handles failure, concurrency, retries and post-delete upload',async()=>{
+ const f=await managementFixture(),url=f.origin+'/api/management-reports',headers=role=>({Authorization:'Bearer '+role,'Content-Type':'application/json'}),remove=(role,body={scope:'all',confirmation:'XOA TAT CA'})=>f.fetch(url+'/history',{method:'DELETE',headers:headers(role),body:JSON.stringify(body)});
+ try{
+  const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Ngày','Dịch vụ','Ghi chú','Tiền TK'],['2026-08-01','Tiền phòng','Saved amount',100000]]),'BK THU KS');const bytes=Buffer.from(XLSX.write(book,{type:'buffer',bookType:'xlsx'})),upload=()=>f.fetch(url+'?unit=sontra-sea-hotel&month=2026-08&name=KT_T8_2026.xlsx',{method:'POST',headers:{Authorization:'Bearer admin','Content-Type':'application/octet-stream'},body:bytes});assert.equal((await upload()).status,200);
+  const initial=f.objects.size;for(const role of ['member','manager','viewer'])assert.equal((await remove(role)).status,403);assert.equal((await remove('admin',{scope:'all'})).status,400);assert.equal((await remove('admin',{scope:'one',confirmation:'XOA TAT CA'})).status,400);assert.equal(f.objects.size,initial);assert.equal(f.getDeleteCalls(),0);
+  f.locks.add('management-reports:write');assert.equal((await remove('admin')).status,409);assert.equal((await upload()).status,409);f.locks.delete('management-reports:write');
+  // Include old/removed units and more than one page of old versions/binaries.
+  f.objects.set('retired-unit/active/2025-01--cash.json',Buffer.from('{}'));for(let n=0;n<1004;n++)f.objects.set('retired-unit/history/version-'+String(n).padStart(4,'0')+'.json',Buffer.from('{}'));f.objects.set('retired-unit/original/source.bin',Buffer.from('binary'));
+  f.setFailListing(true);assert.equal((await remove('admin')).status,503);assert.equal(f.getDeleteCalls(),0);f.setFailListing(false);f.setFailDeleteAfter(0);assert.equal((await remove('admin')).status,503);assert.equal(f.objects.size,initial+1006);
+  f.setFailDeleteAfter(1);const partial=await remove('admin');assert.equal(partial.status,503);assert.ok((await partial.json()).error.includes('chưa xác nhận xóa hết'));assert.ok(f.objects.size>0);assert.equal([...f.objects.keys()].some(k=>k.includes('/active/')),false);assert.equal(f.locks.size,0);
+  f.setFailDeleteAfter(null);const done=await remove('admin');assert.equal(done.status,200);assert.equal(f.objects.size,0);assert.deepEqual((await (await f.fetch(url+'/history',{headers:headers('admin')})).json()).periods,[]);assert.deepEqual((await (await f.fetch(url+'?month=2026-08',{headers:headers('admin')})).json()).reports,[]);assert.equal((await remove('admin')).status,200);assert.equal((await upload()).status,200);assert.equal(f.objects.size,3);assert.equal(f.locks.size,0);
+  assert.equal((await f.db.query('select count(*)::int n from public.review_tracker_finance_entries')).rows[0].n,0);
+ }finally{await f.close();}
+});

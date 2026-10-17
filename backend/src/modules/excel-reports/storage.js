@@ -2,6 +2,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {lock} from '../../store.js';
 import {normalizeManagementReport,validMonth} from '../../../../shared/excel-dashboard.js';
 const bucket='vjh-management-reports';
+const writeLock='management-reports:write';
 const fail=(message,status=503)=>Object.assign(new Error(message),{status});
 async function request(path,options={}){
  const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -21,9 +22,9 @@ async function read(path){const r=await request('object/'+bucket+'/'+path);if(r.
 async function put(path,bytes,mime){const r=await request('object/'+bucket+'/'+path,{method:'POST',headers:{'Content-Type':mime,'x-upsert':'true'},body:bytes});if(!r.ok)throw fail('Chưa lưu được báo cáo; số đang xem chưa được cập nhật.');}
 export const readReport=async(unit,month,family)=>normalizeManagementReport(await read(activePath(unit,month,family)));
 export async function saveReport(report,bytes,actor){
- await ensureBucket();const path=activePath(report.unit,report.month,report.family),release=await lock('management-report:'+path,180);
- if(!release)throw fail('Cơ sở này đang tải báo cáo, thử lại sau.',409);
+ const release=await lock(writeLock,300);if(!release)throw fail('Báo cáo đang được cập nhật hoặc xóa; thử lại sau.',409);
  try{
+  await ensureBucket();const path=activePath(report.unit,report.month,report.family);
   const previous=await read(path),hash=createHash('sha256').update(bytes).digest('hex');
   if(previous?.hash===hash)return {record:normalizeManagementReport(previous),unchanged:true};
   const id=randomUUID();
@@ -34,6 +35,30 @@ export async function saveReport(report,bytes,actor){
   await put(report.unit+'/history/'+report.month+'--'+report.family+'--'+id+'.json',json,'application/json');
   await put(path,json,'application/json');return {record,unchanged:false,replaced:Boolean(previous)};
  }finally{await release();}
+}
+// Only this dedicated private bucket is affected. Gather every key before deleting any.
+export async function deleteAllReports(){
+ const release=await lock(writeLock,300);if(!release)throw fail('Báo cáo đang được cập nhật hoặc xóa; thử lại sau.',409);
+ const deadline=Date.now()+240000;let deletedObjects=0;
+ const checkTime=()=>{if(Date.now()>deadline)throw fail('Lượt xóa chưa hoàn tất do quá thời gian. Làm mới lịch sử rồi thử xóa lại.');};
+ async function collect(){const folders=[''],files=new Set();let pages=0;
+  for(let n=0;n<folders.length;n++){const prefix=folders[n];let offset=0;
+   for(;;){checkTime();if(++pages>500)throw fail('Kho báo cáo quá lớn cho một lượt xóa. Liên hệ quản trị hệ thống.');const r=await request('object/list/'+bucket,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix,limit:1000,offset,sortBy:{column:'name',order:'asc'}})});
+    if(!r.ok){const e=await r.json().catch(()=>null);if(r.status===404||r.status===400&&/bucket.*(?:not found|does not exist)/i.test(e?.message||e?.error||''))return [];throw fail('Chưa đọc đủ danh sách để xóa báo cáo. Thử lại sau.');}
+    const rows=await r.json();if(!Array.isArray(rows))throw fail('Danh sách báo cáo chưa hợp lệ; dừng xóa.');
+    for(const row of rows){const name=typeof row.name==='string'?(prefix&&row.name.startsWith(prefix+'/')?row.name.slice(prefix.length+1):row.name):'';if(!name||name.includes('/')||name.includes('\\')||name==='.'||name==='..')throw fail('Đường dẫn báo cáo chưa hợp lệ; dừng xóa.');const key=prefix?prefix+'/'+name:name;
+     if(row.id!=null||row.metadata!=null){files.add(key);if(files.size>10000)throw fail('Kho báo cáo vượt giới hạn 10.000 tệp cho một lượt xóa.');}else{if(folders.includes(key))throw fail('Danh sách thư mục báo cáo bị lặp.');folders.push(key);}
+    }
+    if(rows.length<1000)break;offset+=rows.length;
+   }
+  }return [...files];
+ }
+ try{
+  const keys=(await collect()).sort((a,b)=>Number(b.includes('/active/'))-Number(a.includes('/active/'))||a.localeCompare(b));
+  for(let i=0;i<keys.length;i+=1000){checkTime();const batch=keys.slice(i,i+1000),r=await request('object/'+bucket,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:batch})});if(!r.ok)throw fail('Xóa báo cáo chưa hoàn tất. Làm mới lịch sử rồi thử xóa lại.');deletedObjects+=batch.length;}
+  if((await collect()).length)throw fail('Vẫn còn tệp báo cáo chưa xóa. Làm mới lịch sử rồi thử lại.');return {deletedObjects};
+ }catch(e){if(deletedObjects)throw fail('Đã xử lý '+deletedObjects+' tệp nhưng chưa xác nhận xóa hết. Làm mới lịch sử và thử lại.');throw e;}
+ finally{await release();}
 }
 export function summaryRecord(r){return {...r,sheets:r.sheets.map(({sourceRows,...s})=>({...s,sourceRowCount:sourceRows?.length||s.sourceRowCount||0})),issues:r.issues.slice(0,200),issueCount:r.issues.length};}
 export async function listReports(units,month){
