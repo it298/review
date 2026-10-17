@@ -8,6 +8,9 @@ import {summarizeBookings} from './reservation-summary.js';
 import CircularChart from '../../components/CircularChart.jsx';
 import RoomHistory from './RoomHistory.jsx';
 import {monthRange} from './room-history.js';
+import ReportExport from './ReportExport.jsx';
+import {reservationsReport} from './report-data.js';
+import {bookingColor} from './booking-colors.js';
 
 const API = new URL("/api/bluejay",window.location.origin).href;
 
@@ -632,6 +635,7 @@ function Reservations({
         <SourceBadge source={payload.source} savedAt={payload.savedAt} />
       </div>
 
+      <ReportExport label="đặt phòng" getReport={()=>reservationsReport(payload,rows,{search,status:reservationStatus})}/>
       <section className="metrics five">
         <Metric label="Số booking" value={number(summary.bookings)} helper="Đếm mã duy nhất sau lọc" />
         <Metric label="Lượt phòng" value={number(summary.roomRows)} helper="Dòng phòng trong booking; gồm mọi trạng thái đã lọc" />
@@ -716,12 +720,8 @@ function Reservations({
 }
 
 function BookingBreakdown({title,groups,financial=false}) {
-  const palette=['#80609d','#c4a365','#478c88','#b66675','#6284b0','#9b886e','#b38ab5','#6e9870'];
-  const statusColors={'Đã hủy':'#b66675','Không đến':'#c17d45','Đã nhận phòng':'#478c88','Đã trả phòng':'#6284b0','Đã xác nhận':'#80609d','Đang giữ phòng':'#c4a365'};
   const total=groups.reduce((sum,g)=>sum+g.roomRows,0);
-  const sourceColors={'Agoda':'#80609d','Booking.com':'#6284b0','Ctrip':'#c4a365','Traveloka.com':'#478c88','Expedia':'#b66675','Khách lẻ':'#6e9870','Zalo':'#b38ab5'};
-  const color=label=>statusColors[label]||sourceColors[label]||palette[Array.from(label).reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,0)%palette.length];
-  const data=groups.map(g=>({...g,color:color(g.label),percent:total?g.roomRows/total*100:0}));
+  const data=groups.map(g=>({...g,color:bookingColor(g.label),percent:total?g.roomRows/total*100:0}));
   return <section className="panel"><div className="panelHeader"><div><h2>{title}</h2><p>Tỷ trọng lượt phòng theo báo cáo API · cùng bộ lọc với bảng</p></div></div>
     {total>0?<div className="bj-booking-donut-layout">
       <div role="group" aria-label={title}><CircularChart title={title} data={data.map(g=>({label:g.label,value:g.roomRows,color:g.color}))} unit="lượt phòng" center={number(total)} centerLabel="Lượt phòng" showTable={false}/></div>

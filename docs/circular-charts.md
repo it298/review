@@ -19,6 +19,13 @@ Không đổi nguồn dữ liệu, bộ lọc, quyền truy cập hoặc nghiệ
 
 PDF xu hướng ngang cũng dùng vòng tròn và mũi tên; bảng tổng hợp và lịch sử từng ngày vẫn được giữ. Excel giữ giá trị số và ô trống gốc.
 
+## Xuất báo cáo Bluejay
+
+- **Dashboard công suất:** nhấn Xem dữ liệu, chọn tất cả hoặc một khách sạn và chế độ Tổng khách sạn / Theo loại phòng, rồi nhấn **Xuất PDF ngang dashboard** hoặc **Xuất Excel dashboard**. File có tổng hợp khách sạn, loại phòng và từng ngày; PDF kèm biểu đồ theo chế độ đang xem.
+- **Đặt phòng:** tải dữ liệu, áp dụng tìm kiếm / trạng thái nếu cần, rồi nhấn **Xuất PDF ngang đặt phòng** hoặc **Xuất Excel đặt phòng**. Báo cáo có số booking duy nhất, lượt phòng, phân bổ nguồn / trạng thái, danh sách phòng và các khoản tiền.
+
+Báo cáo sử dụng kỳ **đã tải**. Nếu sửa ô ngày nhưng chưa nhấn Xem dữ liệu, file vẫn ghi kỳ của dữ liệu hiện đang hiển thị. Bộ chọn ngày trong phần chi tiết dashboard chỉ đổi biểu đồ xem nhanh; bảng xuất giữ toàn bộ kỳ. PDF có bảng và biểu đồ tròn với nhãn mũi tên; Excel có các sheet số liệu để lọc, tính và đối chiếu. Màu biểu đồ đặt phòng giống giao diện. Số tiền booking không thay thế doanh thu ngày hay ADR. Báo cáo thiếu khách sạn hoặc thiếu số tiền ghi rõ, không tự điền 0.
+
 ## Kiểm tra
 
 Sau khi build frontend với `VITE_API_URL=https://bluejay-qa.local`, chạy từ thư mục gốc:
@@ -28,6 +35,7 @@ node --test frontend/test/*.test.js
 node scripts/check-circular-charts.mjs
 node scripts/check-finance-dashboard.mjs
 node scripts/check-bluejay-reservations.mjs
+node scripts/check-bluejay-exports.mjs
 ```
 
 Các script giao diện dùng dữ liệu giả lập và chặn kết nối tới API thật. Script biểu đồ kiểm tra bộ lọc khách sạn / loại phòng / ngày, điểm và tổng review, số âm, dữ liệu thiếu, mã mũi tên duy nhất, màn hình 390px và sinh PDF ở cả chế độ từng địa điểm và so sánh. File QA nằm trong `frontend/dist/`, không đưa vào Git.

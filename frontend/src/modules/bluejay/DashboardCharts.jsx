@@ -1,6 +1,8 @@
 import CircularChart from '../../components/CircularChart.jsx';
 import React, {useState} from 'react';
 import {occupancyDays} from './occupancy-days.js';
+import ReportExport from './ReportExport.jsx';
+import {dashboardReport} from './report-data.js';
 
 const count=value=>value==null?'—':Number(value).toLocaleString('vi-VN');
 const rate=value=>value==null?'—':`${Number(value).toLocaleString('vi-VN',{maximumFractionDigits:2})}%`;
@@ -19,6 +21,7 @@ export default function DashboardCharts({payload}){
     <section className="panel">
       <div className="panelHeader"><div><h2>Công suất các khách sạn</h2><p>{payload.meta?.from} → {payload.meta?.to} · {chartMode==='rooms'?'Mỗi biểu đồ một loại phòng':'Mỗi biểu đồ một khách sạn'}</p></div><span className="bj-chart-unit">Room-night</span></div>
       <div className="bj-chart-tools"><div role="group" aria-label="Chế độ biểu đồ công suất"><button aria-pressed={chartMode==='hotels'} onClick={()=>setChartMode('hotels')}>Tổng khách sạn</button><button aria-pressed={chartMode==='rooms'} onClick={()=>setChartMode('rooms')}>Theo loại phòng</button></div><label className="bj-hotel-picker">Lọc khách sạn<select aria-label="Lọc khách sạn trên biểu đồ" value={chartHotel} onChange={e=>setChartHotel(e.target.value)}><option value="all">Tất cả khách sạn</option>{rows.map(row=><option key={row.hotel.id} value={String(row.hotel.id)}>{row.hotel.name}</option>)}</select></label></div>
+      <ReportExport label="dashboard" getReport={()=>dashboardReport(payload,{hotelId:chartHotel,mode:chartMode})}/>
       <div className="bj-chart-legend"><span><i className="used"/>Đã dùng</span><span><i className="empty"/>Còn trống</span><span><i className="blocked"/>Block</span></div>
       <div className="circular-grid" aria-label="Biểu đồ tròn công suất khách sạn">{chartRows.map(row=><article className="circular-card" key={row.columnKey}><h3>{row.hotel.name}</h3>{chartMode==='rooms'&&<p>{row.label}</p>}{row.ok&&row.data?.summary?<><OccupancyCircle summary={row.data.summary} title={row.hotel.name+' · '+row.label}/><p>Tổng {count(row.data.summary.total)} room-night</p></>:<p>Chưa có dữ liệu</p>}</article>)}</div>
       <p className="muted">Miếng tròn: tỷ trọng đã dùng / trống / block trên tổng room-night. Công suất ở tâm: đã dùng / phòng có thể bán, đã trừ block. Đã loại M-Standard.</p>
