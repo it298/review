@@ -1,5 +1,5 @@
 import {financeKinds,financeCategories,financeMethods} from '../../../shared/finance.js';
-import {blankGridRow,gridColumns,entryColumns,normalizeGridCell,parseGridMoney,parseGridDay,validateGridRows} from './finance-grid.js';
+import {blankGridRow,gridColumns,entryColumns,normalizeGridCell,parseGridMoney,parseGridDay,validateGridRows,hasExcelDuplicateConfirmation} from './finance-grid.js';
 
 export const EXCEL_FILE_LIMIT=10*1024*1024;
 export const fold=v=>String(v??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]/g,'');
@@ -127,13 +127,17 @@ export function previewFinanceImport(sheet,blocks,{management=false,defaultKind=
    }
   }
  }
+ // Check the full sheet as well as individual fields: repeated business values
+ // must be visible before the user transfers a portion into the grid.
+ const validation=validateGridRows(entries.map(e=>e.row),{from:from||'1900-01-01',to:to||'2100-12-31',management});
+ for(const entry of entries)entry.errors=validation.get(entry.row.requestId)?.errors||entry.errors;
  const invalid=entries.filter(e=>Object.keys(e.errors).length).length;
  return {entries,skipped,warnings,invalid,cached:entries.filter(e=>e.cached).length,missingFormula:entries.filter(e=>e.missingFormula).length,receipts:entries.filter(e=>e.row.kind==='receipt'&&Number.isSafeInteger(e.row.amount)).reduce((s,e)=>s+e.row.amount,0),payments:entries.filter(e=>e.row.kind==='payment'&&Number.isSafeInteger(e.row.amount)).reduce((s,e)=>s+e.row.amount,0)};
 }
 
 export async function identifyImportedRows(entries,unit){
  return Promise.all(entries.map(async entry=>{
-  const row=entry.row||entry,origin=row._importSource,canonical=entryColumns.map(c=>row[c.key]);
+  const row=entry.row||entry,origin=row._importSource,canonical=entryColumns.map(c=>c.key==='duplicateReason'&&hasExcelDuplicateConfirmation(row)?'':row[c.key]);
   const bytes=new TextEncoder().encode(JSON.stringify(['vjh-finance-import-v1',unit,origin,canonical]));
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).slice(0,16);digest[6]=(digest[6]&15)|80;digest[8]=(digest[8]&63)|128;
   const h=digest.map(v=>v.toString(16).padStart(2,'0')).join(''),requestId=h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);

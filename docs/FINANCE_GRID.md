@@ -56,3 +56,12 @@ Script trình duyệt kiểm tra dán 500 dòng, chia đợt 25 dòng, lưu mộ
 Bảng nhập và phần ghép cột Excel không có trường Số chứng từ vì các mẫu thu–chi hiện tại không dùng cột này. Mã booking được giữ riêng. Cột số chứng từ trong file/mẫu dán cũ sẽ bỏ qua, các cột sau vẫn ghép đúng vị trí; dữ liệu và liên kết chứng từ đã lưu trước đây vẫn giữ nguyên.
 
 Các hạng mục “Tiền quẹt thẻ tháng này/tháng trước” được nhận diện là **Đối soát tiền thẻ**. Giữ riêng dòng ngân hàng nhận tiền và dòng điều chỉnh âm ở phương thức thẻ; không đổi dấu hoặc nhập thêm cột phí khấu trừ thành một khoản tiền thứ ba. Nhóm này không được dùng để ghi nhận doanh thu, chi phí phân bổ hay đồng thời tính chi phí. Các dòng đã đưa vào bảng trước bản cập nhật cần chọn lại hạng mục tương ứng hoặc tải lại file; phần mềm không sửa các bản ghi đã lưu.
+
+
+### Dòng giống nhau trong Excel
+
+Phần xem trước kiểm tra trùng trên toàn bộ vùng đã chọn, kể cả khi chia nhiều đợt. Cảnh báo chỉ rõ dòng bảng và sheet/dòng/cột Excel gốc; ô Nội dung tô đỏ có thể do trùng nghiệp vụ, không phải do nội dung sai. Khoản dương và âm có khóa trùng khác nhau; phần mềm giữ dấu gốc.
+
+Khi các ô gốc khác nhau có cùng thông tin, người nhập cần đối chiếu file. Nếu là các nghiệp vụ riêng, chọn “Tôi đã đối chiếu…” trong phần nhập Excel hoặc “Đã đối chiếu, giữ … dòng theo Excel” trên bảng. Phần mềm ghi lý do vào từng nghiệp vụ, không tự xóa, gộp hoặc bỏ qua dòng. Nếu là lặp thực sự, xóa dòng thừa trong bảng. Nút xác nhận không áp dụng cho bản sao nhập tay, cùng ô Excel, chứng từ trùng hoặc dòng đã gửi/lưu. Sửa nội dung sau khi xác nhận sẽ bỏ xác nhận tự động để kiểm tra lại. Nhân đôi dòng không sao chép lý do trùng.
+
+Xác nhận qua phần xem trước hoặc bảng giữ cùng mã chống gửi lại theo cơ sở/ô gốc/dữ liệu; không tạo mã mới chỉ vì xác nhận trùng. Chỉ dữ liệu được lưu chờ duyệt sau khi bấm Lưu; quản lý tiếp tục duyệt như các khoản khác.

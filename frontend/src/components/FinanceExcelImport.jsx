@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {financeKinds,financeMethods} from '../../../shared/finance.js';
 import {readFinanceExcel,detectFinanceBlocks,previewFinanceImport,identifyImportedRows,importTargets} from '../lib/finance-excel-import.js';
-import {gridDisplay} from '../lib/finance-grid.js';
+import {gridDisplay,excelDuplicateIds,confirmExcelDuplicates,validateGridRows} from '../lib/finance-grid.js';
 import './finance-excel-import.css';
 const money=n=>Number(n).toLocaleString('vi-VN')+' ₫';
 const previewCell=(value,key)=>/^#(?:CÔNG THỨC|LỖI EXCEL):/.test(String(value??''))?'Cần bổ sung giá trị':value||({date:'Chưa có ngày',description:'Chưa có nội dung',category:'Chưa phân loại',amount:'Chưa có số tiền'})[key];
@@ -9,11 +9,19 @@ const previewErrors=errors=>{const values=[...new Set(Object.values(errors))];re
 export default function FinanceExcelImport({unit,unitName,from,to,management,capacity,disabled,onImport,onClose}){
  const [book,setBook]=useState(null),[sheetIndex,setSheetIndex]=useState(0),[blocks,setBlocks]=useState([]),[selected,setSelected]=useState(new Set()),[active,setActive]=useState(0),[reading,setReading]=useState(false),[error,setError]=useState(''),[kind,setKind]=useState(''),[method,setMethod]=useState(''),[date,setDate]=useState(''),[cached,setCached]=useState(true),[start,setStart]=useState(1),[count,setCount]=useState(500),[expanded,setExpanded]=useState(false),[skipView,setSkipView]=useState(false),[accepted,setAccepted]=useState(false);
  const readVersion=useRef(0),sheet=book?.sheets[sheetIndex],block=blocks[active],selectedBlocks=blocks.filter(b=>selected.has(b.id));
- const [applied,setApplied]=useState('');
- const preview=useMemo(()=>sheet?previewFinanceImport(sheet,selectedBlocks,{management,defaultKind:kind,defaultMethod:method,defaultDate:date,allowCached:cached,from,to}):null,[sheet,blocks,selected,management,kind,method,date,cached,from,to]);
+ const [applied,setApplied]=useState(''),[keepDuplicates,setKeepDuplicates]=useState(false);
+ const rawPreview=useMemo(()=>sheet?previewFinanceImport(sheet,selectedBlocks,{management,defaultKind:kind,defaultMethod:method,defaultDate:date,allowCached:cached,from,to}):null,[sheet,blocks,selected,management,kind,method,date,cached,from,to]);
+ const duplicateCount=useMemo(()=>rawPreview?excelDuplicateIds(rawPreview.entries.map(e=>e.row)).size:0,[rawPreview]);
+ const preview=useMemo(()=>{
+  if(!rawPreview||!keepDuplicates)return rawPreview;
+  const rows=confirmExcelDuplicates(rawPreview.entries.map(e=>e.row)),checks=validateGridRows(rows,{from,to,management});
+  const entries=rawPreview.entries.map((e,i)=>({...e,row:rows[i],errors:checks.get(rows[i].requestId)?.errors||e.errors}));
+  return {...rawPreview,entries,invalid:entries.filter(e=>Object.keys(e.errors).length).length};
+ },[rawPreview,keepDuplicates,from,to,management]);
  const limit=Math.min(capacity,Math.floor(Math.max(0,Number(count)||0)),500),first=Math.floor(Math.max(1,Number(start)||1)),portion=preview?.entries.slice(first-1,first-1+limit)||[];
  useEffect(()=>()=>{readVersion.current++;},[]);
- useEffect(()=>{setAccepted(false);},[sheetIndex,blocks,selected,kind,method,date,cached,start,count]);
+ useEffect(()=>{setAccepted(false);setKeepDuplicates(false);},[rawPreview]);
+ useEffect(()=>{setAccepted(false);},[start,count,keepDuplicates]);
  function chooseSheet(nextBook,index){const nextSheet=nextBook.sheets[index],detected=detectFinanceBlocks(nextSheet);setSheetIndex(index);setBlocks(detected);setSelected(new Set(detected.map(b=>b.id)));setActive(0);setStart(1);setError('');setApplied('');setAccepted(false);}
  async function read(file){if(!file)return;const version=++readVersion.current;setReading(true);setError('');try{const next=await readFinanceExcel(file);if(readVersion.current!==version)return;setBook(next);setCached(true);setExpanded(false);const index=next.sheets.findIndex(s=>!s.error&&detectFinanceBlocks(s).some(b=>b.columns.some(c=>c.target.startsWith('money|')||c.target==='amount')&&b.columns.some(c=>c.target==='description'||c.target==='category')));chooseSheet(next,Math.max(0,index));}catch(e){if(readVersion.current===version)setError(e.message);}finally{if(readVersion.current===version)setReading(false);}}
  function setHeader(value){const header=Math.max(0,Math.min((Number(value)||1)-1,sheet.rows.length-1)),detected=detectFinanceBlocks(sheet,header);setBlocks(detected);setSelected(new Set(detected.map(b=>b.id)));setActive(0);setStart(1);setAccepted(false);}
@@ -31,6 +39,7 @@ export default function FinanceExcelImport({unit,unitName,from,to,management,cap
    {expanded&&block&&<div className="fei-mapping"><p>Vùng {active+1}: {block.depth===2?'tiêu đề hai hàng':'tiêu đề một hàng'}. Các cột tổng, số dư và cọc đã nhận trước được bỏ qua để tránh nhập trùng tiền.</p><div className="fei-scroll"><table><thead><tr><th>Cột trong Excel</th><th>Thông tin trong phần mềm</th><th>Giải thích</th></tr></thead><tbody>{block.columns.map(c=><tr key={c.index}><td><b>{c.label}</b><small>Cột {c.index+1}</small></td><td><select aria-label={'Ghép cột '+(c.index+1)+' vùng '+(active+1)} value={c.target} onChange={e=>mapColumn(c.index,e.target.value)}>{mapOptions(c).map(o=><option key={o.key} value={o.key}>{o.label}</option>)}</select></td><td>{!c.target?c.reason||'Bỏ qua theo lựa chọn':'Sẽ nhập vào trường đã chọn'}</td></tr>)}</tbody></table></div></div>}
    <label className="fei-check"><input type="checkbox" aria-label="Dùng kết quả công thức Excel đã lưu" checked={cached} onChange={e=>{setCached(e.target.checked);setAccepted(false);}}/>Đọc giá trị đã lưu trong Excel (tự bật khi tải file)</label>
    {preview&&<><p className="fei-note">Tổng các vùng đã chọn trong sheet, trước khi chia đợt:</p><div className="fei-totals"><span><b>{preview.entries.length}</b> nghiệp vụ</span><span><b>{preview.invalid}</b> cần kiểm tra</span><span>Thu <b>{money(preview.receipts)}</b></span><span>Chi <b>{money(preview.payments)}</b></span></div>
+    {duplicateCount>0&&<div className="notice"><p>{duplicateCount} dòng có cùng ngày, số tiền và thông tin nhưng nằm ở các ô Excel khác nhau. Đây là cảnh báo trùng, không phải lỗi nội dung. Đối chiếu các dòng gốc trước khi giữ cả hai; dấu âm vẫn được giữ nguyên.</p><label className="fei-check"><input type="checkbox" aria-label="Giữ các dòng trùng từ Excel" checked={keepDuplicates} onChange={e=>setKeepDuplicates(e.target.checked)}/>Tôi đã đối chiếu và muốn giữ các dòng riêng này theo file gốc.</label></div>}
     {preview.warnings.map((w,i)=><p className="notice error" key={i}>{w}</p>)}
     {preview.cached>0&&<p className={cached?'notice':'notice error'}>{cached?'Đã đọc giá trị đã lưu của '+preview.cached+' nghiệp vụ có công thức.':'Đang tắt đọc giá trị đã lưu. Bật tùy chọn trên để đọc ngày, nội dung và số tiền từ file.'}</p>}{preview.missingFormula>0&&<p className="notice error" role="alert">{preview.missingFormula} nghiệp vụ thiếu kết quả công thức trong file. Mở file bằng Excel, tính và lưu lại rồi tải lên, hoặc sửa các ô này trong bảng.</p>}
     <div className="fei-controls"><label>Từ nghiệp vụ số<input aria-label="Nhập từ nghiệp vụ Excel" type="number" min="1" max={Math.max(1,preview.entries.length)} value={start} onChange={e=>{setStart(e.target.value);setAccepted(false);}}/></label><label>Số nghiệp vụ đưa vào bảng<input aria-label="Số nghiệp vụ Excel" type="number" min="1" max="500" value={count} onChange={e=>{setCount(e.target.value);setAccepted(false);}}/></label><p>Bảng còn chỗ cho {capacity} dòng. Lượt này đưa {portion.length} dòng; giữ file mở để nhập tiếp đợt sau.</p></div>

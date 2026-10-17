@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFinanceExcel,detectFinanceBlocks,previewFinanceImport,identifyImportedRows,guessCategory,guessMethod,importTargets} from '../src/lib/finance-excel-import.js';
-import {validateGridRows} from '../src/lib/finance-grid.js';
+import {validateGridRows,excelDuplicateIds,confirmExcelDuplicates,resetExcelDuplicateConfirmation,pasteGrid} from '../src/lib/finance-grid.js';
 import ExcelJS from 'exceljs';
 const sheet=(name,rows,date1904=false)=>({name,date1904,rows:rows.map(r=>r.map(v=>v!=null&&typeof v==='object'?v:{v}))});
 const opts={from:'2026-08-01',to:'2026-08-31'};
@@ -78,4 +78,13 @@ test('reference is removed from mapping options, ignored in older files and does
 test('card settlements have a valid dedicated category and preserve signed bank/card legs without generating a second fee',()=>{
  assert.equal(guessCategory('Tiền quẹt thẻ tháng này'),'card_settlement');assert.equal(guessCategory('Tiền quẹt thẻ tháng trước'),'card_settlement');assert.equal(guessCategory('Phí quẹt thẻ'),'card_fee');assert.equal(guessCategory('Tiền phòng'),'room');assert.equal(guessCategory('Quẹt thẻ chưa rõ'),'');
  const s=sheet('BK THU KS',[['BẢNG KÊ THU TIỀN KHÁCH SẠN'],['Ngày','Dịch vụ','Ghi chú','Tiền TK','Tiền quẹt thẻ','Phí quẹt thẻ'],['2026-08-01','Tiền quẹt thẻ tháng này','',97000,-100000,3000]]),p=previewFinanceImport(s,detectFinanceBlocks(s),opts);assert.equal(p.entries.length,2);assert.equal(p.invalid,0);assert.deepEqual(p.entries.map(e=>[e.row.kind,e.row.category,e.row.method,e.row.amount]),[['receipt','card_settlement','bank',97000],['receipt','card_settlement','card',-100000]]);assert.equal(p.receipts,-3000);assert.ok(p.entries.every(e=>e.row.description==='Tiền quẹt thẻ tháng này'&&!e.row.recognizeExpense));
+});
+
+test('Excel duplicates are visible in preview, retained only after explicit confirmation, and keep stable retry IDs',async()=>{
+ const s=sheet('THU CHI MINIMART',[['Ngày','Nội dung','Grab Food'],['2026-08-01','Thu tiền bán hàng',142417],['2026-08-01','Thu tiền bán hàng',-142417],['2026-08-01','Thu tiền bán hàng',142417],['2026-08-01','Thu tiền bán hàng',-142417]]),p=previewFinanceImport(s,detectFinanceBlocks(s),{...opts,defaultKind:'receipt'});
+ assert.equal(p.entries.length,4);assert.equal(p.invalid,4);assert.match(p.entries[0].errors.reference,/dòng 4 · cột 3/);assert.match(p.entries[1].errors.reference,/dòng 5 · cột 3/);
+ const before=await identifyImportedRows(p.entries,'minimart'),confirmed=confirmExcelDuplicates(before),after=await identifyImportedRows(confirmed,'minimart');assert.equal(excelDuplicateIds(before).size,4);assert.equal(excelDuplicateIds(confirmed).size,0);assert.deepEqual(after.map(r=>r.requestId),before.map(r=>r.requestId));assert.deepEqual(confirmed.map(r=>r.amount),[142417,-142417,142417,-142417]);assert.equal(confirmed.reduce((sum,r)=>sum+r.amount,0),0);assert.ok(confirmed.every(r=>r.duplicateReason.includes('Excel THU CHI MINIMART')));assert.ok([...validateGridRows(confirmed,opts).values()].every(v=>!Object.keys(v.errors).length));
+ assert.equal(resetExcelDuplicateConfirmation(confirmed[0]).duplicateReason,'');const pasted=pasteGrid([confirmed[0]],'Nội dung\tSố tiền\nThu tiền bán hàng\t100',0,0,{date:'2026-08-01'});assert.equal(pasted.rows[0].duplicateReason,'');assert.equal(pasted.rows[0].amount,'100');
+ const manual={...before[0],requestId:crypto.randomUUID()};delete manual._importSource;assert.equal(excelDuplicateIds([before[0],manual]).size,0);assert.ok(validateGridRows([before[0],manual],opts).get(manual.requestId).errors.reference);
+ const sameCell={...before[0],requestId:crypto.randomUUID()};assert.equal(excelDuplicateIds([before[0],sameCell]).size,0);assert.equal(excelDuplicateIds([{...before[0],_state:'saved'},before[2]]).size,0);assert.equal(excelDuplicateIds([{...before[0],reference:'INV'}, {...before[2],reference:'INV'}]).size,0);
 });

@@ -35,6 +35,20 @@ export function normalizeGridCell(key,value){
 }
 export function rowPayload(row){return validateFinanceEntry({...Object.fromEntries(entryColumns.map(c=>[c.key,row[c.key]])),requestId:row.requestId,date:parseGridDay(row.date),amount:parseGridMoney(row.amount)});}
 const duplicateKey=p=>JSON.stringify([p.date,p.kind,p.amount,p.reference,...(p.reference?[]:[p.category,p.method,p.description,p.bookingCode,p.room,p.source,p.counterparty,p.shift,p.depositRef])]);
+const excelOrigin=row=>{const s=row._importSource;return s&&typeof s.sheet==='string'&&s.sheet&&Number.isInteger(s.row)&&s.row>0&&Number.isInteger(s.column)&&s.column>0?JSON.stringify([s.sheet,s.row,s.column]):null;};
+export const excelSourceLabel=row=>excelOrigin(row)?'Excel '+row._importSource.sheet+' · dòng '+row._importSource.row+' · cột '+row._importSource.column:'';
+const excelConfirmationPrefix='Đã đối chiếu dòng riêng trong Excel ';
+export const hasExcelDuplicateConfirmation=row=>Boolean(excelOrigin(row)&&String(row.duplicateReason||'').startsWith(excelConfirmationPrefix));
+export const resetExcelDuplicateConfirmation=row=>hasExcelDuplicateConfirmation(row)?{...row,duplicateReason:''}:row;
+// Offer explicit confirmation only for distinct original Excel cells. Manual copies,
+// same-cell repeats, references and already submitted rows keep duplicate protection.
+export function excelDuplicateIds(rows){
+ const groups=new Map(),ids=new Set();
+ for(const row of rows){if(!hasGridInput(row)||row.duplicateReason&&!gridFrozen(row)&&!row._submitted)continue;try{const payload=row._submitted||rowPayload(row),key=duplicateKey(payload);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);}catch{}}
+ for(const group of groups.values())if(group.length>1&&group.every(r=>!gridFrozen(r)&&!r._submitted&&!r.reference&&excelOrigin(r))&&new Set(group.map(excelOrigin)).size===group.length)for(const row of group)ids.add(row.requestId);
+ return ids;
+}
+export function confirmExcelDuplicates(rows){const ids=excelDuplicateIds(rows);return rows.map(row=>ids.has(row.requestId)?{...row,duplicateReason:('Đã đối chiếu dòng riêng trong '+excelSourceLabel(row)).slice(0,200)}:row);}
 export function validateGridRows(rows,{from,to,management=false,locked=()=>false,existing=[]}){
  const results=new Map(),keys=new Map();
  rows.forEach((row,index)=>{if(hasGridInput(row)&&(row._state==='saved'||row._submitted))try{keys.set(duplicateKey(row._submitted||rowPayload(row)),index);}catch{}});
@@ -55,7 +69,7 @@ export function validateGridRows(rows,{from,to,management=false,locked=()=>false
   let sourceIssue=false;for(const c of gridColumns)if(/^#(?:CÔNG THỨC|LỖI EXCEL):/.test(String(row[c.key]??''))){errors[c.key]=String(row[c.key]).replace(/^#(?:CÔNG THỨC|LỖI EXCEL):\s*/,'');sourceIssue=true;}if(sourceIssue)delete errors.rule;
   if(payload&&!row.duplicateReason&&!row._submitted){
    const key=duplicateKey(payload);
-   if(keys.has(key)){errors.reference='Giống dòng '+(keys.get(key)+1)+'. Kiểm tra hoặc nhập lý do trùng.';const previous=results.get(rows[keys.get(key)].requestId);if(previous)previous.errors.reference='Giống dòng '+(index+1)+'. Kiểm tra hoặc nhập lý do trùng.';}
+   if(keys.has(key)){const other=rows[keys.get(key)],describe=(r,i)=>'dòng bảng '+(i+1)+(excelSourceLabel(r)?' ('+excelSourceLabel(r)+')':'');errors.reference='Trùng thông tin với '+describe(other,keys.get(key))+'. Đối chiếu trước khi giữ cả hai.';const previous=results.get(other.requestId);if(previous)previous.errors.reference='Trùng thông tin với '+describe(row,index)+'. Đối chiếu trước khi giữ cả hai.';}
    else keys.set(key,index);
    if(payload.reference&&existing.some(e=>e.status!=='void'&&e.date===payload.date&&e.kind===payload.kind&&Number(e.amount)===payload.amount&&e.reference===payload.reference&&e.requestId!==row.requestId))errors.reference='Đã có cùng ngày, chứng từ, loại và số tiền trong sổ.';
   }
@@ -83,7 +97,7 @@ export function pasteGrid(rows,text,startRow,startColumn,defaults){
  if(startRow+matrix.length>GRID_LIMIT)throw Error('Tối đa 500 dòng. Vùng dán chưa được áp dụng; chia thành nhiều đợt.');
  if(matrix.some(r=>r.length>(columns?.length??gridColumns.length-startColumn)))throw Error('Vùng dán vượt số cột. Chọn ô bắt đầu hoặc dùng đúng mẫu cột.');
  const next=rows.slice();while(next.length<startRow+matrix.length)next.push(blankGridRow(defaults));
- matrix.forEach((cells,i)=>{if(gridFrozen(next[startRow+i]))throw Error('Vùng dán chạm dòng đã gửi / đã lưu. Chọn các dòng mới bên dưới.');const row={...next[startRow+i],_error:'',_state:'new'};delete row._submitted;cells.forEach((value,j)=>{const key=columns?columns[j]:gridColumns[startColumn+j].key;if(key!=='_ignoreReference')row[key]=normalizeGridCell(key,value);});next[startRow+i]=row;});
+ matrix.forEach((cells,i)=>{if(gridFrozen(next[startRow+i]))throw Error('Vùng dán chạm dòng đã gửi / đã lưu. Chọn các dòng mới bên dưới.');const row={...resetExcelDuplicateConfirmation(next[startRow+i]),_error:'',_state:'new'};delete row._submitted;cells.forEach((value,j)=>{const key=columns?columns[j]:gridColumns[startColumn+j].key;if(key!=='_ignoreReference')row[key]=normalizeGridCell(key,value);});next[startRow+i]=row;});
  return {rows:next,extra:columns?columns.some(k=>gridColumns.find(c=>c.key===k)?.extra):matrix.some(r=>gridColumns.slice(startColumn,startColumn+r.length).some(c=>c.extra)),ignoredReference:Boolean(columns?.includes('_ignoreReference')),count:matrix.length};
 }
 export function gridDisplay(row,key){const value=row[key];return key==='kind'?financeKinds[value]||value:key==='category'?financeCategories[value]||value:key==='method'?financeMethods[value]||value:key==='recognizeExpense'?value===true?'Có':value===false?'Không':value:value;}
