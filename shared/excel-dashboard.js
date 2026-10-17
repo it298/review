@@ -1,7 +1,7 @@
 import {fold,detectFinanceBlocks,previewFinanceImport} from './finance-excel-import.js';
 import {parseGridDay,parseGridMoney} from './finance-grid.js';
-import {isDay} from './finance.js';
-export const REPORT_VERSION=2;
+import {isDay,financeCategories} from './finance.js';
+export const REPORT_VERSION=3;
 export function validMonth(month){return typeof month==='string'&&/^\d{4}-\d{2}$/.test(month)&&isDay(month+'-01');}
 export function monthFromFilename(name){const m=String(name).match(/(?:tháng|thang|[_\s]t)\s*(\d{1,2})[_\s/-]*(20\d{2})/i);return m?m[2]+'-'+m[1].padStart(2,'0'):null;}
 const value=c=>!c||c.type==='e'||c.f&&c.cacheAvailable===false?null:c.v??null;
@@ -11,13 +11,21 @@ const date=(c,s)=>{const v=value(c);return typeof v==='number'&&s.date1904?new D
 const sum=(rows,key)=>{const known=rows.filter(r=>r[key]!=null);return known.length?Math.round(known.reduce((s,r)=>s+r[key],0)*100)/100:null;};
 const dashboardNote=message=>message.replaceAll('Chọn hạng mục hợp lệ.','Chưa có hạng mục nhận diện được; số tiền vẫn tính vào tổng, ở nhóm Chưa phân loại.').replaceAll('Nội dung cần từ 1 đến 1.000 ký tự.','Diễn giải trống hoặc vượt giới hạn; không ảnh hưởng tổng thu–chi.').replaceAll('Chọn phương thức hợp lệ.','Chưa nhận diện phương thức thanh toán; số tiền vẫn tính vào tổng.');
 const serviceNote=r=>`Ô ${r.cost==null&&r.sale==null?'giá thuê và giá bán':r.cost==null?'giá thuê':'giá bán'} chưa có số trong file; ${r.reportedProfit!=null?'lợi nhuận được lấy từ cột Lợi nhuận đã lưu trong file.':'chưa có đủ số để tính chênh lệch giá bán − thuê.'}`;
-// Upgrade stored v1 snapshots on read using their preserved source cells. Never rewrite originals.
+const originalCategory=(origin,rows,blocks)=>{const block=blocks.find(b=>origin.column-1>=b.start&&origin.column-1<b.end),column=block?.columns.find(c=>c.target==='category');return column?text(rows[origin.row-1]?.[column.index]):'';};
+export function reportCategory(entry){
+ const source=fold(entry.sourceCategory);
+ if(entry.kind==='payment'&&/^(?:chi)?suachua$/.test(source))return {category:'repair',label:'Sửa chữa'};
+ if(entry.kind==='payment'&&/^(?:chi)?baoduong(?:taisan)?$/.test(source))return {category:'maintenance',label:source.includes('taisan')?'Bảo dưỡng tài sản':'Bảo dưỡng'};
+ return {category:entry.category,label:financeCategories[entry.category]||'Chưa phân loại'};
+}
+// Upgrade stored snapshots on read using their preserved source cells. Never rewrite originals.
 export function normalizeManagementReport(report){
  if(!report||report.version>=REPORT_VERSION)return report;
  const sources=new Map((report.sheets||[]).map(s=>{const rows=s.sourceRows||[],header=rows.find(r=>r.cells.some(c=>fold(c)==='giadvthue')&&r.cells.some(c=>fold(c)==='giabandv'));return [s.name,{column:header?.cells.findIndex(c=>fold(c)==='loinhuan')??-1,rows:new Map(rows.map(r=>[r.row,r.cells]))}];}));
- const services=(report.services||[]).map(r=>{const s=sources.get(r.origin.sheet),cells=s?.rows.get(r.origin.row);return {...r,reportedProfit:money({v:s?.column>=0?cells?.[s.column]:null})};});
+ const cashSources=new Map((report.sheets||[]).filter(s=>s.type==='cash').map(s=>{const rows=[];for(const r of s.sourceRows||[])rows[r.row-1]=r.cells.map(v=>({v}));const headers=Array.from({length:Math.min(rows.length,61)},(_,i)=>rows[i]||[]);return [s.name,{rows,blocks:detectFinanceBlocks({name:s.name,rows:headers})}];}));
+ const services=(report.services||[]).map(r=>{if(Object.hasOwn(r,'reportedProfit'))return r;const s=sources.get(r.origin.sheet),cells=s?.rows.get(r.origin.row);return {...r,reportedProfit:money({v:s?.column>=0?cells?.[s.column]:null})};});
  const issues=(report.issues||[]).map(i=>{const service=services.find(r=>r.origin.sheet===i.sheet&&r.origin.row===i.row);return {...i,message:service&&i.message==='Dịch vụ thiếu giá thuê hoặc giá bán; chưa tính đủ lợi nhuận.'?serviceNote(service):dashboardNote(i.message)};});
- return {...report,version:REPORT_VERSION,services,issues,entries:(report.entries||[]).map(r=>({...r,notes:(r.notes||[]).map(dashboardNote)}))};
+ return {...report,version:REPORT_VERSION,services,issues,entries:(report.entries||[]).map(r=>{const s=cashSources.get(r.origin.sheet);return {...r,sourceCategory:r.sourceCategory??(s?originalCategory(r.origin,s.rows,s.blocks):''),notes:(r.notes||[]).map(dashboardNote)};})};
 }
 export function groupReportIssues(reports){
  const groups=new Map();for(const report of reports)for(const issue of report.issues||[]){const key=JSON.stringify([report.unit,report.fileName,issue.sheet,issue.message]);if(!groups.has(key))groups.set(key,{file:report.fileName,sheet:issue.sheet,message:issue.message,rows:new Set(),count:0});const group=groups.get(key);group.count++;if(issue.row)group.rows.add(issue.row);}
@@ -32,7 +40,7 @@ export function analyzeWorkbook(book,month){
   const name=fold(sheet.name);let type='reference',count=0;
   const isCash=/^(bkthu|bkchi|thuchiminimart|bangkethu|bangkechi)/.test(name);
   if(isCash){
-   type='cash';const preview=previewFinanceImport(sheet,detectFinanceBlocks(sheet),{from:'1900-01-01',to:'2100-12-31',management:true});
+   type='cash';const blocks=detectFinanceBlocks(sheet),preview=previewFinanceImport(sheet,blocks,{from:'1900-01-01',to:'2100-12-31',management:true});
    if(preview.warnings.length)issues.push(...preview.warnings.map(message=>({sheet:sheet.name,message})));
    for(const e of preview.entries){const r=e.row,origin={sheet:sheet.name,row:r._importSource.row,column:r._importSource.column};
     if(!isDay(r.date)||!['receipt','payment'].includes(r.kind)||!Number.isSafeInteger(r.amount)){
@@ -42,7 +50,7 @@ export function analyzeWorkbook(book,month){
     const notes=[...new Set(Object.entries(e.errors).filter(([k])=>!['reference','rule','depositRef'].includes(k)).map(([,v])=>dashboardNote(v)))];
     if(e.errors.reference)notes.push('Thông tin giống dòng khác trong file; giữ nguyên từng ô nguồn.');
     if(notes.length)issues.push({...origin,message:notes.join(' ')});
-    entries.push({date:r.date,kind:r.kind,category:r.category||'unclassified',description:/^#/.test(r.description)?'':r.description,amount:r.amount,method:r.method,bookingCode:r.bookingCode,room:r.room,source:r.source,origin,notes});count++;
+    entries.push({date:r.date,kind:r.kind,category:r.category||'unclassified',sourceCategory:originalCategory(origin,sheet.rows,blocks),description:/^#/.test(r.description)?'':r.description,amount:r.amount,method:r.method,bookingCode:r.bookingCode,room:r.room,source:r.source,origin,notes});count++;
    }
   }else if(/^(dvngoai|dichvungoai)$/.test(name)){
    type='services';const header=sheet.rows.findIndex(r=>r.some(c=>fold(text(c))==='giadvthue')&&r.some(c=>fold(text(c))==='giabandv'));
@@ -87,7 +95,7 @@ export function dashboardFromReports(records,{from,to}={}){
  }
  const inRange=r=>(!from||r.date>=from)&&(!to||r.date<=to),filtered=entries.filter(inRange),serviceRows=services.filter(inRange);
  const categories=new Map(),methods=new Map(),days=new Map();
- for(const r of filtered){const key=r.kind+'|'+r.category;if(!categories.has(key))categories.set(key,{kind:r.kind,category:r.category,amount:0});categories.get(key).amount+=r.amount;
+ for(const r of filtered){const group=reportCategory(r),key=r.kind+'|'+group.category+'|'+group.label;if(!categories.has(key))categories.set(key,{kind:r.kind,...group,amount:0});categories.get(key).amount+=r.amount;
   const method=r.kind+'|'+r.method;if(!methods.has(method))methods.set(method,{kind:r.kind,method:r.method,amount:0});methods.get(method).amount+=r.amount;
   if(!days.has(r.date))days.set(r.date,{date:r.date,receipts:0,payments:0});days.get(r.date)[r.kind==='receipt'?'receipts':'payments']+=r.amount;
  }

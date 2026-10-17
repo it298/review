@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as XLSX from '@e965/xlsx';
 import {readFinanceExcel} from '../../shared/finance-excel-import.js';
-import {analyzeWorkbook,dashboardFromReports,monthFromFilename,normalizeManagementReport,groupReportIssues} from '../../shared/excel-dashboard.js';
+import {analyzeWorkbook,dashboardFromReports,monthFromFilename,normalizeManagementReport,groupReportIssues,REPORT_VERSION} from '../../shared/excel-dashboard.js';
 import {checkExcelArchive} from '../src/modules/excel-reports/archive.js';
 import {managementFixture} from '../../scripts/lib/management-fixture.mjs';
 const sheet=(name,rows)=>({name,rows:rows.map(r=>r.map(v=>v&&typeof v==='object'?v:{v}))});
@@ -27,7 +27,7 @@ test('actual HTTP uploads are durable snapshots, idempotent across users, scope 
   assert.equal((await upload('viewer')).status,403);assert.equal((await upload('member',binary(),'yzistel-hoi-an')).status,403);assert.equal(f.objects.size,0);
   const first=await upload('member');assert.equal(first.status,200);const saved=await first.json();assert.ok(saved.report.id);assert.equal(saved.report.entries,undefined);assert.equal(saved.report.totals,undefined);assert.equal(f.objects.size,3);
   let reports=(await (await read('admin')).json()).reports;assert.equal(reports.length,1);assert.equal(reports[0].totals.receipts,100000);assert.equal(reports[0].sheets[0].sourceRows,undefined);
-  const activeKey=[...f.objects.keys()].find(k=>k.includes('/active/')),old=JSON.parse(f.objects.get(activeKey));old.version=1;old.entries[0].notes=['Chọn hạng mục hợp lệ.'];f.objects.set(activeKey,Buffer.from(JSON.stringify(old)));reports=(await (await read('admin')).json()).reports;assert.equal(reports[0].version,2);assert.ok(reports[0].entries[0].notes[0].includes('Chưa phân loại'));assert.equal(JSON.parse(f.objects.get(activeKey)).version,1);const bytes=binary(),same=await (await upload('admin',bytes)).json();assert.equal(same.report.version,2);assert.equal(same.unchanged,true);assert.equal(same.report.id,saved.report.id);assert.equal(f.objects.size,3);
+  const activeKey=[...f.objects.keys()].find(k=>k.includes('/active/')),old=JSON.parse(f.objects.get(activeKey));old.version=1;old.entries[0].notes=['Chọn hạng mục hợp lệ.'];f.objects.set(activeKey,Buffer.from(JSON.stringify(old)));reports=(await (await read('admin')).json()).reports;assert.equal(reports[0].version,REPORT_VERSION);assert.ok(reports[0].entries[0].notes[0].includes('Chưa phân loại'));assert.equal(JSON.parse(f.objects.get(activeKey)).version,1);const bytes=binary(),same=await (await upload('admin',bytes)).json();assert.equal(same.report.version,REPORT_VERSION);assert.equal(same.unchanged,true);assert.equal(same.report.id,saved.report.id);assert.equal(f.objects.size,3);
   const metadata=await (await read('member')).json();assert.equal(metadata.reports[0].entries,undefined);assert.equal((await f.fetch(url+'/source?unit=sontra-sea-hotel&month=2026-08&family=cash',{headers:{Authorization:'Bearer member'}})).status,403);assert.equal((await read('manager','yzistel-hoi-an')).status,403);
   const source=await (await f.fetch(url+'/source?unit=sontra-sea-hotel&month=2026-08&family=cash',{headers:{Authorization:'Bearer admin'}})).json();assert.equal(source.sheets[0].sourceRows.length,2);
   book.Sheets['BK THU KS'].D2.v=200000;f.setFailActive(true);assert.equal((await upload('admin')).status,503);reports=(await (await read('admin')).json()).reports;assert.equal(reports[0].totals.receipts,100000);f.setFailActive(false);
@@ -52,4 +52,19 @@ test('legacy snapshots recover explicit profit from source cells without alterin
  const legacy={...analyzeWorkbook(cashBook(),'2026-08'),version:1,unit:'a'};for(const service of legacy.services)delete service.reportedProfit;legacy.issues=legacy.issues.map(i=>i.sheet==='DV Ngoài'?{...i,message:'Dịch vụ thiếu giá thuê hoặc giá bán; chưa tính đủ lợi nhuận.'}:i);const original=JSON.stringify(legacy),upgraded=normalizeManagementReport(legacy);assert.equal(upgraded.services[1].reportedProfit,50000);assert.equal(upgraded.services[1].cost,null);assert.equal(upgraded.services[1].margin,null);assert.ok(upgraded.issues.some(i=>i.message.includes('cột Lợi nhuận')));assert.equal(JSON.stringify(legacy),original);
  const groups=groupReportIssues([{...upgraded,issues:[{sheet:'DV Ngoài',row:10,message:'Blank cost'},{sheet:'DV Ngoài',row:11,message:'Blank cost'},{sheet:'BK THU KS',row:303,message:'Missing description'}]}]);assert.equal(groups.length,2);assert.deepEqual(groups[0].rows,[10,11]);assert.equal(groups[0].count,2);
  const noSource=normalizeManagementReport({...legacy,sheets:[]});assert.equal(noSource.services[1].reportedProfit,null);
+});
+
+
+test('cash-source repair and asset maintenance stay distinct in charts and restored v2 reports; amounts never move twice',()=>{
+ const b=cashBook();b.sheets[1]=sheet('BK CHI KS',[
+ ['Ngày','Hạng mục','Nội dung chi','Chi tiền mặt','Chi Tiền CK'],
+ ['2026-08-01','Chi sửa chữa','Thay thiết bị',4946000,null],
+ ['2026-08-02','Chi bảo dưỡng tài sản','Bảo dưỡng định kỳ',5150000,null],
+ ['2026-08-03','Chi mua đồ dùng KS (CCDC)','Đồ dùng',463000,null],
+ ['2026-08-04','Chi phí khác','Khác',1210000,null],
+ ['2026-08-05','Chi sửa chữa','Điều chỉnh',null,-10000]]);
+ const fresh={...analyzeWorkbook(b,'2026-08'),unit:'a'},d=dashboardFromReports([fresh]),payments=d.categories.filter(c=>c.kind==='payment');assert.equal(payments.find(c=>c.label==='Sửa chữa').amount,4936000);assert.equal(payments.find(c=>c.label==='Bảo dưỡng tài sản').amount,5150000);assert.equal(payments.find(c=>c.label==='Tài sản / công cụ').amount,463000);assert.equal(payments.find(c=>c.label==='Khác').amount,1210000);assert.equal(payments.reduce((n,c)=>n+c.amount,0),d.totals.payments);assert.equal(d.totals.payments,11759000);
+ const legacy={...fresh,version:2,entries:fresh.entries.map(({sourceCategory,...entry})=>entry)},original=JSON.stringify(legacy),restored=normalizeManagementReport(legacy);assert.deepEqual(dashboardFromReports([restored]).categories,d.categories);assert.equal(JSON.stringify(legacy),original);assert.equal(restored.services[0].reportedProfit,fresh.services[0].reportedProfit);
+ // Without raw cells, retain the broad historical label rather than inventing a split.
+ const unavailable=normalizeManagementReport({...legacy,sheets:[]});assert.equal(dashboardFromReports([unavailable]).categories.find(c=>c.category==='repair').label,'Sửa chữa / bảo dưỡng');
 });

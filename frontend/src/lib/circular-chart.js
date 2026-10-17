@@ -20,7 +20,7 @@ export function prepareSlices(data,maxSlices=6){
  let sectors=known.filter(r=>r.value!==0).map(r=>({...r,weight:Math.abs(r.value)}));
  if(sectors.length>maxSlices){
   const sorted=[...sectors].sort((a,b)=>b.weight-a.weight),keep=sorted.slice(0,maxSlices-1),rest=sorted.slice(maxSlices-1);
-  sectors=[...keep,{label:`Khác (${rest.length})`,value:rest.reduce((s,r)=>s+r.value,0),weight:rest.reduce((s,r)=>s+r.weight,0),color:'#a39aaa',grouped:true}];
+  sectors=[...keep,{label:`Gộp (${rest.length})`,value:rest.reduce((s,r)=>s+r.value,0),weight:rest.reduce((s,r)=>s+r.weight,0),color:'#a39aaa',grouped:true,members:rest}];
  }
  let angle=-Math.PI/2;
  sectors=sectors.map(s=>{const start=angle;angle+=s.weight/total*Math.PI*2;return {...s,start,end:angle,mid:(start+angle)/2,percent:s.weight/total*100};});
