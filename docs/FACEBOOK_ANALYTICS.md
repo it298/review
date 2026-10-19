@@ -26,7 +26,7 @@ Page cố định, cùng hotel_key với danh mục công ty:
 
    Dùng lại SUPABASE_URL, SUPABASE_SECRET_KEY (hoặc SUPABASE_SERVICE_ROLE_KEY), CRON_SECRET, TIMEZONE=Asia/Ho_Chi_Minh. Không thêm token vào frontend/VITE_*. Local backend dùng `.env` qua dotenv từ working directory `backend`.
 3. Deploy backend và frontend theo cấu hình Render hiện tại. `.env.example` và `render.yaml` đã bổ sung cấu hình Facebook; service đang có trên Render có thể cần nhập biến trực tiếp.
-4. GitHub repository → Actions bật workflow **Sync Facebook Analytics**. Dùng lại repository variable `DEPLOYMENT_URL` = URL **backend** và secret `CRON_SECRET` trùng backend. Chạy `workflow_dispatch` để thử. Cron `30 1 * * *` UTC tương ứng 08:30 Asia/Ho_Chi_Minh; GitHub có thể chạy trễ. Render free có thể ngủ, không đảm bảo chạy đúng từng giây.
+4. GitHub repository → Actions bật workflow **Sync Facebook Analytics**. Tạo repository variable `FACEBOOK_DEPLOYMENT_URL` = URL **backend** và secret `CRON_SECRET` trùng backend. Biến URL này riêng cho Facebook, không kích hoạt workflow Google hiện có. Chạy `workflow_dispatch` để thử. Cron `30 1 * * *` UTC tương ứng 08:30 Asia/Ho_Chi_Minh; GitHub có thể chạy trễ. Render free có thể ngủ, không đảm bảo chạy đúng từng giây.
 5. Quyền token do khách hàng cung cấp: read_insights, pages_show_list, business_management, pages_read_engagement, public_profile. Tài khoản phải có quyền trên cả bốn Page. Token hết hạn cần thay tại backend; module không giả lập refresh token hoặc tự gia hạn.
 
 Không thể chạy sync thật khi chưa có token hợp lệ và migration. Thông báo `configured` chỉ xác nhận biến môi trường có giá trị, không khẳng định token còn hạn.

@@ -11,13 +11,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   sync:
-    if: vars.DEPLOYMENT_URL != ''
+    if: vars.FACEBOOK_DEPLOYMENT_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Refresh the last three completed days and today's follower snapshot
         env:
-          DEPLOYMENT_URL: ${{ vars.DEPLOYMENT_URL }}
+          DEPLOYMENT_URL: ${{ vars.FACEBOOK_DEPLOYMENT_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         shell: bash
         run: |
