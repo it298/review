@@ -23,6 +23,6 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CRON_SECRET" || { echo 'Set CRON_SECRET repository secret.'; exit 1; }
-          curl --fail --silent --show-error --retry 2 --retry-delay 30 --max-time 300 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 30 --max-time 300 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            "${DEPLOYMENT_URL%/}/api/facebook/cron" | jq '{ok,skipped,reason,results}'
+            "${DEPLOYMENT_URL%/}/api/facebook/cron" | jq '{ok,skipped,reason,error,results}'

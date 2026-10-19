@@ -100,3 +100,7 @@ Trong phần mềm: mở **Facebook Analytics** ở sidebar hoặc thẻ tổng 
 Mới: `backend/src/modules/facebook/{hotels,dates,meta-service,sync,router,auto-sync}.js`, `backend/test/facebook.test.js`, `supabase/facebook-module.sql`, `frontend/src/lib/facebook-report.js`, `frontend/src/pages/FacebookAnalytics.jsx`, `frontend/src/pages/facebook.css`, `.github/workflows/facebook-sync.yml`, `scripts/check-facebook.mjs`, tài liệu này.
 
 Sửa nhỏ: `backend/src/app.js`, `backend/.env.example`, `frontend/src/App.jsx`, `frontend/src/components/Sidebar.jsx`, `frontend/src/pages/WorkspaceHome.jsx`, `render.yaml`. Không sửa worker hoặc các file Analytics website đang tạm dừng.
+
+## Token hết hạn khi vận hành
+
+Nếu workflow báo HTTP 502 với thông báo phiên Meta hết hạn, kiểm tra User Access Token. Meta code 190/subcode 463 xác nhận token đã hết hạn. Thay META_USER_ACCESS_TOKEN trong backend Render bằng User Access Token còn hạn, Save/redeploy rồi chạy lại workflow. Không thay CRON_SECRET. Workflow dùng --fail-with-body để hiện trường error đã được backend loại bỏ bí mật, đồng thời vẫn đánh dấu lượt chạy thất bại.
