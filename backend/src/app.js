@@ -1,3 +1,5 @@
+import {createFacebookRouter} from './modules/facebook/router.js';
+import {facebookCron} from './modules/facebook/auto-sync.js';
 import {createExcelReportsRouter} from './modules/excel-reports/router.js';
 import express from 'express';
 import {authMode,authenticateUser,installPublicAuth,installPrivateAuth} from './auth.js';
@@ -68,6 +70,7 @@ export function createApp(){
  app.post('/api/extranet/worker/results',workerAuth,async(req,res,next)=>{try{res.json(await rpc('review_tracker_extranet_summary_ingest',{p:validateExtranetSummary(req.body)}));}catch(e){next(e);}});
  app.get('/api/marketing/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});res.json(await marketingCron());}catch(e){next(e);}});
  app.get('/api/bluejay/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await autoSyncBluejay();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
+ app.get('/api/facebook/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await facebookCron();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  installPublicAuth(app);
  app.use('/api',async(req,res,next)=>{
   if(authMode()==='supabase'){try{await authenticateUser(req);return next();}catch(e){return next(e);}}
@@ -83,6 +86,7 @@ export function createApp(){
  app.get('/api/google/accounts',async(req,res,next)=>{try{res.json(await listAccounts(typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
+ app.use('/api/facebook',createFacebookRouter());
  app.use('/api/bluejay',createBluejayRouter());
  app.use('/api/finance',createFinanceRouter());
  app.use('/api/management-reports',createExcelReportsRouter());

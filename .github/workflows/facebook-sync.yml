@@ -1,0 +1,28 @@
+name: Sync Facebook Analytics
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron is UTC: 01:30 UTC = 08:30 Asia/Ho_Chi_Minh (no DST).
+    - cron: '30 1 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: facebook-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: vars.DEPLOYMENT_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Refresh the last three completed days and today's follower snapshot
+        env:
+          DEPLOYMENT_URL: ${{ vars.DEPLOYMENT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET" || { echo 'Set CRON_SECRET repository secret.'; exit 1; }
+          curl --fail --silent --show-error --retry 2 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${DEPLOYMENT_URL%/}/api/facebook/cron" | jq '{ok,skipped,reason,results}'

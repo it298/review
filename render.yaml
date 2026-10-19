@@ -12,6 +12,12 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 24
+      - key: META_API_VERSION
+        value: v26.0
+      - key: META_USER_ACCESS_TOKEN
+        sync: false
+      - key: FACEBOOK_AUTO_SYNC
+        value: true
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
