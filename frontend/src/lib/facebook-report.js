@@ -1,4 +1,4 @@
-export const FACEBOOK_METRICS=[['post_engagements','Tương tác bài viết'],['media_views','Lượt xem nội dung'],['unique_viewers','Người xem duy nhất / ngày']];
+export const FACEBOOK_METRICS=[['post_engagements','Tương tác bài viết'],['media_views','Lượt xem nội dung'],['unique_viewers','Người xem duy nhất / ngày'],['page_visits','Lượt truy cập Page'],['new_follows','Lượt theo dõi mới'],['new_conversations','Cuộc trò chuyện mới lần đầu']];
 export const dayOffset=(day,n)=>Number.isFinite(Date.parse(day))?new Date(Date.parse(day)+n*86400000).toISOString().slice(0,10):'';
 export function hotelFacebookReport(hotel,insights,followers,from,to){
  const days=(insights.days||[]).filter(d=>d.page_id===hotel.page_id),snapshots=(followers.snapshots||[]).filter(s=>s.page_id===hotel.page_id).sort((a,b)=>a.snapshot_date.localeCompare(b.snapshot_date));

@@ -104,3 +104,50 @@ Sửa nhỏ: `backend/src/app.js`, `backend/.env.example`, `frontend/src/App.jsx
 ## Token hết hạn khi vận hành
 
 Nếu workflow báo HTTP 502 với thông báo phiên Meta hết hạn, kiểm tra User Access Token. Meta code 190/subcode 463 xác nhận token đã hết hạn. Thay META_USER_ACCESS_TOKEN trong backend Render bằng User Access Token còn hạn, Save/redeploy rồi chạy lại workflow. Không thay CRON_SECRET. Workflow dùng --fail-with-body để hiện trường error đã được backend loại bỏ bí mật, đồng thời vẫn đánh dấu lượt chạy thất bại.
+
+
+## Mở rộng báo cáo tiếp cận (19/10/2026)
+
+Áp dụng `supabase/facebook-report-extension.sql` trong SQL Editor của **Supabase hiện tại**, sau migration gốc. Script chạy lại được, không xóa dữ liệu cũ. Cần áp dụng trước khi deploy mã mở rộng; không chạy lại migration gốc sau extension vì sẽ thay thế hàm upsert mở rộng.
+
+Danh mục bổ sung Page **Vintage Taste Deli Cafe — 224431597428014**, giữ riêng cấp thương hiệu và không tự gán cho chi nhánh. Tổng cộng 5 Page, `/me/accounts` vẫn chỉ được đọc một lần trong mỗi đợt (có phân trang nếu Meta yêu cầu).
+
+Chỉ số API bổ sung theo ngày: `page_views_total` → `page_visits`, `page_daily_follows` → `new_follows`, `page_messages_new_conversations_unique` → `new_conversations`. Lượt theo dõi mới là phát sinh, khác tăng trưởng follower ròng. Cuộc trò chuyện mới lần đầu khác tổng tin nhắn hoặc mọi liên hệ Messenger. Mỗi chỉ số bổ sung được thử riêng; lỗi một chỉ số không ngăn lưu chỉ số gốc, có `warnings` và `additionalComplete:false`. Cron đánh dấu hoàn tất khi các Page lưu thành công; cảnh báo bổ sung vẫn hiện trong kết quả, không tự thử lại ngoài lịch vì thiếu quyền chỉ số.
+
+`published_posts` lấy từ edge `/PAGE/published_posts`, phân trang đầy đủ, đếm theo ngày xuất bản tại Việt Nam. Chỉ đếm bài mà API trả được, không suy ra bài đã xóa/không còn khả dụng. Chỉ ghi ngày 0 bài sau khi đọc thành công toàn bộ edge; lỗi thì giữ lịch sử đã lưu.
+
+Không dùng lifetime post clicks thay cho click trong kỳ. Không cộng daily unique viewers thành unique cả kỳ. Click liên kết, người xem duy nhất cả kỳ, liên hệ Messenger theo báo cáo và tỷ lệ phản hồi có thể lấy từ báo cáo gốc nhập bổ sung. Không giả định các chỉ số này luôn được Meta API hỗ trợ với token hiện tại.
+
+### Database và endpoint mới
+
+- Daily facts hiện có thêm nullable bigint `page_visits`, `new_follows`, `new_conversations`.
+- `review_tracker_facebook_posts_daily`: khóa Page/ngày, lưu số bài đăng, upsert giữ lịch sử.
+- `review_tracker_facebook_period_reports`: khóa Page/từ/đến, 9 chỉ số JSON, nguồn, người lưu, timestamps. Lưu lại đúng kỳ thay bộ số bổ sung của kỳ đó, không cộng kỳ chồng lấn, không ghi đè API.
+- RPC riêng `review_tracker_facebook_report(jsonb)` chỉ service role gọi được. Bảng mới bật RLS và từ chối anon/authenticated. Backend áp dụng phân quyền hiện có.
+- `GET /api/facebook/report?pageId=...&from=YYYY-MM-DD&to=YYYY-MM-DD`: đọc kỳ chính xác, lịch sử 100 kỳ gần nhất và số bài API theo ngày.
+- `POST /api/facebook/report`: admin/manager; body `{pageId,from,to,values,source_note}`. `values` dùng các key ở `shared/facebook-report.js`. Ngày đến ở endpoint báo cáo là inclusive. Không cần environment variable mới.
+
+### Thao tác trên phần mềm
+
+Chọn Page và khoảng ngày → **Báo cáo tiếp cận Facebook**. Bảng 9 chỉ số ghi nguồn API/báo cáo bổ sung và giữ cột API để đối chiếu. Chọn **Nhập bổ sung hoặc tải báo cáo Excel** để nhập tay hoặc tải file mẫu tiếp cận. File hỗ trợ cột tên `ID` hoặc `Brand`, chỉ đọc hàng Facebook, nhận diện từng Page/kỳ. Kiểm tra preview rồi **Lưu kỳ báo cáo đang chọn**. Phần mềm chuyển sang đúng Page/kỳ vừa lưu. Các ô trống, số sai kiểu, ngày nằm trong ô phần trăm và dữ liệu mâu thuẫn được báo riêng. Không chuyển ô lỗi thành 0. Không nhập Website, Instagram, Maps hay TikTok vào Facebook.
+
+**Lịch sử báo cáo bổ sung** mở lại từng kỳ đã lưu mà không cần tải file. **Xuất báo cáo CSV** xuất 9 chỉ số, nguồn, kỳ và số API đối chiếu. Viewer/member xem và xuất; chỉ admin/manager được nhập bổ sung hoặc sync.
+
+### Kiểm tra sau triển khai
+
+1. Chạy extension trên Supabase, deploy backend/frontend.
+2. Bấm Cập nhật Facebook; kiểm tra 5/5 Page và không có cảnh báo bổ sung.
+3. Kiểm tra SQL:
+
+```sql
+select hotel_name,metric_date,page_visits,new_follows,new_conversations,bucket_end_time
+from public.review_tracker_facebook_daily order by metric_date desc,hotel_name;
+select * from public.review_tracker_facebook_posts_daily order by post_date desc;
+select page_id,period_from,period_to,metric_values,source_note,updated_at
+from public.review_tracker_facebook_period_reports order by updated_at desc;
+```
+
+4. Thử tải file tiếp cận, lưu một kỳ, reload, mở lịch sử và xuất CSV. Không bấm lưu mọi kỳ nếu chỉ muốn xem trước.
+5. Kiểm thử riêng: `node --test backend/test/facebook.test.js`; end-to-end fixture: `node scripts/check-facebook.mjs`. Có thể đặt `FACEBOOK_QA_WORKBOOK` thành đường dẫn file gốc để kiểm tra đọc Excel trong trình duyệt; chỉ lưu vào PGlite fixture, không ghi production.
+
+Các file bổ sung: `shared/facebook-report.js`, `frontend/src/lib/facebook-excel.js`, `frontend/src/components/FacebookPeriodReport.jsx`, migration extension. Sửa nhỏ service/sync/router/danh mục Facebook, frontend report/page/CSS, WorkspaceHome và các kiểm thử tương ứng. Không thay logic Bluejay, tài chính, Google Review hay worker.

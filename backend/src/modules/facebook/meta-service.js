@@ -1,5 +1,6 @@
 import {fail} from './dates.js';
 export const METRICS={page_post_engagements:'post_engagements',page_media_view:'media_views',page_total_media_view_unique:'unique_viewers'};
+export const EXTRA_METRICS={page_views_total:'page_visits',page_daily_follows:'new_follows',page_messages_new_conversations_unique:'new_conversations'};
 // Never propagate Meta messages, request URLs, paging URLs or tokens to callers/logs.
 function metaError(code){
  if(Number(code)===190)return fail('Phiên Meta đã hết hạn hoặc token không hợp lệ. Cập nhật META_USER_ACCESS_TOKEN.',502);
@@ -40,6 +41,9 @@ export function createMetaService({fetcher=fetch,token=process.env.META_USER_ACC
   },
   getPageAccessToken(pageId,pages){const value=pages.get(pageId);if(!value)throw fail('Không lấy được Page Access Token. Kiểm tra Page đã được cấp quyền cho tài khoản Meta.',502);return value;},
   getPageSummary(pageId,pageToken){return request(pageId,{fields:'id,name,fan_count,followers_count'},pageToken);},
-  getPageInsights(pageId,pageToken,since,until){return collect(pageId+'/insights',{metric:Object.keys(METRICS).join(','),period:'day',since,until,limit:'100'},pageToken);}
+  getPageInsights(pageId,pageToken,since,until){return collect(pageId+'/insights',{metric:Object.keys(METRICS).join(','),period:'day',since,until,limit:'100'},pageToken);},
+  getAdditionalInsight(pageId,pageToken,since,until,metric){if(!Object.hasOwn(EXTRA_METRICS,metric))throw fail('Chỉ số bổ sung chưa được hỗ trợ.');return collect(pageId+'/insights',{metric,period:'day',since,until,limit:'100'},pageToken);},
+  // Published posts are counted by publication date in Vietnam, not lifetime click totals.
+  getPublishedPosts(pageId,pageToken,since,until){return collect(pageId+'/published_posts',{fields:'id,created_time',since:String(Date.parse(since+'T00:00:00+07:00')/1000),until:String(Date.parse(until+'T00:00:00+07:00')/1000),limit:'100'},pageToken);}
  };
 }
