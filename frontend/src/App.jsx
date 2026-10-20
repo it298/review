@@ -35,8 +35,8 @@ export default function App(){
  useEffect(()=>{
   if(auth.status!=='signedIn'||auth.user?.mustChangePassword){setAlerts([]);setToast(null);return;}
   let stopped=false,known=null;
-  async function poll(){if(document.visibilityState==='hidden')return;try{const data=await api('/api/insights?days=7');if(stopped)return;const fresh=visibleAlerts(data.alerts).filter(a=>a.relationship==='managed'&&!a.read);setAlerts(fresh);if(known){const added=fresh.find(a=>!known.has(a.key));if(added)setToast(added);}known=new Set(fresh.map(a=>a.key));}catch{}}
-  poll();const timer=setInterval(poll,60000);window.addEventListener('insights-updated',poll);return()=>{stopped=true;clearInterval(timer);window.removeEventListener('insights-updated',poll);};
+  async function poll(){if(document.visibilityState==='hidden')return;try{const data=await api('/api/insights?days=7');if(stopped)return;const fresh=visibleAlerts(data.alerts).filter(a=>a.relationship==='managed'&&!a.read);setAlerts(fresh);const added=fresh.find(a=>(known?!known.has(a.key):['low_review','new_review','count_increase'].includes(a.type)));if(added)setToast(added);known=new Set(fresh.map(a=>a.key));}catch{}}
+  poll();const timer=setInterval(poll,60000);window.addEventListener('insights-updated',poll);window.addEventListener('focus',poll);document.addEventListener('visibilitychange',poll);return()=>{stopped=true;clearInterval(timer);window.removeEventListener('insights-updated',poll);window.removeEventListener('focus',poll);document.removeEventListener('visibilitychange',poll);};
  },[auth.status,auth.user?.mustChangePassword]);
  if(auth.recovery||auth.status==='signedOut')return <Login auth={auth}/>;
  if(auth.status!=='signedIn')return <main className="auth-loading">{auth.status==='error'?<div><p role="alert">{auth.message}</p><button className="secondary" onClick={()=>window.location.reload()}>Thử lại</button></div>:<><Icon name="refresh" className="spin"/>Đang kiểm tra phiên đăng nhập…</>}</main>;

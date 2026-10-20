@@ -18,6 +18,11 @@ export function buildAlerts(data,now=new Date(),lookbackDays=7){
  const entities=new Map(data.directory.map(e=>[e.entity_key,e])),reads=new Set(data.readKeys),alerts=[];
  const decorate=a=>{const e=entities.get(a.entity_key);if(!e)return;alerts.push({...a,name:e.name,category:e.category,relationship:e.relationship,read:reads.has(a.key)});};
  for(const r of data.lowReviews||[]){if(!Number.isFinite(Date.parse(r.at))||Date.parse(r.at)<now.getTime()-lookbackDays*86400000||Date.parse(r.at)>now.getTime())continue;decorate({...r,key:'review:'+r.id,type:'low_review',severity:'high'});}
+ for(const r of data.newReviews||[]){if(!Number.isFinite(Date.parse(r.at))||Date.parse(r.at)<now.getTime()-lookbackDays*86400000||Date.parse(r.at)>now.getTime()||(data.lowReviews||[]).some(v=>String(v.id)===String(r.id)))continue;decorate({...r,key:'review:'+r.id,type:'new_review',severity:'low'});}
+ for(const c of data.countIncreases||[]){const delta=Number(c.value)-Number(c.previous);if(!Number.isSafeInteger(delta)||delta<=0||!Number.isFinite(Date.parse(c.at))||Date.parse(c.at)<now.getTime()-lookbackDays*86400000||Date.parse(c.at)>now.getTime())continue;
+  // A known individual event in the same observation interval takes precedence.
+  if([...(data.lowReviews||[]),...(data.newReviews||[])].some(r=>r.entity_key===c.entity_key&&r.source===c.source&&r.reason!=='changed'&&Date.parse(r.at)>Date.parse(c.previous_at)&&Date.parse(r.at)<=Date.parse(c.at)))continue;
+  decorate({...c,key:'count-increase:'+c.id,type:'count_increase',severity:'low',delta});}
  for(const c of data.changes){if(Date.parse(c.at)<now.getTime()-lookbackDays*86400000)continue;const drop=Number((Number(c.value)-Number(c.previous)).toFixed(2));if(c.metric==='rating'&&-drop<(Number(c.rating_max)===5?0.1:0.2)-1e-8)continue;
   decorate({...c,key:'change:'+c.id+':'+c.metric,type:c.metric==='rating'?'rating_drop':'count_drop',severity:c.metric==='rating'?'high':'medium',delta:drop});}
  for(const e of data.directory)for(const link of e.sources||[]){if(link.warning)continue;const s=data.statuses.find(s=>s.entity_key===e.entity_key&&s.source===link.source);if(!s)continue;
