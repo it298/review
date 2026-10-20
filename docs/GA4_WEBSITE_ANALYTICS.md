@@ -79,3 +79,7 @@ Tài liệu chính thức:
 - https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport
 - https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema
 - https://developers.google.com/identity/protocols/oauth2/web-server
+
+## Chẩn đoán kết nối không thành công
+
+Callback chỉ trả mã chẩn đoán cố định `ga4_reason`, không trả message/raw error của Google, code OAuth, token hoặc secret. Giao diện phân biệt cấu hình, state hết hạn, đổi mã, invalid_client, invalid_grant, thiếu quyền/refresh token, lock và lưu Supabase. Nếu lỗi storage, kiểm tra hàm marketing_set và quyền service_role trước khi chạy SQL. Nếu invalid_client, kiểm tra cặp Client ID/Secret trên Render thuộc cùng OAuth Client. Không sửa database khi lỗi ở bước Google đổi mã.

@@ -2,6 +2,7 @@ import {createFacebookRouter} from './modules/facebook/router.js';
 import {createGa4Router} from './modules/ga4/router.js';
 import {ga4Cron} from './modules/ga4/auto-sync.js';
 import {finishGa4OAuth} from './modules/ga4/oauth.js';
+import {GA4_OAUTH_ERRORS} from '../../shared/ga4-oauth.js';
 import {facebookCron} from './modules/facebook/auto-sync.js';
 import {createExcelReportsRouter} from './modules/excel-reports/router.js';
 import express from 'express';
@@ -44,10 +45,10 @@ export function createApp(){
  app.get('/api/health',(_req,res)=>res.json({ok:true}));
  app.get(['/api/google/callback','/auth/google/callback'],async(req,res,next)=>{
   res.set('Referrer-Policy','no-referrer');
-  let result='error';
+  let result='error',reason=null;
   const analytics=typeof req.query.state==='string'&&req.query.state.startsWith('ga4_');
-  try{result=await (analytics?finishGa4OAuth(req.query):finishOAuth(req.query));}catch{}
-  try{const target=frontendUrl();target.searchParams.set(analytics?'ga4':'google',result);res.redirect(303,target.href);}catch(e){next(e);}
+  try{result=await (analytics?finishGa4OAuth(req.query):finishOAuth(req.query));}catch(e){if(analytics&&Object.hasOwn(GA4_OAUTH_ERRORS,e.ga4Failure))reason=e.ga4Failure;}
+  try{const target=frontendUrl();target.searchParams.set(analytics?'ga4':'google',result);if(reason)target.searchParams.set('ga4_reason',reason);res.redirect(303,target.href);}catch(e){next(e);}
  });
  app.get('/api/cron',async(req,res,next)=>{try{
   if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});
