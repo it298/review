@@ -1,4 +1,5 @@
 import {createFacebookRouter} from './modules/facebook/router.js';
+import {createInstagramRouter,instagramCron} from './modules/facebook/instagram.js';
 import {createGa4Router} from './modules/ga4/router.js';
 import {ga4Cron} from './modules/ga4/auto-sync.js';
 import {finishGa4OAuth} from './modules/ga4/oauth.js';
@@ -76,6 +77,7 @@ export function createApp(){
  app.get('/api/marketing/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});res.json(await marketingCron());}catch(e){next(e);}});
  app.get('/api/bluejay/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await autoSyncBluejay();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  app.get('/api/facebook/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await facebookCron();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
+ app.get('/api/instagram/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await instagramCron();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  installPublicAuth(app);
  app.get('/api/ga4/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await ga4Cron();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  app.use('/api',async(req,res,next)=>{
@@ -93,6 +95,7 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/facebook',createFacebookRouter());
+ app.use('/api/instagram',createInstagramRouter());
  app.use('/api/ga4',createGa4Router());
  app.use('/api/bluejay',createBluejayRouter());
  app.use('/api/finance',createFinanceRouter());

@@ -35,6 +35,9 @@ export function createMetaService({fetcher=fetch,token=process.env.META_USER_ACC
   }throw fail('Meta trả quá nhiều trang dữ liệu; chọn khoảng ngày ngắn hơn.',502);
  }
  return {
+  getInstagramLink(pageId,pageToken){return request(pageId,{fields:'id,instagram_business_account{id}'},pageToken);},
+  getInstagramSummary(id,pageToken){return request(id,{fields:'id,username,followers_count,media_count'},pageToken);},
+  getInstagramInsight(id,pageToken,metric,since,until){return request(id+'/insights',{metric,period:'day',metric_type:'total_value',since,until},pageToken);},
   async getManagedPages(){
    const pages=await collect('me/accounts',{fields:'id,name,access_token',limit:'100'},token);
    return new Map(pages.filter(p=>typeof p.id==='string'&&typeof p.access_token==='string'&&p.access_token).map(p=>[p.id,p.access_token]));

@@ -26,3 +26,15 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 30 --max-time 300 \
             -H "Authorization: Bearer $CRON_SECRET" \
             "${DEPLOYMENT_URL%/}/api/facebook/cron" | jq '{ok,skipped,reason,error,results}'
+      - name: Refresh Instagram independently
+        if: always()
+        env:
+          DEPLOYMENT_URL: ${{ vars.FACEBOOK_DEPLOYMENT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${DEPLOYMENT_URL%/}/api/instagram/cron" | jq '{ok,skipped,reason,results}'
