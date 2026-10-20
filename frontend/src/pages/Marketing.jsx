@@ -1,3 +1,4 @@
+import WebsiteAnalytics from '../components/WebsiteAnalytics.jsx';
 import CircularChart from '../components/CircularChart.jsx';
 import {useEffect,useState} from 'react';
 import {api} from '../lib/api.js';
@@ -20,5 +21,6 @@ export default function Marketing({user,onConnect}){
       <section className="panel"><div className="marketing-controls"><h2>Phân bổ theo ngày</h2><label>Chỉ số<select aria-label="Chỉ số tiếp cận" value={metric} onChange={e=>setMetric(e.target.value)}>{report.metrics.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}</select></label></div><p>{chosen?.label} · tổng {number(chosen?.value)} trong {chosen?.days} ngày có dữ liệu</p><CircularChart title={chosen?.label+' theo ngày'} unit="lượt" data={days.map(d=>({label:d.date,value:d[metric]}))}/>{!days.length&&<p>Google chưa trả dữ liệu trong khoảng đã chọn.</p>}</section>
       <section className="panel"><h2>Chỉ số trong kỳ</h2><div className="table-scroll"><table><thead><tr><th>Chỉ số</th><th>Giá trị</th><th>Ngày có dữ liệu</th></tr></thead><tbody>{report.metrics.map(m=><tr key={m.key}><td>{m.label}</td><td>{number(m.value)}</td><td>{m.days}</td></tr>)}</tbody></table></div><p className="muted">Nhấp gọi điện là thao tác nhấp nút gọi, không phải số cuộc gọi đã kết nối. Nhấp website không phải số người truy cập website. Hiển thị các nhóm thiết bị có thể trùng người dùng; không cộng thành số người duy nhất.</p></section>
     </>:placeId&&!error&&<section className="panel"><h2>Chưa có báo cáo đã lưu cho kỳ này</h2><p>Bấm Đồng bộ Google Business để lấy dữ liệu trực tiếp và lưu báo cáo.</p></section>}
+    <WebsiteAnalytics user={user}/>
   </main>;
 }

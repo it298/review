@@ -26,7 +26,7 @@ import Account from './pages/Account.jsx';
 import Marketing from './pages/Marketing.jsx';
 export default function App(){
  const auth=useAuth();const [accountOpen,setAccountOpen]=useState(false);
- const [module,setActiveModule]=useState(()=>new URLSearchParams(window.location.search).has('google')?'reviews':['home','reviews','bluejay','marketing','finance','facebook'].includes(sessionStorage.getItem('workspace-module'))?sessionStorage.getItem('workspace-module'):'home');
+ const [module,setActiveModule]=useState(()=>new URLSearchParams(window.location.search).has('ga4')?'marketing':new URLSearchParams(window.location.search).has('google')?'reviews':['home','reviews','bluejay','marketing','finance','facebook'].includes(sessionStorage.getItem('workspace-module'))?sessionStorage.getItem('workspace-module'):'home');
  const [bluejayTab,setBluejayTab]=useState('dashboard');
  function setModule(value){setAccountOpen(false);setActiveModule(value);sessionStorage.setItem('workspace-module',value);}
  const [page,setPage]=useState(()=>new URLSearchParams(window.location.search).has('google')?'places':'dashboard');

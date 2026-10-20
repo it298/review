@@ -1,4 +1,7 @@
 import {createFacebookRouter} from './modules/facebook/router.js';
+import {createGa4Router} from './modules/ga4/router.js';
+import {ga4Cron} from './modules/ga4/auto-sync.js';
+import {finishGa4OAuth} from './modules/ga4/oauth.js';
 import {facebookCron} from './modules/facebook/auto-sync.js';
 import {createExcelReportsRouter} from './modules/excel-reports/router.js';
 import express from 'express';
@@ -39,11 +42,12 @@ export function createApp(){
  app.use('/api',(_req,res,next)=>{res.set('Cache-Control','no-store');next();});
  app.get('/',(_req,res)=>res.json({service:'review-tracker-api',health:'/api/health'}));
  app.get('/api/health',(_req,res)=>res.json({ok:true}));
- app.get('/api/google/callback',async(req,res,next)=>{
+ app.get(['/api/google/callback','/auth/google/callback'],async(req,res,next)=>{
   res.set('Referrer-Policy','no-referrer');
   let result='error';
-  try{result=await finishOAuth(req.query);}catch{}
-  try{const target=frontendUrl();target.searchParams.set('google',result);res.redirect(303,target.href);}catch(e){next(e);}
+  const analytics=typeof req.query.state==='string'&&req.query.state.startsWith('ga4_');
+  try{result=await (analytics?finishGa4OAuth(req.query):finishOAuth(req.query));}catch{}
+  try{const target=frontendUrl();target.searchParams.set(analytics?'ga4':'google',result);res.redirect(303,target.href);}catch(e){next(e);}
  });
  app.get('/api/cron',async(req,res,next)=>{try{
   if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});
@@ -72,6 +76,7 @@ export function createApp(){
  app.get('/api/bluejay/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await autoSyncBluejay();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  app.get('/api/facebook/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await facebookCron();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  installPublicAuth(app);
+ app.get('/api/ga4/cron',async(req,res,next)=>{try{if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});const result=await ga4Cron();res.status(result.ok===false?502:200).json(result);}catch(e){next(e);}});
  app.use('/api',async(req,res,next)=>{
   if(authMode()==='supabase'){try{await authenticateUser(req);return next();}catch(e){return next(e);}}
   if(!process.env.APP_PASSWORD || process.env.APP_PASSWORD.length<16)return res.status(503).json({error:'Cần cấu hình APP_PASSWORD dài ít nhất 16 ký tự.'});
@@ -87,6 +92,7 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/facebook',createFacebookRouter());
+ app.use('/api/ga4',createGa4Router());
  app.use('/api/bluejay',createBluejayRouter());
  app.use('/api/finance',createFinanceRouter());
  app.use('/api/management-reports',createExcelReportsRouter());

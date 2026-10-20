@@ -1,0 +1,26 @@
+name: Sync Website Analytics
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 1 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: ga4-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: vars.FACEBOOK_DEPLOYMENT_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Refresh saved website reports
+        env:
+          DEPLOYMENT_URL: ${{ vars.FACEBOOK_DEPLOYMENT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 30 --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${DEPLOYMENT_URL%/}/api/ga4/cron" | jq '{ok,skipped,reason,error,results}'
