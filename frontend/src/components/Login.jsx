@@ -18,5 +18,6 @@ export default function Login({auth}){
   {(error||auth.message)&&<p role={error?'alert':'status'} className={'notice '+(error?'error':'')}>{error||auth.message}</p>}{message&&<p role="status" className="notice success">{message}</p>}
   {forgot&&<button className="auth-back" type="button" onClick={()=>{setForgot(false);setMessage('');setError('');}}>Quay lại đăng nhập</button>}
   {!forgot&&!auth.recovery&&<small className="auth-footnote">Tài khoản nội bộ do quản trị viên cấp quyền.</small>}
+ <a className="auth-footnote" href="/privacy" target="_blank" rel="noreferrer">Chính sách quyền riêng tư</a>
  </form></main>;
 }
