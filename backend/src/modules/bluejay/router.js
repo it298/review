@@ -23,6 +23,7 @@ import {
 import { apiWindowStatus, normalizeMonth } from "./date-utils.js";
 import { syncMany } from "./sync.js";
 import {importPayables,payablesForRange,payablesHistory} from './payables.js';
+import {bluejayPublicError} from './errors.js';
 
 export function createBluejayRouter(){
 const app = express.Router();
@@ -42,9 +43,12 @@ app.use((req,res,next)=>{
 });
 
 function apiError(res, error, fallbackMessage) {
+  const safe=bluejayPublicError(error,fallbackMessage);
+  console.warn(JSON.stringify({event:'bluejay_report_failed',code:safe.code,providerStatus:Number.isInteger(error?.status)?error.status:null,hotelId:res.req?.params?.hotelId||null}));
   res.status(error?.status===503?503:502).json({
-    message: fallbackMessage,
-    error: fallbackMessage,
+    message: safe.message,
+    error: safe.message,
+    code: safe.code,
   });
 }
 
