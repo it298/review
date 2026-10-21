@@ -1,3 +1,4 @@
+import {createAdsRouter} from './modules/facebook/ads.js';
 import {createFacebookRouter} from './modules/facebook/router.js';
 import {createTikTokRouter,tiktokCallback} from './modules/tiktok/router.js';
 import {createInstagramRouter,instagramCron} from './modules/facebook/instagram.js';
@@ -97,6 +98,7 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/facebook',createFacebookRouter());
+ app.use('/api/meta-ads',createAdsRouter());
  app.use('/api/tiktok',createTikTokRouter());
  app.use('/api/instagram',createInstagramRouter());
  app.use('/api/ga4',createGa4Router());
