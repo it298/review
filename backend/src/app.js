@@ -1,3 +1,5 @@
+import {createGoogleAdsRouter} from './modules/google-ads/router.js';
+import {finishGoogleAdsOAuth} from './modules/google-ads/oauth.js';
 import {createAdsRouter} from './modules/facebook/ads.js';
 import {createFacebookRouter} from './modules/facebook/router.js';
 import {createTikTokRouter,tiktokCallback} from './modules/tiktok/router.js';
@@ -50,9 +52,10 @@ export function createApp(){
  app.get(['/api/google/callback','/auth/google/callback'],async(req,res,next)=>{
   res.set('Referrer-Policy','no-referrer');
   let result='error',reason=null;
+  const ads=typeof req.query.state==='string'&&req.query.state.startsWith('gads_');
   const analytics=typeof req.query.state==='string'&&req.query.state.startsWith('ga4_');
-  try{result=await (analytics?finishGa4OAuth(req.query):finishOAuth(req.query));}catch(e){if(analytics&&Object.hasOwn(GA4_OAUTH_ERRORS,e.ga4Failure))reason=e.ga4Failure;}
-  try{const target=frontendUrl();target.searchParams.set(analytics?'ga4':'google',result);if(reason)target.searchParams.set('ga4_reason',reason);res.redirect(303,target.href);}catch(e){next(e);}
+  try{result=await (ads?finishGoogleAdsOAuth(req.query):analytics?finishGa4OAuth(req.query):finishOAuth(req.query));}catch(e){if(analytics&&Object.hasOwn(GA4_OAUTH_ERRORS,e.ga4Failure))reason=e.ga4Failure;}
+  try{const target=frontendUrl();target.searchParams.set(ads?'gads':analytics?'ga4':'google',result);if(reason)target.searchParams.set('ga4_reason',reason);res.redirect(303,target.href);}catch(e){next(e);}
  });
  app.get('/api/cron',async(req,res,next)=>{try{
   if(!authorized(req.headers.authorization,process.env.CRON_SECRET))return res.status(401).json({error:'Unauthorized'});
@@ -102,6 +105,7 @@ export function createApp(){
  app.use('/api/tiktok',createTikTokRouter());
  app.use('/api/instagram',createInstagramRouter());
  app.use('/api/ga4',createGa4Router());
+ app.use('/api/google-ads',createGoogleAdsRouter());
  app.use('/api/bluejay',createBluejayRouter());
  app.use('/api/finance',createFinanceRouter());
  app.use('/api/management-reports',createExcelReportsRouter());
