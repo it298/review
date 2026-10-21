@@ -1,4 +1,5 @@
 import {createFacebookRouter} from './modules/facebook/router.js';
+import {createTikTokRouter,tiktokCallback} from './modules/tiktok/router.js';
 import {createInstagramRouter,instagramCron} from './modules/facebook/instagram.js';
 import {createGa4Router} from './modules/ga4/router.js';
 import {ga4Cron} from './modules/ga4/auto-sync.js';
@@ -44,6 +45,7 @@ export function createApp(){
  app.use('/api',(_req,res,next)=>{res.set('Cache-Control','no-store');next();});
  app.get('/',(_req,res)=>res.json({service:'review-tracker-api',health:'/api/health'}));
  app.get('/api/health',(_req,res)=>res.json({ok:true}));
+ app.get('/api/tiktok/callback',tiktokCallback());
  app.get(['/api/google/callback','/auth/google/callback'],async(req,res,next)=>{
   res.set('Referrer-Policy','no-referrer');
   let result='error',reason=null;
@@ -95,6 +97,7 @@ export function createApp(){
  app.get('/api/google/locations',async(req,res,next)=>{try{res.json(await listLocations(req.query.account,typeof req.query.pageToken==='string'?req.query.pageToken:undefined));}catch(e){next(e);}});
  app.get('/api/session',(req,res)=>res.json({ok:true,user:req.user,expiresAt:req.expiresAt||null,mode:authMode()}));
  app.use('/api/facebook',createFacebookRouter());
+ app.use('/api/tiktok',createTikTokRouter());
  app.use('/api/instagram',createInstagramRouter());
  app.use('/api/ga4',createGa4Router());
  app.use('/api/bluejay',createBluejayRouter());
