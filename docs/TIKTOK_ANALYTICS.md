@@ -1,6 +1,6 @@
 # TikTok Sandbox integration
 
-Uses the existing Express backend, React Marketing dashboard, AES-GCM token helper, service-role-only marketing RPC and Supabase KV. No database schema migration, new project or package is required. One TikTok account is connected for the shared workspace; this is not a hotel-account mapping module.
+Uses the existing Express backend, React Marketing dashboard, AES-GCM token helper, service-role-only marketing RPC and Supabase KV. No database schema migration, new project or package is required. Five independent TikTok connections are available by location/brand. Existing single-account data stays under the explicit legacy connection; it is never guessed into a hotel.
 
 ## Configure
 
@@ -24,7 +24,7 @@ Keep existing FRONTEND_URL and TOKEN_ENCRYPTION_KEY. Never prefix TikTok secrets
 
 1. Open the deployed app and sign in as admin.
 2. Marketing & Tiếp cận → TikTok. Show the connection explanation and privacy link.
-3. Click **Connect TikTok**. This opens TikTok's real Login Kit authorization page.
+3. Select the location/brand and verify its expected @username. Click **Connect TikTok**. This opens TikTok's real Login Kit authorization page.
 4. Sign in with the Sandbox Target user and consent to the displayed scopes.
 5. TikTok redirects to the backend callback. The backend exchanges the code, encrypts and saves tokens, fetches the profile/videos, then returns to the TikTok dashboard.
 6. Show current followers, total account likes, public video count, video comparison chart and detail table. Click **Cập nhật TikTok** to show refresh without copying tokens.
@@ -34,16 +34,17 @@ Live consent and real data cannot be demonstrated until TikTok/Render credential
 
 ## API
 
-- `POST /api/tiktok/connect`: admin; returns authorize URL only.
+- `POST /api/tiktok/connect`: admin; requires JSON {locationKey}; returns authorize URL only.
 - `GET /api/tiktok/callback`: public one-use state callback, exchanges code and initially syncs. Redirect contains only a fixed status, never tokens or provider messages.
 - `GET /api/tiktok/status`: authenticated; configuration/connection flags, granted scopes and expiration metadata.
-- `GET /api/tiktok/report`: authenticated; saved safe report only, no live TikTok requests.
-- `POST /api/tiktok/sync`: admin/manager; refresh token when necessary, fetch and upsert report.
-- `POST /api/tiktok/disconnect`: admin; remote revoke attempt plus local deletion.
+- `GET /api/tiktok/report`: authenticated; saved safe reports for all locations, or filter with ?locationKey=...; no live TikTok requests.
+- `POST /api/tiktok/sync`: admin/manager; requires JSON {locationKey}; refresh token when necessary, fetch and upsert that location report.
+- `POST /api/tiktok/disconnect`: admin; requires JSON {locationKey}; remote revoke attempt plus deletion for that location only.
+- `POST /api/tiktok/sync-all`: admin/manager; updates connected accounts independently, preserves successful accounts when another fails.
 
 ## Storage and metric meaning
 
-Existing `review_tracker_marketing_set` stores two hash-namespaced records with its existing 366-day expiration: encrypted connection and account-isolated report. Only the existing service role can call this RPC. Daily follower/likes/video snapshots are upserted in the report, one per Vietnam date, retaining 90 observation days. Same-account reauthorization preserves history; switching accounts discards the previous report. A report is saved only after the requested API collection succeeds.
+Existing `review_tracker_marketing_set` stores two hash-namespaced records per location with its existing 366-day expiration: encrypted connection and account-isolated report. Only the existing service role can call this RPC. Daily follower/likes/video snapshots are upserted in the report, one per Vietnam date, retaining 90 observation days. Same-account reauthorization preserves history; switching accounts within the same location discards that location’s previous report. A TikTok open_id cannot be assigned to two locations. Username hints guide authorization; current scopes do not return username so users must verify the connected display name. A report is saved only after the requested API collection succeeds.
 
 Access tokens refresh on demand during sync, with token rotation persisted. An API invalid-token error receives at most one refresh/retry. Expired/revoked refresh tokens require reconnecting. There is no additional scheduled job in this change.
 
