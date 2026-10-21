@@ -1,0 +1,5 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {overviewTotal,overviewFacebook,overviewMetric} from '../../frontend/src/lib/marketing-overview.js';
+test('marketing overview retains partial coverage, genuine zero and absent values separately',()=>{assert.deepEqual(overviewTotal([{values:{views:0}},{values:{views:null}},{values:{views:12}}],'views'),{value:12,known:2,total:3});assert.equal(overviewTotal([{values:{}}],'views').value,null);assert.equal(overviewMetric({metrics:[{key:'views',value:0}]},'views'),0);assert.equal(overviewMetric(null,'views'),null);});
+test('marketing overview derives Facebook period counts without treating missing pages as zeros',()=>{const rows=overviewFacebook({hotels:[{page_id:'1',hotel_name:'Hotel A'},{page_id:'2',hotel_name:'Cafe B'}]},{days:[{page_id:'1',metric_date:'2026-10-20',media_views:12,post_engagements:0}]},{latest:[{page_id:'1',followers_count:20}]},'2026-10-14','2026-10-20');assert.equal(rows[0].values.views,12);assert.equal(rows[0].values.engagements,0);assert.equal(rows[1].values.views,null);assert.deepEqual(overviewTotal(rows,'followers'),{value:20,known:1,total:2});});
