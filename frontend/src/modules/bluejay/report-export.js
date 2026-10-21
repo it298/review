@@ -3,7 +3,7 @@ import {chartNumber,compactChartNumber,numeric,prepareSlices,layoutCircularLabel
 const ink='#624582',muted='#8a7895',line='#e9e1ef';
 const stamp=value=>value?new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'—';
 const format=(value,type)=>value==null?'—':type==='money'?chartNumber(value)+' ₫':type==='percent'?chartNumber(value)+'%':type==='number'?chartNumber(value):String(value);
-function name(report,ext){return (report.kind==='dashboard'?'dashboard-cong-suat':'dat-phong-'+(report.hotelId||'khach-san'))+'-'+report.from+'_'+report.to+'.'+ext;}
+function name(report,ext){return (report.kind==='dashboard'?'dashboard-cong-suat':report.kind==='revenue'?'doanh-thu':'dat-phong-'+(report.hotelId||'khach-san'))+'-'+report.from+'_'+report.to+'.'+ext;}
 function download(bytes,mime,filename){const url=URL.createObjectURL(new Blob([bytes],{type:mime})),link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 
 export async function createBluejayWorkbook(report){

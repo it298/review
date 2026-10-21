@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {api} from "../../lib/api.js";
 import "./bluejay.css";
 import Payables from './Payables.jsx';
+import Revenue from './Revenue.jsx';
 import {filterOccupancy} from './occupancy-filter.js';
 import DashboardCharts from './DashboardCharts.jsx';
 import {summarizeBookings} from './reservation-summary.js';
@@ -86,7 +87,7 @@ function SourceBadge({ source, savedAt }) {
   );
 }
 
-export default function BluejayModule(props){return props.tab==='payables'?<Payables user={props.user}/>:<CoreBluejayModule {...props}/>;}
+export default function BluejayModule(props){return props.tab==='revenue'?<Revenue user={props.user}/>:props.tab==='payables'?<Payables user={props.user}/>:<CoreBluejayModule {...props}/>;}
 function CoreBluejayModule({tab="dashboard",onTabChange}) {
   const setTab = onTabChange;
   const [hotels, setHotels] = useState([]);

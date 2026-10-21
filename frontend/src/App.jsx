@@ -5,7 +5,7 @@ import './modules/workspace.css';
 const ManagementReports=lazy(()=>import('./pages/ManagementReports.jsx'));
 const BluejayModule=lazy(()=>import('./modules/bluejay/BluejayModule.jsx'));
 const workspaceDate=new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
-const bluejayTitles={dashboard:'Dashboard công suất',occupancy:'Công suất chi tiết',reservations:'Đặt phòng',services:'Dịch vụ',payables:'Công nợ OTA',sync:'Đồng bộ Blue Jay'};
+const bluejayTitles={dashboard:'Dashboard công suất',occupancy:'Công suất chi tiết',reservations:'Đặt phòng',services:'Dịch vụ',revenue:'Doanh thu',payables:'Công nợ OTA',sync:'Đồng bộ Blue Jay'};
 import Sidebar from './components/Sidebar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Places from './pages/Places.jsx';
