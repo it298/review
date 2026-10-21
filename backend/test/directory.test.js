@@ -30,3 +30,8 @@ test('directory source links exclude executable URLs and embedded credentials',(
  assert.equal(safeSourceUrl('https://user:secret@example.com'),null);
  assert.equal(safeSourceUrl('https://www.trip.com/'),'https://www.trip.com/');
 });
+test('hotel view never inherits unmatched Google cafes or stores as hotels; explicit directory categories win',()=>{
+ const directory=[{entity_key:'hotel-a',name:'Hotel A',category:'hotel',relationship:'managed',google_place_id:1,sources:[]},{entity_key:'cafe-a',name:'Cafe A',category:'cafe',relationship:'managed',google_place_id:2,sources:[{source:'grab',property_id:'grab-cafe-a'}]},{entity_key:'store-a',name:'Store A',category:'store',relationship:'managed',google_place_id:3,sources:[]}];
+ const rows=directoryRows(directory,{places:[{id:1,name:'Hotel A'},{id:2,name:'Cafe A'},{id:3,name:'Store A'},{id:4,name:'Unmapped Cafe'},{id:5,name:'Cafe A'}],rows:[]},[{source:'grab',property_id:'grab-cafe-a',hotel_key:'legacy-alias',property_name:'Cafe A from Grab',rating:4.8},{source:'shopee',property_id:'unknown-store',property_name:'Unmapped Store'}],[]);
+ assert.deepEqual(rows.filter(r=>r.category==='hotel').map(r=>r.name),['Hotel A']);assert.equal(rows.filter(r=>r.category==='cafe').length,1);assert.equal(rows.filter(r=>r.category==='store').length,1);assert.equal(rows.filter(r=>r.category===null).length,3);assert.equal(rows.find(r=>r.key==='cafe-a').readings.grab.rating,4.8);assert.equal(rows.find(r=>r.key==='google:5').category,null,'matching a name does not authorize changing category or merging identities');
+});

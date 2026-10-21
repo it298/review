@@ -19,15 +19,16 @@ export function directoryRows(directory,data,summaries,targets){
  const rows=directory.map(e=>{const readings={};for(const s of e.sources||[]){if(s.rating!=null||s.review_count!=null||s.count_display||s.rank_position!=null||s.last_error)readings[s.source]={...s,rating_max:s.rating_max||platforms[s.source]?.scale,is_directory_summary:true};}return {...e,key:e.entity_key,sources:[...(e.sources||[])],readings};});
  for(const p of data.places){
   let row=rows.find(e=>e.google_place_id===p.id);
-  if(!row){row={key:'google:'+p.id,name:p.name,category:'hotel',relationship:'managed',google_place_id:p.id,sources:[],readings:{}};rows.push(row);}
+  if(!row){row={key:'google:'+p.id,name:p.name,category:Object.hasOwn(categories,p.category)?p.category:null,relationship:'managed',google_place_id:p.id,sources:[],readings:{}};rows.push(row);}
   const g=[...data.rows].reverse().find(r=>r.values[p.id])?.values[p.id];
   if(g)row.readings.google=mergeReading(row.readings.google,{rating:g.rating,rating_max:5,review_count:g.reviews,captured_at:g.capturedAt,collection_method:'google-api'});
  }
  const all=[...summaries,...targets.filter(t=>!summaries.some(s=>s.source===t.source&&s.property_id===t.property_id))];
  for(const source of all){
   const s={...source,...targets.find(t=>t.source===source.source&&t.property_id===source.property_id)};
-  let row=rows.find(e=>e.key===s.hotel_key)||(s.google_place_id?rows.find(e=>e.google_place_id===s.google_place_id):undefined);
-  if(!row){row={key:s.hotel_key||s.source+':'+s.property_id,name:s.property_name,category:'hotel',relationship:'managed',sources:[],readings:{}};rows.push(row);}
+  const sourceMatches=rows.filter(e=>e.sources.some(link=>!link.warning&&link.source===s.source&&link.property_id!=null&&String(link.property_id)===String(s.property_id)));
+  let row=rows.find(e=>e.key===s.hotel_key)||(s.google_place_id?rows.find(e=>e.google_place_id===s.google_place_id):undefined)||(sourceMatches.length===1?sourceMatches[0]:undefined);
+  if(!row){row={key:s.hotel_key||s.source+':'+s.property_id,name:s.property_name,category:Object.hasOwn(categories,s.category)?s.category:null,relationship:'managed',sources:[],readings:{}};rows.push(row);}
   row.readings[s.source]=mergeReading(row.readings[s.source],s);
   if(!row.sources.some(v=>v.source===s.source))row.sources.push({source:s.source,source_url:s.source_url});
  }
